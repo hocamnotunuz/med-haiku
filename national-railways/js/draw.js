@@ -302,6 +302,15 @@
         ctx.lineTo(x2, y2);
       }
       ctx.stroke();
+      if (l.grade === "high") {
+        // High-speed track: a dashed white stripe down the middle of the line
+        ctx.save();
+        ctx.lineWidth = Math.max(1.2, view.lw * 0.32);
+        ctx.strokeStyle = colors.station;
+        ctx.setLineDash([view.lw * 1.3, view.lw * 1.1]);
+        ctx.stroke();
+        ctx.restore();
+      }
     });
   }
 
@@ -347,7 +356,7 @@
       ctx.font = `700 11px ${MONO}`;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      halo(ctx, `${draft.cost} mi`, pointer.x + 16, pointer.y - 18, colors.ink, colors.land);
+      halo(ctx, NR.money(draft.cost), pointer.x + 16, pointer.y - 18, colors.ink, colors.land);
     }
   }
 
@@ -421,6 +430,19 @@
         ctx.stroke();
       }
 
+      if (s.rush && s.rush.at === st.id) {
+        // Rush hour: a turning dashed ring
+        ctx.save();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = colors.accent;
+        ctx.setLineDash([5, 4]);
+        ctx.lineDashOffset = -s.time * 12;
+        ctx.beginPath();
+        ctx.arc(x, y, r + 13, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       NR.shapePath(ctx, NR.PLACE_TYPES[c.type].shape, x, y, r);
       ctx.fillStyle = colors.station;
       ctx.fill();
@@ -439,29 +461,62 @@
     }
   }
 
+  // Each train type has its own outline: Regular is one car, Regional two cars,
+  // Commuter three boxy cars, High-speed and Bullet have a pointed nose.
+  function trainPath(ctx, type, L, H, nose) {
+    const x0 = -L / 2;
+    const x1 = L / 2;
+    const y0 = -H / 2;
+    const y1 = H / 2;
+    if (nose > 0) {
+      const k = H * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(x0 + k, y0);
+      ctx.lineTo(x1 - nose, y0);
+      ctx.quadraticCurveTo(x1, y0, x1, y1 * 0.25);
+      ctx.quadraticCurveTo(x1, y1, x1 - nose * 0.6, y1);
+      ctx.lineTo(x0 + k, y1);
+      ctx.arcTo(x0, y1, x0, y0, k);
+      ctx.arcTo(x0, y0, x0 + k, y0, k);
+      ctx.closePath();
+    } else roundRect(ctx, x0, y0, L, H, type === "commuter" ? H * 0.12 : H * 0.35);
+  }
+
   function drawTrains(ctx, s, segs) {
-    const L = view.r * (1.9 + 0.12 * s.seats);
     const H = view.r * 1.15;
-    const perRow = Math.ceil(s.seats / 2);
-    const dx = (L - H * 0.6) / perRow;
-    const dot = Math.max(1.2, Math.min(dx, H / 2) * 0.28);
     for (const tr of s.trains) {
       const l = NR.lineById(s, tr.lineId);
       if (!l) continue;
       const a = l.stops[tr.i];
       const b = l.stops[tr.moving ? tr.i + tr.dir : NR.nextStop(l, tr).n];
       if (!a || !b) continue;
+      const seats = NR.seatsOf(s, tr);
+      const nose = tr.type === "bullet" ? H * 1.6 : tr.type === "highspeed" ? H : 0;
+      const body = view.r * (1.9 + 0.12 * seats);
+      const L = body + nose;
+      const dx = (body - H * 0.6) / Math.ceil(seats / 2);
+      const dot = Math.max(1.2, Math.min(dx, H / 2) * 0.28);
       const [x1, y1, x2, y2] = segPoints(a, b, offsetFor(segs, a, b, l.id));
       const e = tr.moving ? ease(Math.min(1, tr.t)) : 0;
       ctx.save();
       ctx.translate(x1 + (x2 - x1) * e, y1 + (y2 - y1) * e);
       ctx.rotate(Math.atan2(y2 - y1, x2 - x1));
-      roundRect(ctx, -L / 2, -H / 2, L, H, H * 0.35);
+      trainPath(ctx, tr.type, L, H, nose);
       ctx.fillStyle = NR.lineColor(l.color);
       ctx.fill();
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = colors.station;
       ctx.stroke();
+      const cars = tr.type === "commuter" ? 3 : tr.type === "regional" ? 2 : 1;
+      if (cars > 1) {
+        ctx.beginPath();
+        for (let c = 1; c < cars; c++) {
+          const x = -L / 2 + (body * c) / cars;
+          ctx.moveTo(x, -H / 2);
+          ctx.lineTo(x, H / 2);
+        }
+        ctx.stroke();
+      }
       ctx.fillStyle = colors.station;
       tr.pax.forEach((p, i) => {
         ctx.beginPath();

@@ -268,7 +268,7 @@ button { font: inherit; color: inherit; }
 .toast {
   position: absolute;
   left: 50%;
-  bottom: 90px;
+  top: 90px;
   transform: translateX(-50%);
   width: max-content;
   max-width: calc(100% - 32px);
@@ -395,6 +395,45 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   border-radius: 999px;
   font-size: 0.82rem;
 }
+
+/* ---------- Money, trains and the train guide ---------- */
+.res-value.negative { color: var(--danger); }
+.line-panel { max-height: calc(100% - 200px); overflow-y: auto; }
+.lp-section {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.lp-trains { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.lp-trains li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.86rem; }
+.lp-trains .lp-empty { color: var(--muted); }
+.lp-buy { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
+.buy {
+  display: grid;
+  gap: 1px;
+  padding: 7px 9px;
+  text-align: left;
+  border: 1.5px solid var(--panel-line);
+  border-radius: 10px;
+  background: var(--panel);
+  cursor: pointer;
+}
+.buy:hover:not(:disabled) { border-color: var(--accent); }
+.buy:disabled { opacity: 0.5; cursor: not-allowed; }
+.buy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.buy-name { font-weight: 700; font-size: 0.86rem; }
+.buy-note { font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); }
+.week-news { font-weight: 700; }
+
+.guide summary { cursor: pointer; font-weight: 700; }
+.guide summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.train-guide { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.train-guide li { display: grid; gap: 1px; }
+.guide-name { font-weight: 700; font-size: 0.9rem; }
+.guide-text { font-size: 0.82rem; color: var(--muted); }
 
 @media (max-width: 520px) {
   .stat { min-width: 0; padding: 4px 8px 3px; }

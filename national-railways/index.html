@@ -30,8 +30,8 @@
     <div id="bar" class="bar">
       <div id="line-chips" class="chips" aria-label="Your lines"></div>
       <div class="resources">
-        <div class="res"><span class="res-label">Free trains</span><span id="trains-free" class="res-value">3</span></div>
-        <div class="res"><span class="res-label">Track left</span><span id="track-left" class="res-value">500 mi</span></div>
+        <div class="res"><span class="res-label">In depot</span><span id="trains-free" class="res-value">3</span></div>
+        <div class="res"><span class="res-label">Money</span><span id="money" class="res-value">$400k</span></div>
       </div>
       <div class="controls">
         <button id="btn-pause" class="icon-btn" type="button" aria-label="Pause"></button>
@@ -52,9 +52,12 @@
     </div>
     <p id="lp-meta" class="lp-meta"></p>
     <p id="lp-stops" class="lp-stops"></p>
+    <p class="lp-section">Trains on this line</p>
+    <ul id="lp-trains" class="lp-trains"></ul>
+    <p class="lp-section">Add a train</p>
+    <div id="lp-buy" class="lp-buy"></div>
     <div class="lp-actions">
-      <button id="lp-remove" class="btn btn-small" type="button">− Train</button>
-      <button id="lp-add" class="btn btn-small" type="button">+ Train</button>
+      <button id="lp-upgrade" class="btn btn-small" type="button">High-speed track</button>
       <button id="lp-delete" class="btn btn-small btn-danger" type="button">Delete line</button>
     </div>
   </div>
@@ -88,8 +91,14 @@
       <ul class="howto">
         <li><b>Build:</b> drag from one city to another to lay track. Keep dragging to add stops.</li>
         <li><b>Extend:</b> drag the tab at either end of a line.</li>
-        <li><b>Manage:</b> tap a line color at the bottom to add trains or delete the line.</li>
+        <li><b>Manage:</b> tap a line color at the bottom to add trains, upgrade to high-speed track, or delete the line.</li>
+        <li><b>Money:</b> track and trains cost money. Passengers pay a fare when they arrive, and trains cost a little to run each week.</li>
       </ul>
+
+      <details class="guide">
+        <summary>Train types</summary>
+        <ul id="train-guide" class="train-guide"></ul>
+      </details>
 
       <div class="actions">
         <button id="btn-start" class="btn btn-primary" type="button">Start new game</button>
@@ -103,8 +112,10 @@
   <section id="screen-week" class="overlay" aria-labelledby="week-title" hidden>
     <div class="card">
       <p id="week-eyebrow" class="eyebrow">Week 2</p>
-      <h2 id="week-title">A new train has arrived</h2>
-      <p>It joins your fleet now. Pick one more upgrade for the week ahead:</p>
+      <h2 id="week-title">A new Regular train has arrived</h2>
+      <p id="week-summary"></p>
+      <p id="week-news" class="week-news" hidden></p>
+      <p>The train is in your depot, or already running on a line that had none. Pick one more upgrade for the week ahead:</p>
       <div id="upgrade-list" class="upgrades"></div>
     </div>
   </section>

@@ -156,6 +156,13 @@
     NR.weekBonus(game);
     show("week");
     $("week-eyebrow").textContent = `Week ${week + 1}`;
+    const lw = game.lastWeek;
+    $("week-summary").textContent = lw
+      ? `Last week you earned ${NR.money(lw.income)} in fares and paid ${NR.money(lw.upkeep)} to run your trains.`
+      : "";
+    const fresh = Object.values(NR.TRAIN_TYPES).filter((t) => t.unlockWeek === week);
+    $("week-news").hidden = !fresh.length;
+    $("week-news").textContent = fresh.map((t) => `New: ${t.name} trains are now available. ${t.about}`).join(" ");
     const list = $("upgrade-list");
     list.textContent = "";
     NR.upgradeChoices(game).forEach((key) => {
@@ -186,7 +193,7 @@
     if (nextLv) {
       $("level-title").textContent = `${lv.name} is connected`;
       $("level-text").textContent =
-        `You delivered ${plural(game.delivered, "passenger")} and earned ${T.levelReward} more miles of track. ` +
+        `You delivered ${plural(game.delivered, "passenger")} and earned a ${NR.money(T.levelReward)} bonus. ` +
         `Next up: ${nextLv.name}. Reach ${nextLv.goal} passengers in total. These cities will start to appear:`;
       NR.CITIES.filter((c) => nextLv.regions.includes(c.region)).forEach((c) => {
         const li = document.createElement("li");
@@ -268,6 +275,9 @@
       else if (ev.type === "city") {
         fx.push({ kind: "city", at: ev.id, t0: now });
         toast(`${NR.cityById[ev.id].name} joined the map.`);
+      } else if (ev.type === "rush") {
+        fx.push({ kind: "city", at: ev.at, t0: now });
+        toast(`Rush hour in ${NR.cityById[ev.at].name}! Extra passengers for a few seconds. Commuter trains help.`);
       } else if (ev.type === "week") enqueue(() => openWeek(ev.week));
       else if (ev.type === "level") enqueue(openLevel);
       else if (ev.type === "fail") {
@@ -327,9 +337,10 @@
   }
 
   // ---------- Line options panel ----------
+  let panelSig = "";
   function openLinePanel(id) {
     openLineId = id;
-    $("lp-delete").textContent = "Delete line";
+    panelSig = "";
     $("lp-delete").dataset.armed = "";
     renderLinePanel();
     $("line-panel").hidden = false;
@@ -338,16 +349,76 @@
     openLineId = null;
     $("line-panel").hidden = true;
   }
+
+  // The panel is rebuilt only when something on it changes, so buttons stay put while you tap them.
   function renderLinePanel() {
     const line = game && NR.lineById(game, openLineId);
     if (!line) return closeLinePanel();
-    const n = NR.trainsOn(game, line).length;
+    const trains = NR.trainsOn(game, line);
+    const checks = Object.keys(NR.TRAIN_TYPES).map((k) => [k, NR.canAddTrain(game, line, k)]);
+    const upgradePrice = NR.highSpeedUpgradePrice(line);
+    const sig = JSON.stringify([
+      line.stops,
+      line.grade,
+      trains.map((t) => t.id),
+      checks.map(([k, c]) => [c.ok, c.reason, game.depot[k]]),
+      game.money >= upgradePrice,
+      game.extraSeats,
+    ]);
+    if (sig === panelSig) return;
+    panelSig = sig;
+
     $("lp-dot").style.background = `var(--line-${line.color + 1})`;
-    setText("lp-name", lineName(line.color));
-    setText("lp-meta", `${plural(line.stops.length, "stop")} · ${NR.lineMiles(line)} mi · ${plural(n, "train")}`);
-    setText("lp-stops", line.stops.map((id) => NR.cityById[id].name).join(" – "));
-    $("lp-add").disabled = game.freeTrains <= 0;
-    $("lp-remove").disabled = n <= 0;
+    $("lp-name").textContent = lineName(line.color);
+    $("lp-meta").textContent = `${plural(line.stops.length, "stop")} · ${NR.lineMiles(line)} mi · ${line.grade === "high" ? "high-speed" : "standard"} track`;
+    $("lp-stops").textContent = line.stops.map((id) => NR.cityById[id].name).join(" – ");
+
+    const list = $("lp-trains");
+    list.textContent = "";
+    if (!trains.length) {
+      const li = document.createElement("li");
+      li.className = "lp-empty";
+      li.textContent = "No trains yet. Add one below.";
+      list.appendChild(li);
+    }
+    trains.forEach((t) => {
+      const li = document.createElement("li");
+      const label = document.createElement("span");
+      label.textContent = `${NR.TRAIN_TYPES[t.type].name} · ${NR.seatsOf(game, t)} seats`;
+      li.append(
+        label,
+        button("To depot", "btn btn-small", () => {
+          NR.removeTrain(game, t.id);
+          renderLinePanel();
+        })
+      );
+      list.appendChild(li);
+    });
+
+    const buy = $("lp-buy");
+    buy.textContent = "";
+    checks.forEach(([key, c]) => {
+      const type = NR.TRAIN_TYPES[key];
+      const b = button("", "buy", () => {
+        if (NR.addTrain(game, line, key)) renderLinePanel();
+      });
+      b.disabled = !c.ok;
+      b.title = type.about;
+      const name = document.createElement("span");
+      name.className = "buy-name";
+      name.textContent = type.name;
+      const note = document.createElement("span");
+      note.className = "buy-note";
+      note.textContent = c.ok ? (c.fromDepot ? `From depot (${game.depot[key]})` : `Buy ${NR.money(type.price)}`) : c.reason;
+      b.append(name, note);
+      buy.appendChild(b);
+    });
+
+    const up = $("lp-upgrade");
+    up.hidden = line.grade === "high";
+    up.textContent = `Upgrade to high-speed track · ${NR.money(upgradePrice)}`;
+    up.disabled = game.money < upgradePrice;
+    if (!$("lp-delete").dataset.armed) $("lp-delete").textContent = `Delete line (get back ${NR.money(NR.lineValue(line) * T.refundShare)})`;
   }
 
   // ---------- Every frame ----------
@@ -370,8 +441,9 @@
     const modeName =
       game.mode === "levels" ? `Level ${game.level + 1}: ${NR.LEVELS[game.level].name}` : game.mode === "timed" ? "Timed challenge" : "Endless";
     setText("mode-label", `${modeName} · ${game.style === "type" ? "Type of place" : "Specific city"}`);
-    setText("trains-free", game.freeTrains);
-    setText("track-left", `${NR.trackLeft(game)} mi`);
+    setText("trains-free", NR.depotCount(game));
+    setText("money", NR.money(game.money));
+    $("money").classList.toggle("negative", game.money < 0);
     if (openLineId) renderLinePanel();
   }
 
@@ -403,9 +475,8 @@
     const top = $("hud-top").getBoundingClientRect().bottom - rect.top + 10;
     const barTop = $("bar").getBoundingClientRect().top - rect.top;
     NR.layout(w, h, dpr, { top, bottom: h - barTop + 10, left: 18, right: 18 });
-    const lift = `${h - barTop + 10}px`;
-    $("line-panel").style.bottom = lift;
-    $("toast").style.bottom = lift;
+    $("line-panel").style.bottom = `${h - barTop + 10}px`;
+    $("toast").style.top = `${top}px`; // messages sit under the score strip, clear of the buttons
   }
 
   // ---------- Drawing lines with a finger or the mouse ----------
@@ -419,16 +490,18 @@
     const lastId = chain[chain.length - 1];
     if (id === lastId) return;
     if (chain.length >= 2 && id === chain[chain.length - 2]) {
-      draft.cost -= NR.trackCost(id, lastId); // dragged back: undo the last stop
+      draft.cost -= NR.trackPrice(id, lastId, draft.grade); // dragged back: undo the last stop
       chain.pop();
       return;
     }
     if (chain.includes(id)) return;
     if (draft.kind === "extend" && NR.lineById(game, draft.lineId).stops.includes(id)) return;
-    const cost = NR.trackCost(lastId, id);
-    const left = NR.trackLeft(game) - draft.cost;
+    const cost = NR.trackPrice(lastId, id, draft.grade);
+    const left = game.money - draft.cost;
     if (cost > left) {
-      toast(`Not enough track: ${NR.cityById[lastId].name} to ${NR.cityById[id].name} needs ${cost} mi, and you have ${left} mi left.`);
+      toast(
+        `Not enough money: track from ${NR.cityById[lastId].name} to ${NR.cityById[id].name} costs ${NR.money(cost)}, and you have ${NR.money(Math.max(0, left))}.`
+      );
       return;
     }
     chain.push(id);
@@ -441,10 +514,14 @@
     draft = null;
     pointer = null;
     if (!game || d.chain.length < 2) return;
+    if (game.money < d.cost) {
+      toast(`Not enough money to build this: it costs ${NR.money(d.cost)}.`);
+      return;
+    }
     if (d.kind === "new") {
       if (NR.freeColor(game) !== d.color) return;
       const line = NR.createLine(game, d.chain, d.color);
-      if (!NR.trainsOn(game, line).length) toast(`The ${lineName(line.color)} has no train yet. Take one off another line, or wait for next week's train.`);
+      if (!NR.trainsOn(game, line).length) toast(`The ${lineName(line.color)} has no train yet. Tap its color at the bottom to add one.`);
     } else {
       const line = NR.lineById(game, d.lineId);
       if (line) NR.extendLine(game, line, d.atHead, d.chain.slice(1));
@@ -458,14 +535,14 @@
     const st = NR.hitStation(game, p.x, p.y, grab + 4);
     if (h && (!st || h.d < st.d)) {
       const line = NR.lineById(game, h.lineId);
-      draft = { kind: "extend", lineId: line.id, atHead: h.atHead, color: line.color, chain: [h.stationId], cost: 0 };
+      draft = { kind: "extend", lineId: line.id, atHead: h.atHead, color: line.color, grade: line.grade, chain: [h.stationId], cost: 0 };
     } else if (st) {
       const color = NR.freeColor(game);
       if (color < 0) {
         toast("Every line color is in use. Delete a line, or pick New line at the end of a week.");
         return;
       }
-      draft = { kind: "new", color, chain: [st.id], cost: 0 };
+      draft = { kind: "new", color, grade: "standard", chain: [st.id], cost: 0 };
     } else {
       closeLinePanel();
       return;
@@ -512,13 +589,12 @@
   });
   document.querySelectorAll('input[name="mode"], input[name="style"]').forEach((el) => el.addEventListener("change", updateBestLine));
 
-  $("lp-add").addEventListener("click", () => {
+  $("lp-upgrade").addEventListener("click", () => {
     const line = NR.lineById(game, openLineId);
-    if (line && NR.addTrain(game, line)) renderLinePanel();
-  });
-  $("lp-remove").addEventListener("click", () => {
-    const line = NR.lineById(game, openLineId);
-    if (line && NR.removeTrain(game, line)) renderLinePanel();
+    if (line && NR.upgradeLine(game, line)) {
+      renderLinePanel();
+      toast(`The ${lineName(line.color)} now has high-speed track. High-speed and Bullet trains can run on it.`);
+    }
   });
   $("lp-delete").addEventListener("click", () => {
     const btn = $("lp-delete");
@@ -559,11 +635,25 @@
   setFast(false);
   layout();
 
+  // The train guide on the start screen.
+  Object.values(NR.TRAIN_TYPES).forEach((t) => {
+    const li = document.createElement("li");
+    const name = document.createElement("span");
+    name.className = "guide-name";
+    name.textContent = `${t.name} · ${NR.money(t.price)}`;
+    const text = document.createElement("span");
+    text.className = "guide-text";
+    text.textContent = `${t.about} ${t.seats} seats.${t.unlockWeek ? ` From week ${t.unlockWeek + 1}.` : ""}`;
+    li.append(name, text);
+    $("train-guide").appendChild(li);
+  });
+
   // Keep the current game when the page is updated while it is open.
   function boot(data) {
     if (data && data.game) {
       try {
         game = NR.load(data.game);
+        if (game.v !== 2) throw new Error("Saved game is from an older version");
         levelSave = data.levelSave || NR.save(game);
         if (game.over) return openStart();
         renderLegend();
