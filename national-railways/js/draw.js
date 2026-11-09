@@ -2,8 +2,9 @@
 (function () {
   "use strict";
   const NR = window.NR;
-  const DISPLAY = '"Overpass", "Segoe UI", system-ui, sans-serif';
-  const MONO = '"Overpass Mono", ui-monospace, Menlo, monospace';
+  // Fonts for text on the map: from the --font-display and --font-mono tokens (they change with the look).
+  let DISPLAY = '"Overpass", "Segoe UI", system-ui, sans-serif';
+  let MONO = '"Overpass Mono", ui-monospace, Menlo, monospace';
   const COS = Math.cos((37.2 * Math.PI) / 180); // shrink longitude to match miles at California's latitude
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const ease = (t) => t * t * (3 - 2 * t);
@@ -13,6 +14,7 @@
   view.box = { top: 0, bottom: 0, left: 0, right: 0 };
   const pos = (NR.pos = {}); // screen position of every city
   let colors = { lines: [] };
+  let toon = false; // the cartoon look (js/cartoon.js)
 
   // Colors come from the CSS tokens in style.css, so light and dark themes both work.
   NR.readTheme = function () {
@@ -34,12 +36,17 @@
       work: get("--work"),
       station: get("--station"),
       ink: get("--ink"),
+      outline: get("--toon-outline") || get("--ink"), // cartoon outlines and shadows
       muted: get("--muted"),
       accent: get("--accent"),
       accentInk: get("--accent-ink"),
       danger: get("--danger"),
       lines: [1, 2, 3, 4, 5, 6, 7].map((n) => get("--line-" + n)),
     };
+    DISPLAY = get("--font-display") || DISPLAY;
+    MONO = get("--font-mono") || MONO;
+    toon = NR.cartoon.on();
+    NR.cartoon.readTheme();
   };
   NR.lineColor = (i) => colors.lines[i] || colors.ink;
 
@@ -154,7 +161,7 @@
     const w = Math.max(40, Math.max(...xs) - Math.min(...xs)) * 1.5;
     const h = Math.max(40, Math.max(...ys) - Math.min(...ys)) * 1.5;
     const b = view.box;
-    const z = clamp(Math.min((view.w - b.left - b.right) / w, (view.h - b.top - b.bottom) / h), 1, maxZoom);
+    const z = clamp(Math.min((view.w - b.left - b.right) / w, (view.h - b.top - b.bottom) / h), 1, Math.min(maxZoom, cam.max));
     const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
     const [vx, vy] = NR.viewCenter();
     NR.setCamera(z, vx - cx * z, vy - cy * z);
@@ -444,15 +451,17 @@
   }
 
   function drawLand(ctx, s, selected) {
-    ctx.beginPath();
-    NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
-    ctx.fillStyle = colors.land;
-    ctx.fill("evenodd");
-    // Shaded mountains, only on land
-    ctx.save();
-    ctx.clip("evenodd");
-    drawRelief(ctx, NR.TERRAIN.relief, NR.toScreen, colors.relief);
-    ctx.restore();
+    if (!toon) {
+      ctx.beginPath();
+      NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
+      ctx.fillStyle = colors.land;
+      ctx.fill("evenodd");
+      // Shaded mountains, only on land
+      ctx.save();
+      ctx.clip("evenodd");
+      drawRelief(ctx, NR.TERRAIN.relief, NR.toScreen, colors.relief);
+      ctx.restore();
+    }
     if (s) {
       // Counties you don't own yet are shaded.
       ctx.beginPath();
@@ -468,24 +477,38 @@
       });
       ctx.fill("evenodd");
     }
-    drawWaterways(ctx);
-    // County borders
+    if (!toon) drawWaterways(ctx);
+    // County borders (dotted in the cartoon look)
     ctx.beginPath();
     NR.MAP.borders.forEach((line) => tracePath(ctx, line, false));
     ctx.strokeStyle = colors.county;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = toon ? 1.4 : 1;
     ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    if (toon) ctx.setLineDash([0.1, 4]);
     ctx.stroke();
-    // Coastline, then the borders between states (thicker)
+    ctx.setLineDash([]);
+    // Coastline, then the borders between states (thicker; dashed in the cartoon look)
     ctx.beginPath();
     NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
     ctx.strokeStyle = colors.coast;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = toon ? 2.2 : 1.5;
     ctx.stroke();
     ctx.beginPath();
     NR.MAP.stateBorders.forEach((line) => tracePath(ctx, line, false));
-    ctx.lineWidth = 3;
-    ctx.stroke();
+    if (toon) {
+      ctx.strokeStyle = colors.land;
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      ctx.strokeStyle = colors.coast;
+      ctx.lineWidth = 2.4;
+      ctx.setLineDash([7, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else {
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
     if (!s) return;
     // Counties you can unlock now: a dashed outline. The county you tapped: a solid one.
     ctx.save();
@@ -642,6 +665,20 @@
   function drawLines(ctx, s, segs) {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    if (toon) {
+      // Cartoon look: a dark outline under all the lines first
+      ctx.lineWidth = view.lw + 4;
+      ctx.strokeStyle = colors.outline;
+      ctx.beginPath();
+      s.lines.forEach((l) => {
+        for (let i = 0; i + 1 < l.stops.length; i++) {
+          const [x1, y1, x2, y2] = segPoints(l.stops[i], l.stops[i + 1], offsetFor(segs, l.stops[i], l.stops[i + 1], l.id));
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+        }
+      });
+      ctx.stroke();
+    }
     ctx.lineWidth = view.lw;
     s.lines.forEach((l) => {
       ctx.strokeStyle = NR.lineColor(l.color);
@@ -682,6 +719,11 @@
       ctx.arc(h.x, h.y, r, 0, Math.PI * 2);
       ctx.fillStyle = color;
       ctx.fill();
+      if (toon) {
+        ctx.strokeStyle = colors.outline;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
       ctx.strokeStyle = colors.panel;
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -976,11 +1018,17 @@
         ctx.restore();
       }
 
+      if (toon) {
+        // Cartoon look: a solid shadow just below the station
+        NR.shapePath(ctx, NR.PLACE_TYPES[c.type].shape, x, y + Math.max(2.5, r * 0.35), r + 1);
+        ctx.fillStyle = colors.outline;
+        ctx.fill();
+      }
       NR.shapePath(ctx, NR.PLACE_TYPES[c.type].shape, x, y, r);
       ctx.fillStyle = colors.station;
       ctx.fill();
       ctx.lineWidth = Math.max(2, r * 0.3);
-      ctx.lineJoin = "miter";
+      ctx.lineJoin = toon ? "round" : "miter";
       ctx.strokeStyle = colors.ink;
       ctx.stroke();
 
@@ -1162,8 +1210,8 @@
         ctx.stroke();
       }
       ctx.restore();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = tr.type === "work" ? colors.ink : colors.station;
+      ctx.lineWidth = toon ? 2 : 1.5;
+      ctx.strokeStyle = toon ? colors.outline : tr.type === "work" ? colors.ink : colors.station;
       ctx.stroke();
       const isCargo = (NR.TRAIN_TYPES[tr.type].carries || []).length > 0;
       const cars = isCargo ? 4 : tr.type === "commuter" ? 3 : tr.type === "regional" || tr.type === "night" ? 2 : 1;
@@ -1362,16 +1410,19 @@
       ctx.beginPath();
       ctx.rect(tl[0], tl[1], br[0] - tl[0], br[1] - tl[1]);
       ctx.clip();
-      ctx.fillStyle = colors.land;
-      ctx.fillRect(tl[0], tl[1], br[0] - tl[0], br[1] - tl[1]);
-      NR.drawRelief(ctx, geo.relief, cityPt, colors.relief);
-      ctx.beginPath();
-      geo.water.forEach((ring) => traceCity(ctx, ring, true));
-      ctx.fillStyle = colors.sea;
-      ctx.fill("evenodd");
-      ctx.strokeStyle = colors.coast;
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
+      if (toon) NR.cartoon.drawCity(ctx, key, cityPt);
+      else {
+        ctx.fillStyle = colors.land;
+        ctx.fillRect(tl[0], tl[1], br[0] - tl[0], br[1] - tl[1]);
+        NR.drawRelief(ctx, geo.relief, cityPt, colors.relief);
+        ctx.beginPath();
+        geo.water.forEach((ring) => traceCity(ctx, ring, true));
+        ctx.fillStyle = colors.sea;
+        ctx.fill("evenodd");
+        ctx.strokeStyle = colors.coast;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
       ctx.restore();
       ctx.beginPath();
       ctx.rect(0, 0, view.w, view.h);
@@ -1586,7 +1637,8 @@
       NR.resetCamera();
     }
     updatePositions();
-    drawGraticule(ctx);
+    if (toon) NR.cartoon.drawState(ctx);
+    else drawGraticule(ctx);
     drawLand(ctx, s, ui.county);
     if (!s) {
       drawPreview(ctx);

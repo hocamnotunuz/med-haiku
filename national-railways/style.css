@@ -616,3 +616,194 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
 
 /* ---------- After a game over: back to the results card ---------- */
 .results-btn { position: absolute; left: 50%; top: 96px; transform: translateX(-50%); z-index: 7; box-shadow: 0 8px 28px var(--shadow); }
+
+/* ---------- Arcade look (the default; Settings > Look > Classic turns it off) ----------
+   A cartoon map and chunky, outlined panels. The map's own colors are the --toon-* tokens. */
+:root:not([data-look="classic"]) {
+  --sea: #49b9f2;
+  --grid: #49b9f2;
+  --land: #c8e88f;
+  --coast: #23233f;
+  --county: rgba(35, 35, 63, 0.5);
+  --county-text: #3f5a26;
+  --locked: rgba(255, 252, 242, 0.52);
+  --river: #3aa6f5;
+  --night: rgba(24, 20, 90, 0.3);
+  --work: #ffd21a;
+  --produce: #2fa84f;
+  --container: #e0662e;
+  --truck: #6b7a99;
+  --station: #ffffff;
+  --ink: #23233f;
+  --muted: #4c5072;
+  --panel: #ffffff;
+  --panel-line: #23233f;
+  --scrim: rgba(35, 35, 63, 0.45);
+  --shadow: rgba(35, 35, 63, 0.25);
+  --accent: #ff3f96;
+  --accent-ink: #ffffff;
+  --danger: #ff3b30;
+  --line-1: #ffbe0b;
+  --line-2: #f2463c;
+  --line-3: #2f7bff;
+  --line-4: #1fb35b;
+  --line-5: #ff7f1f;
+  --line-6: #9b5cff;
+  --line-7: #00bfb3;
+  --chip-ink: #ffffff;
+  --font-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --font-mono: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  /* The cartoon map */
+  --toon-outline: #23233f;
+  --toon-shallow: #8fdcff;
+  --toon-foam: #c4edff;
+  --toon-wave: rgba(255, 255, 255, 0.8);
+  --toon-sand: #f6dc95;
+  --toon-outside: #dde6c9;
+  --toon-hills: rgba(70, 110, 20, 0.16);
+  --toon-mountains: rgba(130, 85, 30, 0.2);
+  --toon-peaks: rgba(255, 255, 255, 0.5);
+  --toon-terrace-edge: rgba(35, 35, 63, 0.2);
+  --toon-green: #6bbd4f;
+  --toon-green-shade: #48943a;
+  --toon-brown: #dba468;
+  --toon-brown-shade: #b37843;
+  --toon-rock: #aeb6dc;
+  --toon-rock-shade: #8189bb;
+  --toon-snow: #ffffff;
+  --toon-tree: #2f9a4c;
+  --toon-tree-shade: #217a3a;
+  --toon-trunk: #8a5a2b;
+  --toon-cactus: #3fae5a;
+  --toon-sage: #9bb25e;
+  --toon-bush: #5c9f45;
+  --toon-lake: #49b9f2;
+  --toon-river-edge: #1e6fb8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-look="classic"]):not([data-theme="light"]) {
+    --sea: #1b2d6b;
+    --grid: #1b2d6b;
+    --land: #2d5c40;
+    --coast: #070a1c;
+    --county: rgba(220, 235, 255, 0.35);
+    --county-text: #b6d9a8;
+    --locked: rgba(8, 10, 32, 0.5);
+    --river: #3f86e0;
+    --night: rgba(0, 0, 24, 0.35);
+    --station: #1d2150;
+    --ink: #f4f2ff;
+    --muted: #b0b5dc;
+    --panel: #1d2150;
+    --panel-line: #070a1c;
+    --scrim: rgba(4, 6, 20, 0.65);
+    --shadow: rgba(0, 0, 0, 0.5);
+    --accent: #ff5fa8;
+    --accent-ink: #1a0610;
+    --chip-ink: #0b0f24;
+    --toon-outline: #070a1c;
+    --toon-shallow: #27448f;
+    --toon-foam: #3354a6;
+    --toon-wave: rgba(170, 200, 255, 0.35);
+    --toon-sand: #75613a;
+    --toon-outside: #2b3b36;
+    --toon-hills: rgba(0, 0, 0, 0.14);
+    --toon-mountains: rgba(0, 0, 0, 0.18);
+    --toon-peaks: rgba(255, 255, 255, 0.12);
+    --toon-terrace-edge: rgba(0, 0, 0, 0.35);
+    --toon-green: #449a4f;
+    --toon-green-shade: #2e723a;
+    --toon-brown: #a2714a;
+    --toon-brown-shade: #7a4f30;
+    --toon-rock: #7480b2;
+    --toon-rock-shade: #525b8f;
+    --toon-snow: #e4eaff;
+    --toon-tree: #2c8046;
+    --toon-tree-shade: #1d5c32;
+    --toon-trunk: #6b4524;
+    --toon-cactus: #3b9452;
+    --toon-sage: #82946c;
+    --toon-bush: #3f7a37;
+    --toon-lake: #2449a0;
+    --toon-river-edge: #0d1d4f;
+    color-scheme: dark;
+  }
+}
+:root:not([data-look="classic"])[data-theme="dark"] {
+  --sea: #1b2d6b;
+  --grid: #1b2d6b;
+  --land: #2d5c40;
+  --coast: #070a1c;
+  --county: rgba(220, 235, 255, 0.35);
+  --county-text: #b6d9a8;
+  --locked: rgba(8, 10, 32, 0.5);
+  --river: #3f86e0;
+  --night: rgba(0, 0, 24, 0.35);
+  --station: #1d2150;
+  --ink: #f4f2ff;
+  --muted: #b0b5dc;
+  --panel: #1d2150;
+  --panel-line: #070a1c;
+  --scrim: rgba(4, 6, 20, 0.65);
+  --shadow: rgba(0, 0, 0, 0.5);
+  --accent: #ff5fa8;
+  --accent-ink: #1a0610;
+  --chip-ink: #0b0f24;
+  --toon-outline: #070a1c;
+  --toon-shallow: #27448f;
+  --toon-foam: #3354a6;
+  --toon-wave: rgba(170, 200, 255, 0.35);
+  --toon-sand: #75613a;
+  --toon-outside: #2b3b36;
+  --toon-hills: rgba(0, 0, 0, 0.14);
+  --toon-mountains: rgba(0, 0, 0, 0.18);
+  --toon-peaks: rgba(255, 255, 255, 0.12);
+  --toon-terrace-edge: rgba(0, 0, 0, 0.35);
+  --toon-green: #449a4f;
+  --toon-green-shade: #2e723a;
+  --toon-brown: #a2714a;
+  --toon-brown-shade: #7a4f30;
+  --toon-rock: #7480b2;
+  --toon-rock-shade: #525b8f;
+  --toon-snow: #e4eaff;
+  --toon-tree: #2c8046;
+  --toon-tree-shade: #1d5c32;
+  --toon-trunk: #6b4524;
+  --toon-cactus: #3b9452;
+  --toon-sage: #82946c;
+  --toon-bush: #3f7a37;
+  --toon-lake: #2449a0;
+  --toon-river-edge: #0d1d4f;
+  color-scheme: dark;
+}
+/* Chunky outlined panels and buttons that press down */
+:root:not([data-look="classic"]) :is(.stat, .bar, .line-panel, .card, .toast, .zoom-controls .icon-btn) {
+  border: 2.5px solid var(--toon-outline);
+  box-shadow: 0 5px 0 var(--toon-outline);
+}
+:root:not([data-look="classic"]) :is(.btn, .icon-btn, .option, .upgrade, .buy, .mode-pick, .ct-item, .bp-state, .head-chip) {
+  border: 2px solid var(--toon-outline);
+  box-shadow: 0 3px 0 var(--toon-outline);
+}
+:root:not([data-look="classic"]) :is(.btn, .icon-btn, .upgrade, .buy, .chip):active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--toon-outline);
+}
+:root:not([data-look="classic"]) .stat { border-radius: 14px; }
+:root:not([data-look="classic"]) .bar { border-radius: 22px; }
+:root:not([data-look="classic"]) :is(.card, .line-panel) { border-radius: 22px; }
+:root:not([data-look="classic"]) .btn { border-radius: 14px; font-weight: 600; }
+:root:not([data-look="classic"]) .chip { border: 2.5px solid var(--toon-outline); box-shadow: 0 3px 0 var(--toon-outline); }
+:root:not([data-look="classic"]) .chip.free { border: 2.5px dashed var(--toon-outline); box-shadow: none; }
+:root:not([data-look="classic"]) .brand-name {
+  font-weight: 700;
+  font-size: 1.35rem;
+  color: var(--accent);
+  -webkit-text-stroke: 1px var(--toon-outline);
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 var(--toon-outline);
+}
+:root:not([data-look="classic"]) :is(.stat-label, .res-label, .mode-label) { font-weight: 600; letter-spacing: 0.04em; }
+:root:not([data-look="classic"]) :is(.stat-value, .res-value) { font-weight: 700; font-size: 1.15rem; }
+:root:not([data-look="classic"]) .toast { background: var(--line-1); color: #23233f; font-weight: 600; border-radius: 999px; }
+:root:not([data-look="classic"]) :is(h1, h2, .lp-name, .upgrade-title) { font-weight: 700; }
