@@ -17,14 +17,17 @@ This folder holds the single-file prototype that is published as a claude.ai art
 
 1. **Statues until touched.** Standing bricks are not in the physics engine at all. Only bricks near
    something moving get a temporary collider.
-2. **Support map.** Every touching pair of bricks is a joint with a strength. A structure check
-   finds bricks that no longer reach the ground and passes each brick's weight down to the bricks
-   holding it. Overloaded joints break, crushed bricks crumble to dust, unsupported parts fall.
-3. **Chunks.** Parts that break off fall as chunks of up to 32 bricks, with touching bricks merged
+2. **Support map.** Every touching pair of bricks is a joint with a strength. Support only flows
+   the way gravity works: up through bricks resting on bricks, and sideways for a limited reach
+   (stone 3 bricks, wood 5, metal 8). Weight is passed down to the best-supported bricks, so it
+   arches around holes. Bricks out of reach fall, and overhanging joints snap under too much weight.
+3. **Toppling.** Towers and the keep fall over when a row keeps less than 45% of its footing, or
+   when the weight above no longer sits over what is left. They tip toward the damaged side.
+4. **Chunks.** Parts that break off fall as chunks of up to 32 bricks, with touching bricks merged
    into a few collision boxes. Chunks split further when they land hard.
-4. **Budget.** Pieces that come to rest are frozen as rubble. When too many pieces move at once,
+5. **Budget.** Pieces that come to rest are frozen as rubble. When too many pieces move at once,
    the calmest are frozen first and extra broken bricks crumble to dust.
-5. **Two engines.** Rapier (WebAssembly) is used when the device allows it, otherwise cannon-es
+6. **Two engines.** Rapier (WebAssembly) is used when the device allows it, otherwise cannon-es
    (plain JavaScript) takes over automatically.
 
 ## Measured on the test machine (desktop CPU, headless browser)
@@ -35,6 +38,13 @@ This folder holds the single-file prototype that is published as a claude.ai art
 | Colossal | 40,727 | 153,583 | about 19 ms |
 
 Phones will be slower. Use the performance panel to measure real devices.
+
+## Damage feel (medium castle, automated tests)
+
+- One cannonball anywhere: 0.3 to 3% of the castle falls. No single shot topples a tower.
+- A tower topples after 2 to 3 cannonballs or 2 to 3 bombs at its base.
+- A well-aimed game reaches 37 to 56% (1 to 2 stars); the large castle about 42%.
+- Weapons grow with castle size so large castles take a similar number of shots.
 
 ## Next steps
 
