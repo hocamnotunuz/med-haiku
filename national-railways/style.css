@@ -807,3 +807,11 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
 :root:not([data-look="classic"]) :is(.stat-value, .res-value) { font-weight: 700; font-size: 1.15rem; }
 :root:not([data-look="classic"]) .toast { background: var(--line-1); color: #23233f; font-weight: 600; border-radius: 999px; }
 :root:not([data-look="classic"]) :is(h1, h2, .lp-name, .upgrade-title) { font-weight: 700; }
+/* Picked and highlighted things keep their pink edge in the Arcade look */
+:root:not([data-look="classic"]) .option:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 3px 0 var(--accent), inset 0 0 0 1px var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+}
+:root:not([data-look="classic"]) :is(.upgrade, .buy:not(:disabled)):hover,
+:root:not([data-look="classic"]) :is(.ct-item.done, .head-chip.settling) { border-color: var(--accent); }

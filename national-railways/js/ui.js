@@ -49,7 +49,7 @@
       }
     },
   };
-  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle" }, store.get("nr-settings", {}));
+  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle", look: "arcade" }, store.get("nr-settings", {}));
   const best = store.get("nr-best", {});
 
   // ---------- What is happening right now ----------
@@ -165,9 +165,11 @@
     const mode = document.querySelector(`input[name="mode"][value="${settings.mode}"]`);
     const style = document.querySelector(`input[name="style"][value="${settings.style}"]`);
     const geo = document.querySelector(`input[name="geo"][value="${settings.geo}"]`);
+    const look = document.querySelector(`input[name="look"][value="${settings.look}"]`);
     if (mode) mode.checked = true;
     if (style) style.checked = true;
     if (geo) geo.checked = true;
+    if (look) look.checked = true;
     updateBestLine();
   }
 
@@ -1681,10 +1683,20 @@
     if (document.hidden && game && !screen && !game.over) setPaused(true);
   });
 
-  // ---------- Light and dark themes ----------
+  // ---------- Light and dark themes, and the look (Arcade cartoon or Classic) ----------
+  // The look changes as soon as you pick it in Settings, and is remembered in this browser.
+  const applyLook = () => (document.documentElement.dataset.look = settings.look === "classic" ? "classic" : "arcade");
+  applyLook();
+  document.querySelectorAll('input[name="look"]').forEach((input) =>
+    input.addEventListener("change", () => {
+      settings.look = input.value;
+      store.set("nr-settings", settings);
+      applyLook();
+    })
+  );
   NR.readTheme();
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", NR.readTheme);
-  new MutationObserver(NR.readTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  new MutationObserver(NR.readTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-look"] });
 
   // ---------- Start ----------
   new ResizeObserver(layout).observe(app);

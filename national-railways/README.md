@@ -15,9 +15,18 @@ Four states share one map: **California, Nevada, Arizona and Oregon**, divided i
 
 Every region has one main station at its biggest city, with a few exceptions to keep stations apart or names clear: Yuba County uses Wheatland (its larger towns sit across the river from Yuba City), Clackamas County uses Oregon City (Lake Oswego is right next to Portland), and Pinal County uses Casa Grande (the city of Maricopa shares its name with Maricopa County). Regions outside California are named with their state, like "Clark County, Nevada".
 
+### Two looks: Arcade and Classic
+
+**Settings → Look** on the start screen switches between two ways of drawing the game. The choice changes the picture only, never the rules, and is remembered in your browser.
+
+- **Arcade** (the default): a cartoon map. Hills and mountains are flat layers with little peaks on top: green where the real mountains are forested (Sierra Nevada, Cascades, Coast Ranges), brown where they are dry, with snowcaps on the highest. Forests have pine trees; the deserts are sandy, with cacti in the hot south (Mojave, Sonoran), sagebrush in the cooler north (Great Basin, Oregon's high desert) and red-rock mesas. The sea has waves and every coast a band of shallow water; rivers and lakes are outlined. Lines, stations and trains have dark outlines, and the buttons are chunky. Counties you don't own yet sit under a light fog.
+- **Classic**: a calm atlas-style map with shaded relief.
+
+Both looks have a light and a dark version that follow your device.
+
 ### Real geography
 
-The map shows real mountains (shaded relief from elevation data), lakes, rivers, mountain passes (⌃) and real bridges (=). Zoom in to see the names. They change what track costs and how fast trains go:
+The map shows real mountains (cartoon peaks in the Arcade look, shaded relief in Classic), lakes, rivers, mountain passes (⌃) and real bridges (=). Zoom in to see the names. They change what track costs and how fast trains go:
 
 - **Hills** cost a little more and slow trains a little.
 - **Mountains** must be crossed **over a real pass** (Donner Pass, Cajon Pass, Tejon Pass, Siskiyou Summit, Santiam Pass and about 120 more) or **through a tunnel**. Over a pass, track costs more and trains slow down on the climb. A tunnel costs much more but trains keep their speed. Some ranges are too wide to tunnel: the game tells you which passes are nearest. Later, **Dig tunnels under the passes** in a line's panel speeds its trains up.
@@ -193,7 +202,7 @@ Tap the **clipboard** on the bottom bar.
 | File | What it does |
 | --- | --- |
 | `index.html` | The page: screens, buttons and the map area. |
-| `style.css` | Colors, fonts and layout (light and dark themes). |
+| `style.css` | Colors, fonts and layout (light and dark themes, Arcade and Classic looks). |
 | `js/map.js` | The land, state and county borders, and county regions of all four states. Generated: do not edit by hand. |
 | `js/terrain.js` | Real geography: the mountains grid, lakes, rivers, passes, bridges, and each city's hills and water. Generated: do not edit by hand. |
 | `img/relief*.png` | Shaded relief (mountain shading) for the state map and each city map. Generated. |
@@ -203,6 +212,7 @@ Tap the **clipboard** on the bottom bar.
 | `tools/build-terrain.js` | Rebuilds the geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. The list of passes and bridges is in this file. |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
 | `js/metro.js` | City maps: neighborhoods, trams, metro and cable cars. |
+| `js/cartoon.js` | The Arcade look's cartoon map: hills, peaks, trees, cacti, waves, rivers and lakes, drawn from the terrain file. |
 | `js/draw.js` | Draws the map, lines, stations and trains. |
 | `js/ui.js` | Menus, buttons, touch/mouse input and the game loop. |
 
