@@ -177,10 +177,12 @@ select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--rule
     <dt>Frame time</dt><dd id="sFrame">–</dd>
     <dt>Physics</dt><dd id="sPhys">–</dd>
     <dt>Structure check</dt><dd id="sStruct">–</dd>
+    <dt>Drawing</dt><dd id="sDraw">–</dd>
     <dt>Moving pieces</dt><dd id="sBodies">–</dd>
     <dt>Colliders near action</dt><dd id="sProxies">–</dd>
     <dt>Bricks standing</dt><dd id="sStanding">–</dd>
     <dt>Physics engine</dt><dd id="sEngine">–</dd>
+    <dt>Picture</dt><dd id="sQuality">–</dd>
   </dl>
   <p class="note">Smooth play is 50–60 frames per second. Under 30 feels choppy.</p>
 </aside>
@@ -265,6 +267,7 @@ select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--rule
   <div class="field">
     <label for="qualitySet">Picture sharpness</label>
     <select id="qualitySet">
+      <option value="auto">Automatic (adjusts to this device)</option>
       <option value="saver">Battery saver</option>
       <option value="balanced">Balanced</option>
       <option value="sharp">Sharp</option>
@@ -340,12 +343,15 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
    Settings (remembered on this device only)
    ===================================================================== */
 const settings = {
-  sizeIdx: 2, style: 'brick', shadows: true, quality: isTouch ? 'balanced' : 'sharp', engine: 'auto',
+  v: 2, sizeIdx: 2, style: 'brick', shadows: true, quality: 'auto', engine: 'auto',
   unlimited: false, sound: true, maxBodies: isTouch ? 400 : 900,
 };
 try {
   const saved = JSON.parse(localStorage.getItem('brickfall.settings') || 'null');
-  if (saved && typeof saved === 'object') Object.assign(settings, saved);
+  if (saved && typeof saved === 'object') {
+    if ((saved.v || 1) < 2) { saved.quality = 'auto'; saved.v = 2; }
+    Object.assign(settings, saved);
+  }
 } catch (e) { /* storage unavailable */ }
 function saveSettings() { try { localStorage.setItem('brickfall.settings', JSON.stringify(settings)); } catch (e) { /* ignore */ } }
 
@@ -682,6 +688,7 @@ function breakAllBonds(i) {
    connection overloaded by the weight resting on it?
    ===================================================================== */
 const buckets = [];
+const supK = new Int32Array(64), supJ = new Int32Array(64), supC = new Float32Array(64), supW = new Float32Array(64);
 const dbg = { shear: 0, comp: 0, tens: 0, crushed: 0, detached: 0, passes: 0, topples: 0 };
 // How many bricks sideways each material can reach out with nothing underneath it.
 let REACH = [5, 3, 8]; // sideways reach in pieces; giant blocks reach 1 block (1.6 m), bricks 3 (2.4 m)
@@ -740,26 +747,26 @@ function solveStructure(measure) {
   for (let q = 0; q < nOrder; q++) {
     const i = sorted[q], di = dist[i];
     if (anch[i]) continue; // rests on the ground
-    let sumW = 0;
+    let sumW = 0, ns = 0;
     for (let e = adjStart[i]; e < adjStart[i + 1]; e++) {
       const k = adjList[e]; if (bBroken[k]) continue;
       const j = bA[k] === i ? bB[k] : bA[k];
       if (state[j] !== S_STATIC || dist[j] === INF) continue;
-      if (bVert[k] ? (py[j] < py[i] && dist[j] <= di) : dist[j] < di) sumW += bondCap(k, i, j) / (1 + dist[j]);
+      if (bVert[k] ? (py[j] < py[i] && dist[j] <= di) : dist[j] < di) {
+        if (ns >= 64) break;
+        const cap = bondCap(k, i, j), w = cap / (1 + dist[j]);
+        supK[ns] = k; supJ[ns] = j; supC[ns] = cap; supW[ns] = w; sumW += w; ns++;
+      }
     }
     if (sumW <= 0) continue;
     const ld = loadArr[i];
-    for (let e = adjStart[i]; e < adjStart[i + 1]; e++) {
-      const k = adjList[e]; if (bBroken[k]) continue;
-      const j = bA[k] === i ? bB[k] : bA[k];
-      if (state[j] !== S_STATIC || dist[j] === INF) continue;
-      if (!(bVert[k] ? (py[j] < py[i] && dist[j] <= di) : dist[j] < di)) continue;
-      const cap = bondCap(k, i, j), share = ld * (cap / (1 + dist[j])) / sumW;
+    for (let n = 0; n < ns; n++) {
+      const k = supK[n], share = ld * supW[n] / sumW;
       // Only sideways joints snap under weight. Stone resting on stone does not crush:
       // castles fall because parts lose what is underneath them, not because bricks burst.
       if (measure) { if (share * 1.5 > bCalib[k]) bCalib[k] = share * 1.5; }
-      else if (!bVert[k] && share > cap) { bBroken[k] = 1; broke++; dbg.shear++; }
-      loadArr[j] += share;
+      else if (!bVert[k] && share > supC[n]) { bBroken[k] = 1; broke++; dbg.shear++; }
+      loadArr[supJ[n]] += share;
     }
   }
   return { detached, broke, crushed };
@@ -1059,10 +1066,10 @@ function groundTexture() {
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
   return tex;
 }
-const groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), new THREE.MeshStandardMaterial({ map: groundTexture(), roughness: 1 }));
+const groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), new THREE.MeshLambertMaterial({ map: groundTexture() }));
 groundMesh.rotation.x = -Math.PI / 2; groundMesh.receiveShadow = true;
 scene.add(groundMesh);
-const dirtMesh = new THREE.Mesh(new THREE.CircleGeometry(1, 64), new THREE.MeshStandardMaterial({ color: 0x8a7656, roughness: 1, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+const dirtMesh = new THREE.Mesh(new THREE.CircleGeometry(1, 64), new THREE.MeshLambertMaterial({ color: 0x8a7656, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
 dirtMesh.rotation.x = -Math.PI / 2; dirtMesh.position.y = 0.002; dirtMesh.receiveShadow = true;
 scene.add(dirtMesh);
 
@@ -1076,10 +1083,11 @@ const flashLight = new THREE.PointLight(0xffa04a, 0, 30, 1.6);
 scene.add(flashLight);
 
 const brickGeo = new THREE.BoxGeometry(1, 1, 1);
+// Matte surfaces use the cheaper Lambert lighting model: it looks the same on rough stone and wood
 const brickMats = [
-  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, metalness: 0 }),
-  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.93, metalness: 0 }),
-  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45, metalness: 0.35 }),
+  new THREE.MeshLambertMaterial({ color: 0xffffff }),
+  new THREE.MeshLambertMaterial({ color: 0xffffff }),
+  new THREE.MeshLambertMaterial({ color: 0xe8eef6 }),
 ];
 const meshes = { st: [null, null, null], dyn: [null, null, null], cap: [0, 0, 0], hw: [0, 0, 0], free: [[], [], []],
   stMin: [0, 0, 0], stMax: [-1, -1, -1], dynDirty: [false, false, false], colDirty: [false, false, false] };
@@ -1196,13 +1204,18 @@ function puff(x, y, z, n, spread, speed) {
     dustPos[i * 3] = x + (Math.random() - 0.5) * spread; dustPos[i * 3 + 1] = y + (Math.random() - 0.5) * spread; dustPos[i * 3 + 2] = z + (Math.random() - 0.5) * spread;
     dustVel[i * 3] = (Math.random() - 0.5) * speed; dustVel[i * 3 + 1] = Math.random() * speed * 0.6 + 0.3; dustVel[i * 3 + 2] = (Math.random() - 0.5) * speed;
     dustMax[i] = dustLife[i] = 1.4 + Math.random() * 1.8;
+    dustAlive++;
     dustSize[i] = 0.5 + Math.random() * 0.9;
   }
 }
+let dustAlive = 0;
 function updateDust(dt) {
   dustBudget = Math.min(240, dustBudget + 360 * dt);
+  if (dustAlive <= 0) return;
+  dustAlive = 0;
   for (let i = 0; i < DUST_N; i++) {
     if (dustLife[i] <= 0) { dustAlpha[i] = 0; continue; }
+    dustAlive++;
     dustLife[i] -= dt;
     const f = Math.max(0, dustLife[i] / dustMax[i]);
     dustPos[i * 3] += dustVel[i * 3] * dt; dustPos[i * 3 + 1] += dustVel[i * 3 + 1] * dt; dustPos[i * 3 + 2] += dustVel[i * 3 + 2] * dt;
@@ -1338,7 +1351,7 @@ const Sound = {
 const bodies = new Map();
 let nextBodyId = 1, frame = 0, simTime = 0;
 let shots = [];
-let structureDirty = false, lastStructT = -1, structMs = 0, physMs = 0;
+let structureDirty = false, lastStructT = -1, structMs = 0, physMs = 0, awakeCount = 0;
 const wakeQ = [];
 const tmpList = [], tmpList2 = [];
 const IDQ = { x: 0, y: 0, z: 0, w: 1 };
@@ -1408,7 +1421,7 @@ function makeBody(list, P, Q, V, W, kind) {
   dynShapes += shapes.length;
   const b = { id: nextBodyId++, h, bricks: Int32Array.from(list), mass: m, rad, kind, born: simTime, lastHit: -9, slowT: 0, sleepT: 0, nShapes: shapes.length,
     lc: { x: (mn[0] + mx[0]) / 2, y: (mn[1] + mx[1]) / 2, z: (mn[2] + mx[2]) / 2 }, le: { x: (mx[0] - mn[0]) / 2, y: (mx[1] - mn[1]) / 2, z: (mx[2] - mn[2]) / 2 },
-    P: { x: P.x, y: P.y, z: P.z }, Q: { x: Q.x, y: Q.y, z: Q.z, w: Q.w }, V: { x: V.x, y: V.y, z: V.z }, prevV: { x: V.x, y: V.y, z: V.z }, lastProxy: frame, drawnAsleep: false };
+    P: { x: P.x, y: P.y, z: P.z }, Q: { x: Q.x, y: Q.y, z: Q.z, w: Q.w }, V: { x: V.x, y: V.y, z: V.z }, prevV: { x: V.x, y: V.y, z: V.z }, lastProxy: frame, drawnAsleep: false, asleep: false };
   for (const i of list) {
     bodyOf[i] = b.id;
     if (state[i] !== S_DYN) { state[i] = S_DYN; assignDyn(i); }
@@ -1587,7 +1600,7 @@ function processWake() {
     for (const b of bodies.values()) {
       if (b.sleepT <= 0) continue;
       for (const e of events) {
-        if (Math.abs(b.P.x - e[0]) < b.rad + 1.2 && Math.abs(b.P.z - e[2]) < b.rad + 1.2 && b.P.y - b.rad < e[1] + 1) { phys.wake(b.h); b.sleepT = 0; break; }
+        if (Math.abs(b.P.x - e[0]) < b.rad + 1.2 && Math.abs(b.P.z - e[2]) < b.rad + 1.2 && b.P.y - b.rad < e[1] + 1) { phys.wake(b.h); b.sleepT = 0; b.asleep = false; break; }
       }
     }
   }
@@ -1730,11 +1743,11 @@ function physicsStep() {
   // 2. Moving pieces get colliders for nearby resting bricks; fast ones damage what they hit
   impactBudget = 160;
   for (const b of bodies.values()) {
-    if (phys.sleeping(b.h)) {
+    if (b.asleep) {
       if (frame - b.lastProxy >= 30) { b.lastProxy = frame; refreshBody(b, 0, false); }
       continue;
     }
-    phys.pose(b.h, b.P, b.Q); phys.vel(b.h, b.V);
+    // b.P, b.Q and b.V were read right after the previous step
     const sp = Math.hypot(b.V.x, b.V.y, b.V.z);
     if (sp < 3 && (b.id + frame) % 3 !== 0) continue;
     b.lastProxy = frame;
@@ -1749,14 +1762,19 @@ function physicsStep() {
   // 4. React: break chunks that hit hard, notice pieces that came to rest
   const crowded = bodies.size > settings.maxBodies * 0.6 || dynShapes > shapeBudget() * 0.6;
   const toSplit = [], toRetire = [];
+  awakeCount = 0;
   for (const b of bodies.values()) {
-    if (phys.sleeping(b.h)) { b.sleepT += FIXED; if (b.sleepT > 0.4) toRetire.push(b); continue; }
-    b.sleepT = 0;
-    phys.vel(b.h, _V);
-    const dvx = _V.x - b.prevV.x, dvy = _V.y - b.prevV.y, dvz = _V.z - b.prevV.z;
+    if (phys.sleeping(b.h)) {
+      if (!b.asleep) { b.asleep = true; b.drawnAsleep = false; phys.pose(b.h, b.P, b.Q); }
+      b.sleepT += FIXED; if (b.sleepT > 0.4) toRetire.push(b);
+      continue;
+    }
+    b.asleep = false; b.sleepT = 0; awakeCount++;
+    phys.pose(b.h, b.P, b.Q); phys.vel(b.h, b.V);
+    const dvx = b.V.x - b.prevV.x, dvy = b.V.y - b.prevV.y, dvz = b.V.z - b.prevV.z;
     const dv = Math.hypot(dvx, dvy, dvz);
-    b.prevV.x = _V.x; b.prevV.y = _V.y; b.prevV.z = _V.z;
-    const sp = Math.hypot(_V.x, _V.y, _V.z);
+    b.prevV.x = b.V.x; b.prevV.y = b.V.y; b.prevV.z = b.V.z;
+    const sp = Math.hypot(b.V.x, b.V.y, b.V.z);
     if (sp < 0.22) b.slowT += FIXED; else b.slowT = 0;
     if (b.slowT > 1.0) { toRetire.push(b); continue; }
     if (b.bricks.length > 1 && dv > 4.2 && !crowded) toSplit.push([b, dv]);
@@ -1852,7 +1870,10 @@ function trebLaunch() {
   const v = Math.sqrt(GRAV * x * x / Math.max(0.5, den));
   launchV.set(dx * Math.cos(th) * v, Math.sin(th) * v, dz * Math.cos(th) * v);
 }
-function placeLauncher() {
+const aimSig = { th: NaN, x: 0, y: 0, z: 0, w: '', p: false, r: 0, u: false };
+function placeLauncher(force) {
+  const same = aimSig.th === cam.theta && aimSig.x === target.x && aimSig.y === target.y && aimSig.z === target.z && aimSig.w === weapon && aimSig.p === trebState.pending && aimSig.r === ringR && aimSig.u === userTarget;
+  if (same && !force) return;
   const cx = Math.sin(cam.theta) * ringR, cz = Math.cos(cam.theta) * ringR;
   cannon.position.set(cx, 0, cz);
   treb.position.set(cx, 0, cz);
@@ -1868,6 +1889,7 @@ function placeLauncher() {
   if (weapon === 'boulder' || trebState.pending) trebLaunch();
   else aimCannon();
   drawFlightPath();
+  aimSig.th = cam.theta; aimSig.x = target.x; aimSig.y = target.y; aimSig.z = target.z; aimSig.w = weapon; aimSig.p = trebState.pending; aimSig.r = ringR; aimSig.u = userTarget;
 }
 function aimCannon() {
   // Solve the launch angle (low arc) for this muzzle and target
@@ -1898,17 +1920,57 @@ function drawFlightPath() {
   marker.position.copy(target);
   marker.lookAt(muzzle);
 }
+// First standing brick, rubble piece or ground point along a ray. Walks the spatial grid cell by
+// cell, so it only looks at bricks near the ray (fast even for 40,000-brick castles).
+const pickPt = new THREE.Vector3(), _lo = { x: 0, y: 0, z: 0 }, _ld = { x: 0, y: 0, z: 0 };
+function rayPick(o, d, out) {
+  let best = Infinity;
+  if (d.y < -1e-6) { const t = -o.y / d.y; if (t > 0) best = t; }
+  const R = castleRadius + 8, top = castleHeight + 8, MX = 2000;
+  const te = segAABB(o.x, o.y, o.z, d.x * MX, d.y * MX, d.z * MX, -R, -1, -R, R, top, R);
+  if (te >= 0) {
+    let t = te * MX + 1e-4;
+    const x = o.x + d.x * t, y = o.y + d.y * t, z = o.z + d.z * t;
+    let ix = Math.floor(x / CELL), iy = Math.floor(y / CELL), iz = Math.floor(z / CELL);
+    const sx = d.x > 0 ? 1 : -1, sy = d.y > 0 ? 1 : -1, sz = d.z > 0 ? 1 : -1;
+    const dx = Math.abs(d.x) > 1e-9 ? d.x : 1e-9, dy = Math.abs(d.y) > 1e-9 ? d.y : 1e-9, dz = Math.abs(d.z) > 1e-9 ? d.z : 1e-9;
+    const tdx = Math.abs(CELL / dx), tdy = Math.abs(CELL / dy), tdz = Math.abs(CELL / dz);
+    let tmx = t + ((ix + (sx > 0 ? 1 : 0)) * CELL - x) / dx, tmy = t + ((iy + (sy > 0 ? 1 : 0)) * CELL - y) / dy, tmz = t + ((iz + (sz > 0 ? 1 : 0)) * CELL - z) / dz;
+    qStamp++; if (qStamp > 2e9) { qStamp = 1; qMark.fill(0); }
+    for (let step = 0; step < 4000 && t < best; step++) {
+      const arr = hash.get(hkey(ix, iy, iz));
+      if (arr) for (let n = 0; n < arr.length; n++) {
+        const id = arr[n];
+        if (qMark[id] === qStamp) continue;
+        qMark[id] = qStamp;
+        const st = state[id];
+        if (st !== S_STATIC && st !== S_RUBBLE) continue;
+        let th;
+        if (st === S_STATIC) th = segAABB(o.x, o.y, o.z, d.x * MX, d.y * MX, d.z * MX, px[id] - hx[id], py[id] - hy[id], pz[id] - hz[id], px[id] + hx[id], py[id] + hy[id], pz[id] + hz[id]);
+        else {
+          const iq = { x: -qx[id], y: -qy[id], z: -qz[id], w: qw[id] };
+          rotate(iq, o.x - wx[id], o.y - wy[id], o.z - wz[id], _lo); rotate(iq, d.x, d.y, d.z, _ld);
+          th = segAABB(_lo.x, _lo.y, _lo.z, _ld.x * MX, _ld.y * MX, _ld.z * MX, -hx[id], -hy[id], -hz[id], hx[id], hy[id], hz[id]);
+        }
+        if (th >= 0 && th * MX < best) best = th * MX;
+      }
+      if (tmx < tmy && tmx < tmz) { ix += sx; t = tmx; tmx += tdx; }
+      else if (tmy < tmz) { iy += sy; t = tmy; tmy += tdy; }
+      else { iz += sz; t = tmz; tmz += tdz; }
+      if (Math.abs(ix * CELL) > R + CELL || Math.abs(iz * CELL) > R + CELL || iy * CELL < -2 * CELL || iy * CELL > top + CELL) break;
+    }
+  }
+  if (best === Infinity) return false;
+  out.set(o.x + d.x * best, o.y + d.y * best, o.z + d.z * best);
+  return true;
+}
 function aimAt(clientX, clientY) {
   if (gameState !== 'play' && gameState !== 'settling') return;
   const rect = canvas.getBoundingClientRect();
   ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
   raycaster.setFromCamera(ndc, camera);
-  const objs = [];
-  for (const m of meshes.st) if (m) { m.boundingSphere = null; objs.push(m); }
-  objs.push(groundMesh);
-  const hits = raycaster.intersectObjects(objs, false);
-  if (!hits.length) return;
-  const p = hits[0].point;
+  if (!rayPick(raycaster.ray.origin, raycaster.ray.direction, pickPt)) return;
+  const p = pickPt;
   if (Math.hypot(p.x, p.z) > ringR - 3) return;
   target.copy(p); userTarget = true;
   hideHint();
@@ -1937,7 +1999,7 @@ function fire() {
     trebState.pending = true; trebState.t0 = simTime;
     Sound.play('treb', 1);
   } else {
-    placeLauncher();
+    placeLauncher(true);
     launchShot(weapon);
     Sound.play('fire', 1);
     puff(muzzle.x, muzzle.y, muzzle.z, 14, 0.6, 2.2);
@@ -2006,9 +2068,28 @@ async function buildCastle() {
   $('sEngine').textContent = phys.name;
   $('engineNote').innerHTML = 'Physics engine: <b>' + phys.name + '</b>.' + (engineNote ? ' ' + engineNote : '') + ' Castle built in ' + Math.round(performance.now() - t0) + ' ms.';
   if (check.broke || check.detached.length) console.warn('Castle self-check found weak joints', check.broke, check.detached.length);
+  warmUp();
   window.__bfBooted = true;
   gameState = 'intro';
   showOnly('intro');
+  forceRender = 3;
+}
+// Draws one hidden frame with every kind of object visible, so the graphics chip prepares all its
+// shaders now instead of freezing the first time a cannonball, bomb, boulder or falling brick appears.
+function warmUp() {
+  const dummies = [ballMat, bombMat, rockMat].map((m) => {
+    const d = new THREE.Mesh(m === rockMat ? rockGeo : ballGeo, m);
+    d.position.set(0, -4, 0); d.castShadow = true; scene.add(d); return d;
+  });
+  const counts = meshes.dyn.map((m) => (m ? m.count : 0));
+  for (const m of meshes.dyn) if (m && m.count === 0) m.count = 1;
+  const tv = treb.visible, cv = cannon.visible;
+  treb.visible = true; cannon.visible = true; flashMesh.visible = true;
+  render(0);
+  for (const d of dummies) scene.remove(d);
+  meshes.dyn.forEach((m, k) => { if (m) m.count = counts[k]; });
+  treb.visible = tv; cannon.visible = cv;
+  shadowDirty = true;
 }
 
 /* =====================================================================
@@ -2053,8 +2134,11 @@ function updateAmmoUI() {
   $('fire').disabled = gameState !== 'play' || (!inf && ammo[weapon] <= 0);
 }
 function destroyedPct() { return N ? (1 - standing / N) * 100 : 0; }
+let meterShown = -1;
 function updateMeter() {
   const pct = destroyedPct();
+  if (Math.floor(pct * 4) === meterShown) return;
+  meterShown = Math.floor(pct * 4);
   $('pct').textContent = Math.floor(pct) + '%';
   $('fill').style.width = Math.min(100, pct) + '%';
   $('meter').setAttribute('aria-valuenow', String(Math.floor(pct)));
@@ -2075,16 +2159,61 @@ function showResult() {
   $('rBricks').textContent = fmt(N - standing);
   showOnly('result');
 }
+// Automatic quality: each step down draws fewer pixels; the last steps also drop shadows.
+const AUTO_LEVELS = [
+  { pr: 2.0, shadow: 2048 }, { pr: 1.6, shadow: 1024 }, { pr: 1.3, shadow: 1024 },
+  { pr: 1.0, shadow: 1024 }, { pr: 1.0, shadow: 0 }, { pr: 0.75, shadow: 0 },
+];
+const FIXED_LEVELS = { saver: { pr: 1, shadow: 1024 }, balanced: { pr: 1.5, shadow: 1024 }, sharp: { pr: 2, shadow: 2048 } };
+let autoLevel = isTouch ? 2 : 0;
+try { const a = parseInt(localStorage.getItem('brickfall.autoLevel'), 10); if (a >= 0 && a < AUTO_LEVELS.length) autoLevel = a; } catch (e) { /* ignore */ }
+let shadowsOn = null;
+function currentQuality() { return settings.quality === 'auto' ? AUTO_LEVELS[autoLevel] : (FIXED_LEVELS[settings.quality] || FIXED_LEVELS.balanced); }
 function applyQuality() {
-  const cap = { saver: 1, balanced: 1.5, sharp: 2 }[settings.quality] || 1.5;
-  renderer.setPixelRatio(Math.min(dpr, cap));
-  const sz = settings.quality === 'sharp' ? 2048 : 1024;
-  if (sun.shadow.mapSize.x !== sz) { sun.shadow.mapSize.set(sz, sz); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
-  renderer.shadowMap.enabled = settings.shadows;
-  for (const m of brickMats) m.needsUpdate = true;
-  groundMesh.material.needsUpdate = true; dirtMesh.material.needsUpdate = true;
-  shadowDirty = true;
+  const q = currentQuality();
+  renderer.setPixelRatio(Math.min(dpr, q.pr));
+  if (q.shadow && sun.shadow.mapSize.x !== q.shadow) { sun.shadow.mapSize.set(q.shadow, q.shadow); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+  const want = settings.shadows && q.shadow > 0;
+  if (want !== shadowsOn) {
+    // Switching shadows rebuilds the shaders, so only do it when it really changes
+    shadowsOn = want;
+    renderer.shadowMap.enabled = want;
+    scene.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });
+  }
+  shadowDirty = true; forceRender = 3;
   resize();
+  const el = $('sQuality');
+  if (el) el.textContent = settings.quality === 'auto' ? 'Auto · step ' + (autoLevel + 1) + ' of ' + AUTO_LEVELS.length : settings.quality;
+}
+const autoMon = { sum: 0, n: 0, cool: 0, lastAvg: 0, stuck: false, prev: 0 };
+// Watches real frame times while playing and steps quality down when frames are slow.
+function autoQualityTick(interval, now) {
+  // Gaps over a second are pauses (switching apps), not slow frames
+  if (settings.quality !== 'auto' || autoMon.stuck || (gameState !== 'play' && gameState !== 'settling') || interval > 1000) { autoMon.sum = 0; autoMon.n = 0; return; }
+  autoMon.sum += interval; autoMon.n++;
+  if (autoMon.sum < 1500) return;
+  const avg = autoMon.sum / autoMon.n;
+  autoMon.sum = 0; autoMon.n = 0;
+  if (now < autoMon.cool) return;
+  if (autoMon.lastAvg && avg > autoMon.lastAvg * 0.92 && Math.abs(avg - 33.3) < 3 && autoLevel > 0) {
+    // Stuck at exactly 30 frames a second even after a step down: the phone is capping the frame rate
+    // (for example in low power mode), so lowering quality cannot help. Undo the step and stop.
+    autoLevel = autoMon.prev; autoMon.stuck = true; autoMon.lastAvg = 0;
+    try { localStorage.setItem('brickfall.autoLevel', String(autoLevel)); } catch (e) { /* ignore */ }
+    applyQuality();
+    return;
+  }
+  autoMon.lastAvg = 0;
+  if (avg > 21 && autoLevel < AUTO_LEVELS.length - 1) {
+    // Skip steps that change nothing on this screen (e.g. sharpness steps on a non-retina display)
+    const eff = (l) => Math.min(dpr, AUTO_LEVELS[l].pr) * 10000 + (settings.shadows ? AUTO_LEVELS[l].shadow : 0);
+    let next = autoLevel + 1;
+    while (next < AUTO_LEVELS.length - 1 && eff(next) === eff(autoLevel)) next++;
+    if (eff(next) === eff(autoLevel)) return;
+    autoMon.prev = autoLevel; autoLevel = next; autoMon.lastAvg = avg; autoMon.cool = now + 2000;
+    try { localStorage.setItem('brickfall.autoLevel', String(autoLevel)); } catch (e) { /* ignore */ }
+    applyQuality();
+  }
 }
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -2197,11 +2326,30 @@ canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 /* =====================================================================
    Main loop
    ===================================================================== */
-let acc = 0, last = performance.now(), fpsEma = 60, frameEma = 16, statsT = 0;
+let acc = 0, last = performance.now(), fpsEma = 60, frameEma = 16, statsT = 0, drawMs = 0;
+let tickCount = 0, lastRenderAt = 0, prevRendered = false, renderCount = 0, forceRender = 3;
+const camSig = { th: NaN, ph: 0, d: 0, x: 0, y: 0, z: 0, w: '', st: '' };
+function cameraChanged() {
+  const c = camSig.th !== cam.theta || camSig.ph !== cam.phi || camSig.d !== cam.dist || camSig.x !== target.x || camSig.y !== target.y || camSig.z !== target.z || camSig.w !== weapon || camSig.st !== gameState;
+  if (c) { camSig.th = cam.theta; camSig.ph = cam.phi; camSig.d = cam.dist; camSig.x = target.x; camSig.y = target.y; camSig.z = target.z; camSig.w = weapon; camSig.st = gameState; }
+  return c;
+}
+// Something on screen is moving or changed, so a new picture is needed
+function sceneBusy() {
+  if (forceRender > 0 || gameState === 'intro' || awakeCount > 0 || shots.length > 0 || dustAlive > 0 || flashT > 0 || shake > 0 || recoil > 0 || cam.want !== null) return true;
+  if (trebState.pending || simTime - trebState.t0 < TREB_SWING + 1.5) return true;
+  for (let m = 0; m < 3; m++) if (meshes.stMax[m] >= 0 || meshes.dynDirty[m] || meshes.colDirty[m]) return true;
+  return false;
+}
+// Frame timing samples for testing: [interval, physics, structure, prepare, draw]
+const perfLog = { n: 0, gap: [], phys: 0, struct: 0, prep: 0, draw: 0, worst: 0 };
 function tick(now) {
   requestAnimationFrame(tick);
-  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  tickCount++;
+  const raw = now - last;
+  const dt = Math.min(0.1, raw / 1000); last = now;
   const tStart = performance.now();
+  let rendered = false;
   if (castleInfo) {
     const simulate = gameState === 'play' || gameState === 'settling' || bodies.size > 0 || shots.length > 0;
     if (simulate && phys) {
@@ -2210,47 +2358,64 @@ function tick(now) {
       let n = 0;
       while (acc >= FIXED && n < 2) { physicsStep(); acc -= FIXED; n++; }
       if (acc > FIXED * 2) acc = 0;
-      if (n) physMs = physMs * 0.9 + (performance.now() - t0) / n * 0.1;
+      const t1 = performance.now();
+      if (n) physMs = physMs * 0.9 + (t1 - t0) / n * 0.1;
       updateStructure();
+      perfLog.phys += t1 - t0; perfLog.struct += performance.now() - t1;
     }
     if (gameState === 'intro' && !reduceMotion) cam.theta += dt * 0.07;
     if (gameState === 'settling') {
       let fast = shots.length + (trebState.pending ? 1 : 0);
-      for (const b of bodies.values()) if (!phys.sleeping(b.h) && Math.hypot(b.prevV.x, b.prevV.y, b.prevV.z) > 0.8) fast++;
+      for (const b of bodies.values()) if (!b.asleep && Math.hypot(b.prevV.x, b.prevV.y, b.prevV.z) > 0.8) fast++;
       if (fast === 0 && !structureDirty) settleT += dt; else settleT = 0;
       if (settleT > 1.2 || simTime - lastShotT > 14) showResult();
     }
-    render(dt);
+    const camChanged = cameraChanged();
+    // The menu orbit is drawn at half rate to save battery
+    if ((camChanged || sceneBusy()) && !(gameState === 'intro' && (tickCount & 1))) {
+      render(Math.min(0.1, (now - lastRenderAt) / 1000));
+      rendered = true; lastRenderAt = now; renderCount++;
+      if (forceRender > 0) forceRender--;
+    }
   }
   const ft = performance.now() - tStart;
   frameEma = frameEma * 0.92 + ft * 0.08;
-  fpsEma = fpsEma * 0.92 + (dt > 0 ? 1 / dt : 60) * 0.08;
+  if (ft > perfLog.worst) perfLog.worst = ft;
+  if (rendered && prevRendered && raw > 0) {
+    // Frame-rate numbers only count back-to-back drawn frames (idle frames are skipped on purpose)
+    perfLog.n++; perfLog.gap.push(raw); if (perfLog.gap.length > 2000) perfLog.gap.shift();
+    fpsEma = fpsEma * 0.92 + (1000 / raw) * 0.08;
+    autoQualityTick(raw, now);
+  }
+  prevRendered = rendered;
   statsT += dt;
   if (statsT > 0.4 && !$('stats').hidden) {
     statsT = 0;
-    let awake = 0; for (const b of bodies.values()) if (!phys.sleeping(b.h)) awake++;
-    $('sFps').textContent = Math.round(fpsEma);
+    const awake = awakeCount;
+    $('sFps').textContent = prevRendered ? String(Math.round(fpsEma)) : 'idle';
     $('sFrame').textContent = frameEma.toFixed(1) + ' ms';
     $('sPhys').textContent = physMs.toFixed(1) + ' ms';
     $('sStruct').textContent = structMs.toFixed(1) + ' ms';
+    $('sDraw').textContent = drawMs.toFixed(1) + ' ms';
     $('sBodies').textContent = fmt(awake) + ' / ' + fmt(bodies.size);
     $('sProxies').textContent = fmt(phys.fixed);
     $('sStanding').textContent = fmt(standing) + ' / ' + fmt(N);
   }
 }
 function render(dt) {
+  const tPrep = performance.now();
   // Bricks attached to moving bodies follow them
   for (const b of bodies.values()) {
-    const asleep = phys.sleeping(b.h);
-    if (asleep && b.drawnAsleep) continue;
-    phys.pose(b.h, b.P, b.Q);
+    if (b.asleep && b.drawnAsleep) continue;
     for (const i of b.bricks) drawDynBrick(i, b.P, b.Q);
-    b.drawnAsleep = asleep;
+    b.drawnAsleep = b.asleep;
   }
   for (const pr of shots) { phys.pose(pr.h, _P, _Q); pr.mesh.position.set(_P.x, _P.y, _P.z); }
   const moved = flushMeshes();
-  if (moved || bodies.size || shots.length) shadowDirty = true;
-  if (settings.shadows && shadowDirty) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
+  const movingNow = awakeCount > 0 || shots.length > 0;
+  if (moved || movingNow) shadowDirty = true;
+  // While things move, shadows are redrawn every other frame: the eye does not notice, the phone does
+  if (shadowsOn && shadowDirty && (!movingNow || (renderCount & 1) === 0)) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
   // Camera
   const showAim = gameState === 'play' || gameState === 'settling';
   const useTreb = weapon === 'boulder' || trebState.pending;
@@ -2290,7 +2455,11 @@ function render(dt) {
     if (f >= 1) { flashT = 0; flashMesh.material.opacity = 0; flashLight.intensity = 0; }
   }
   if (frame % 6 === 0 || !bodies.size) updateMeter();
+  const tr = performance.now();
   renderer.render(scene, camera);
+  const td = performance.now() - tr;
+  drawMs = drawMs * 0.9 + td * 0.1;
+  perfLog.draw += td; perfLog.prep += tr - tPrep;
 }
 
 /* =====================================================================
@@ -2299,15 +2468,23 @@ function render(dt) {
 window.__bf = {
   get state() { return gameState; },
   stats() {
-    let awake = 0; for (const b of bodies.values()) if (!phys.sleeping(b.h)) awake++;
+    const awake = awakeCount;
     const pr = {}; for (const k of ['pre', 'wake', 'step', 'post']) pr[k] = +(prof[k] / Math.max(1, prof.n)).toFixed(2);
     prof.pre = prof.wake = prof.step = prof.post = 0; prof.n = 0;
-    return { prof: pr, shapes: dynShapes, engine: phys && phys.name, N, M, standing, pct: destroyedPct(), bodies: bodies.size, awake, fixed: phys && phys.fixed, shots: shots.length, physMs, structMs, frame, simTime, ammo: { ...ammo }, params: castleInfo && castleInfo.params };
+    return { prof: pr, shapes: dynShapes, renders: renderCount, quality: settings.quality === 'auto' ? 'auto-' + autoLevel : settings.quality, engine: phys && phys.name, N, M, standing, pct: destroyedPct(), bodies: bodies.size, awake, fixed: phys && phys.fixed, shots: shots.length, physMs, structMs, frame, simTime, ammo: { ...ammo }, params: castleInfo && castleInfo.params };
   },
   aim(x, y, z) { target.set(x, y, z); userTarget = true; },
   fire(w) { if (w) setWeapon(w); fire(); },
   setTheta(t) { cam.theta = t; },
   setSeed(n) { seed = n; },
+  perf() {
+    const g = perfLog.gap.slice().sort((a, b) => a - b), n = Math.max(1, perfLog.n);
+    const out = { frames: perfLog.n, fps: g.length ? +(1000 / (g.reduce((a, b) => a + b, 0) / g.length)).toFixed(1) : 0,
+      p95gap: g.length ? +g[Math.floor(g.length * 0.95)].toFixed(1) : 0, maxgap: g.length ? +g[g.length - 1].toFixed(1) : 0,
+      physMs: +(perfLog.phys / n).toFixed(2), structMs: +(perfLog.struct / n).toFixed(2), prepMs: +(perfLog.prep / n).toFixed(2), drawMs: +(perfLog.draw / n).toFixed(2), worstJs: +perfLog.worst.toFixed(1) };
+    perfLog.n = 0; perfLog.gap.length = 0; perfLog.phys = perfLog.struct = perfLog.prep = perfLog.draw = perfLog.worst = 0;
+    return out;
+  },
   partStanding() { const c = {}; for (let i = 0; i < N; i++) if (state[i] === S_STATIC) { const t = parts[partOf[i]].type; c[t] = (c[t] || 0) + 1; } return c; },
   shotInfo() { return shots.map((p) => ({ kind: p.kind, x: +p.P.x.toFixed(1), y: +p.P.y.toFixed(1), z: +p.P.z.toFixed(1) })); },
   dbg() { const d = { ...dbg }; for (const k in dbg) dbg[k] = 0; return d; },
