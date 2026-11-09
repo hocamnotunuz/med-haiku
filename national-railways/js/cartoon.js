@@ -37,7 +37,6 @@
       fog: get("--toon-fog"),
       fogShade: get("--toon-fog-shade"),
       fogEdge: get("--toon-fog-edge"),
-      haze: get("--toon-haze"),
       riverEdge: get("--toon-river-edge"),
       river: get("--river"),
       land: get("--land"),
@@ -675,8 +674,7 @@
   }
 
   // ---------- Fog over the closed states and the land outside the game ----------
-  // Two styles while we choose (data-fog on the page): "clouds", puffy cartoon clouds that
-  // drift a little, or "haze", a thick see-through mist. A state's fog clears when it opens.
+  // Puffy cartoon clouds that drift a little. A state's clouds puff up and fade away when it opens.
   const fogSeenClosed = {};
   const fogOpenedAt = {};
   C.fogColor = () => K.fog;
@@ -689,6 +687,54 @@
     const k = r * g.cols + c;
     if (g.sid[k]) return closed.has(g.codes[g.sid[k] - 1]) ? g.codes[g.sid[k] - 1] : null;
     return g.grown[k] ? "outside" : null;
+  }
+  let fogLayer = null;
+  // Paints fog over these areas ("outside" or state codes): a solid base, then the clouds.
+  function paintFog(ctx, g, codes, puffs, view, cull) {
+    const P = NR.toScreen;
+    for (const code of codes) {
+      ctx.save();
+      ctx.beginPath();
+      if (code === "outside") {
+        // The land outside the four states, never inside them
+        ctx.rect(-50, -50, view.w + 100, view.h + 100);
+        Object.values(NR.MAP.stateLand).forEach((rings) => rings.forEach((ring) => traceFlat(ctx, ring, P, true)));
+        ctx.clip("evenodd");
+        ctx.beginPath();
+        traceRings(ctx, g.outside, P, cull);
+      } else NR.MAP.stateLand[code].forEach((ring) => traceFlat(ctx, ring, P, true));
+      ctx.fillStyle = K.fog;
+      ctx.fill(code === "outside" ? "nonzero" : "evenodd");
+      ctx.restore();
+    }
+    if (!puffs.length) return;
+    // A cloud: three round puffs, with a shaded underside and a soft outline around the whole bank
+    const shape = (p, grow, dy) => {
+      const { x, y, r } = p;
+      ctx.moveTo(x + r + grow, y + dy);
+      ctx.arc(x, y + dy, r + grow, 0, Math.PI * 2);
+      ctx.moveTo(x - r * 0.75 + r * 0.72 + grow, y + r * 0.3 + dy);
+      ctx.arc(x - r * 0.75, y + r * 0.3 + dy, r * 0.72 + grow, 0, Math.PI * 2);
+      ctx.moveTo(x + r * 0.8 + r * 0.68 + grow, y + r * 0.32 + dy);
+      ctx.arc(x + r * 0.8, y + r * 0.32 + dy, r * 0.68 + grow, 0, Math.PI * 2);
+    };
+    const under = (p) => p.r * 0.14;
+    const layer = (grow, low, color) => {
+      ctx.beginPath();
+      puffs.forEach((p) => shape(p, grow, low ? under(p) : 0));
+      ctx.fillStyle = color;
+      ctx.fill();
+    };
+    layer(2, false, K.fogEdge);
+    layer(2, true, K.fogEdge);
+    layer(0, true, K.fogShade);
+    // The white tops last, back to front, so every cloud keeps its shaded underside
+    ctx.fillStyle = K.fog;
+    for (const p of puffs) {
+      ctx.beginPath();
+      shape(p, 0, -p.r * 0.06);
+      ctx.fill();
+    }
   }
   C.drawFog = function (ctx, s, now) {
     const g = prepare();
@@ -712,26 +758,6 @@
         }
       }
     }
-    const clouds = document.documentElement.dataset.fog !== "haze";
-    // The area under fog: the closed states, and the land outside the four states (never inside them)
-    const groups = [["outside"]].concat([...closed].map((c) => [c]));
-    for (const [code] of groups) {
-      const t = clearing[code] || 0;
-      ctx.save();
-      ctx.globalAlpha = 1 - t;
-      ctx.beginPath();
-      if (code === "outside") {
-        ctx.rect(-50, -50, view.w + 100, view.h + 100);
-        Object.values(NR.MAP.stateLand).forEach((rings) => rings.forEach((ring) => traceFlat(ctx, ring, P, true)));
-        ctx.clip("evenodd");
-        ctx.beginPath();
-        traceRings(ctx, g.outside, P, cull);
-      } else NR.MAP.stateLand[code].forEach((ring) => traceFlat(ctx, ring, P, true));
-      ctx.fillStyle = clouds ? K.fog : K.haze;
-      ctx.fill(code === "outside" ? "nonzero" : "evenodd");
-      ctx.restore();
-    }
-    if (!clouds) return;
     // Puffy clouds on a jittered grid about 46 pixels apart, at the fog's edge and all over it
     const a = P(-119, 37), b = P(-119, 38);
     const ppd = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -760,44 +786,34 @@
         const t = clearing[code] || 0;
         const [x, y] = P(lon, lat);
         const ph = hash(i, j, 63) * 6.28;
+        // Clearing clouds swell and drift apart as they fade
         const r = step * ppd * 0.42 * (0.85 + 0.35 * hash(i, j, 64)) * (1 + t * 0.6);
-        puffs.push({ x: x + Math.sin(time * 0.35 + ph) * 3 + t * (x - view.w / 2) * 0.4, y: y + Math.cos(time * 0.27 + ph) * 1.5, r, t });
+        puffs.push({ code, x: x + Math.sin(time * 0.35 + ph) * 3 + t * (x - view.w / 2) * 0.4, y: y + Math.cos(time * 0.27 + ph) * 1.5, r });
       }
     puffs.sort((p, q) => p.y - q.y);
-    // A cloud: three round puffs, with a shaded underside and a soft outline around the whole bank
-    const shape = (p, grow, dy) => {
-      const { x, y, r } = p;
-      ctx.moveTo(x + r + grow, y + dy);
-      ctx.arc(x, y + dy, r + grow, 0, Math.PI * 2);
-      ctx.moveTo(x - r * 0.75 + r * 0.72 + grow, y + r * 0.3 + dy);
-      ctx.arc(x - r * 0.75, y + r * 0.3 + dy, r * 0.72 + grow, 0, Math.PI * 2);
-      ctx.moveTo(x + r * 0.8 + r * 0.68 + grow, y + r * 0.32 + dy);
-      ctx.arc(x + r * 0.8, y + r * 0.32 + dy, r * 0.68 + grow, 0, Math.PI * 2);
-    };
-    const layer = (list, grow, dy, color) => {
-      ctx.beginPath();
-      list.forEach((p) => shape(p, grow, dy));
-      ctx.fillStyle = color;
-      ctx.fill();
-    };
-    for (const t of [...new Set(puffs.map((p) => p.t))]) {
-      const list = puffs.filter((p) => p.t === t);
-      ctx.save();
-      ctx.globalAlpha = 1 - t;
-      layer(list, 2, 0, K.fogEdge);
-      layer(list, 2, list[0] ? list[0].r * 0.14 : 0, K.fogEdge);
-      layer(list, 0, list[0] ? list[0].r * 0.14 : 0, K.fogShade);
-      ctx.restore();
+    // The fog that stays, drawn straight onto the map
+    const staying = ["outside", ...[...closed].filter((c) => clearing[c] === undefined)];
+    paintFog(ctx, g, staying, puffs.filter((p) => staying.includes(p.code)), view, cull);
+    // Fog that is clearing: drawn whole on a separate layer, then laid over the map see-through,
+    // so it fades evenly instead of turning grey
+    const fading = Object.keys(clearing);
+    if (!fading.length) return;
+    const t = Math.max(...fading.map((c) => clearing[c]));
+    if (!fogLayer) fogLayer = document.createElement("canvas");
+    if (fogLayer.width !== ctx.canvas.width || fogLayer.height !== ctx.canvas.height) {
+      fogLayer.width = ctx.canvas.width;
+      fogLayer.height = ctx.canvas.height;
     }
-    // The white tops last, back to front, so every cloud keeps its shaded underside
-    for (const p of puffs) {
-      ctx.globalAlpha = 1 - p.t;
-      ctx.beginPath();
-      shape(p, 0, -p.r * 0.06);
-      ctx.fillStyle = K.fog;
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
+    const lc = fogLayer.getContext("2d");
+    lc.setTransform(1, 0, 0, 1, 0, 0);
+    lc.clearRect(0, 0, fogLayer.width, fogLayer.height);
+    lc.setTransform(ctx.getTransform());
+    paintFog(lc, g, fading, puffs.filter((p) => fading.includes(p.code)), view, cull);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1 - t;
+    ctx.drawImage(fogLayer, 0, 0);
+    ctx.restore();
   };
 
   // ---------- City maps: hills as layers, water with a lighter shore ----------

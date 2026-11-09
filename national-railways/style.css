@@ -682,7 +682,6 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   --toon-fog: #f8faff;
   --toon-fog-shade: #d3dcf0;
   --toon-fog-edge: rgba(35, 35, 63, 0.4);
-  --toon-haze: rgba(246, 248, 255, 0.86);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-look="classic"]):not([data-theme="light"]) {
@@ -733,7 +732,6 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   --toon-fog: #4a5288;
   --toon-fog-shade: #353c6e;
   --toon-fog-edge: rgba(7, 10, 28, 0.75);
-  --toon-haze: rgba(44, 50, 98, 0.88);
     color-scheme: dark;
   }
 }
@@ -785,7 +783,6 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   --toon-fog: #4a5288;
   --toon-fog-shade: #353c6e;
   --toon-fog-edge: rgba(7, 10, 28, 0.75);
-  --toon-haze: rgba(44, 50, 98, 0.88);
   color-scheme: dark;
 }
 /* Chunky outlined panels and buttons that press down */
