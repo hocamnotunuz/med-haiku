@@ -44,6 +44,21 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 | Regional | $120k | 10 | 1.25× | size 2 and up | Skips the smallest towns. |
 | High-speed | $250k | 8 | 2× | size 3 and up | Needs high-speed track. From week 2. |
 | Bullet | $450k | 10 | 3× | Metro cities | Needs high-speed track. From week 4. |
+| Freight | $100k | 10 crates | 0.8× | every city | Produce only. |
+| Dock train | $120k | 16 containers | 0.7× | every city | Containers only. Needs a port on its line. |
+| Truck bypass | $140k | 6 trucks | 1.1× | every city | Trucks only. From week 2. |
+
+### Cargo
+
+Cargo shares the map with passengers. It waits in a **yard** to the left of each station (up to 12 loads; extra loads are turned away) and never ends your game, but it pays well.
+
+| Cargo | Made at | Delivered to | Moved by |
+| --- | --- | --- | --- |
+| Produce (green crates) | Farmland towns | Metro cities | Freight |
+| Containers (rust) | Ports, when a ship docks (8 at a time) | Desert and Farmland warehouses | Dock train |
+| Trucks (gray) | Desert and Mountain towns, from week 2 | Metro cities | Truck bypass |
+
+Ports (anchor symbol): Port of Hueneme (Oxnard), Port of Long Beach, Port of San Diego, Port of Oakland and Humboldt Bay (Eureka).
 
 All the numbers live in `js/game.js` (`TUNING` and `TRAIN_TYPES`).
 

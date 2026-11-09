@@ -246,7 +246,8 @@
       $("over-title").textContent = `${name} overflowed`;
       $("over-text").textContent =
         `Too many passengers were waiting in ${name}. You delivered ${plural(game.delivered, "passenger")} ` +
-        `in ${plural(weeks, "week")}. Your best with these settings: ${top}.`;
+        `in ${plural(weeks, "week")}, plus ${plural(Object.values(game.cargoDelivered).reduce((a, b) => a + b, 0), "load")} of cargo. ` +
+        `Your best with these settings: ${top}.`;
     }
     if (wasLevels && kind !== "time") {
       actions.append(
@@ -283,6 +284,14 @@
         const name = NR.countyById[ev.id].name;
         fx.push({ kind: "city", at: main.id, t0: now });
         toast(ev.free ? `Goal reached: ${name} unlocked for free! ${main.name} station is open.` : `${name} unlocked. ${main.name} station is open.`);
+      } else if (ev.type === "ship") {
+        const c = NR.cityById[ev.at];
+        fx.push({ kind: "city", at: ev.at, t0: now });
+        toast(
+          ev.landed
+            ? `A ship docked at the ${c.port} (${c.name}): ${plural(ev.landed, "container")} to move. Use a Dock train.`
+            : `A ship at the ${c.port} found the yard full and sailed on. Move the containers out to earn more.`
+        );
       } else if (ev.type === "rush") {
         fx.push({ kind: "city", at: ev.at, t0: now });
         toast(`Rush hour in ${NR.cityById[ev.at].name}! Extra passengers for a few seconds. Commuter trains help.`);
@@ -304,14 +313,25 @@
     box.textContent = "";
     if (!game) return;
     if (game.style === "city") {
-      box.textContent = "Passengers show the code of the city they want, like FRE for Fresno.";
-      return;
+      box.append("Passengers show the code of the city they want, like FRE for Fresno.");
+    } else {
+      Object.values(NR.PLACE_TYPES).forEach((t) => {
+        const item = document.createElement("span");
+        item.className = "legend-item";
+        item.innerHTML = `<svg viewBox="0 0 12 12" aria-hidden="true">${SHAPES[t.shape]}</svg>`;
+        item.append(t.name);
+        box.appendChild(item);
+      });
     }
-    Object.values(NR.PLACE_TYPES).forEach((t) => {
+    // Cargo key: the colors used in yards and on cargo trains.
+    const swatch = { produce: "--produce", containers: "--container", trucks: "--truck" };
+    Object.entries(NR.CARGO).forEach(([key, k]) => {
       const item = document.createElement("span");
       item.className = "legend-item";
-      item.innerHTML = `<svg viewBox="0 0 12 12" aria-hidden="true">${SHAPES[t.shape]}</svg>`;
-      item.append(t.name);
+      const dot = document.createElement("span");
+      dot.className = "legend-cargo";
+      dot.style.background = `var(${swatch[key]})`;
+      item.append(dot, k.name);
       box.appendChild(item);
     });
   }
@@ -369,7 +389,11 @@
     setText(
       "cp-info",
       `${people} people. Main station: ${main.name} (${NR.PLACE_TYPES[main.type].name}).` +
-        (towns.length ? ` Towns that appear once it is yours: ${towns.map((t) => t.name).join(", ")}.` : "")
+        (towns.length ? ` Towns that appear once it is yours: ${towns.map((t) => t.name).join(", ")}.` : "") +
+        [main, ...towns]
+          .filter((c) => c.port)
+          .map((c) => ` Seaport: ${c.port} (${c.name}).`)
+          .join("")
     );
     $("cp-goal").hidden = !st.ok;
     $("cp-buy").hidden = !st.ok;
@@ -430,7 +454,7 @@
     trains.forEach((t) => {
       const li = document.createElement("li");
       const label = document.createElement("span");
-      label.textContent = `${NR.TRAIN_TYPES[t.type].name} · ${NR.seatsOf(game, t)} seats`;
+      label.textContent = `${NR.TRAIN_TYPES[t.type].name} · ${NR.seatsOf(game, t)} ${NR.unitOf(t.type)}`;
       li.append(
         label,
         button("To depot", "btn btn-small", () => {
@@ -472,6 +496,7 @@
     renderChips();
     if (!game) return;
     setText("score", game.delivered);
+    setText("cargo", Object.values(game.cargoDelivered).reduce((a, b) => a + b, 0));
     const week = Math.min(Math.floor(game.time / T.weekLength), game.mode === "timed" ? T.timedWeeks - 1 : Infinity);
     setText("clock", `${week + 1} · ${NR.DAY_NAMES[Math.floor(game.time / T.dayLength) % 7]}`);
     if (game.mode === "levels") {
@@ -780,14 +805,14 @@
   layout();
 
   // The train guide on the start screen.
-  Object.values(NR.TRAIN_TYPES).forEach((t) => {
+  Object.entries(NR.TRAIN_TYPES).forEach(([key, t]) => {
     const li = document.createElement("li");
     const name = document.createElement("span");
     name.className = "guide-name";
     name.textContent = `${t.name} · ${NR.money(t.price)}`;
     const text = document.createElement("span");
     text.className = "guide-text";
-    text.textContent = `${t.about} ${t.seats} seats.${t.unlockWeek ? ` From week ${t.unlockWeek + 1}.` : ""}`;
+    text.textContent = `${t.about} ${t.seats} ${NR.unitOf(key)}.${t.unlockWeek ? ` From week ${t.unlockWeek + 1}.` : ""}`;
     li.append(name, text);
     $("train-guide").appendChild(li);
   });

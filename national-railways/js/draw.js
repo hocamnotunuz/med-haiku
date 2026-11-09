@@ -27,6 +27,7 @@
       countyText: get("--county-text"),
       locked: get("--locked"),
       panel: get("--panel"),
+      cargo: { produce: get("--produce"), containers: get("--container"), trucks: get("--truck") },
       station: get("--station"),
       ink: get("--ink"),
       muted: get("--muted"),
@@ -368,7 +369,8 @@
       if (!st.ok) continue;
       const p = NR.toScreen(r.label[0], r.label[1]);
       const y = p[1] + (view.showCounties ? 14 : 0);
-      const text = `${NR.money(st.price)} · ${st.progress}/${st.goal}`;
+      // Small map: just the price. Room to spare: price and goal progress.
+      const text = view.big ? `${NR.money(st.price)} · ${st.progress}/${st.goal}` : NR.money(st.price);
       const w = ctx.measureText(text).width + 12;
       roundRect(ctx, p[0] - w / 2, y - 8, w, 16, 8);
       ctx.fillStyle = colors.panel;
@@ -563,6 +565,55 @@
     }
   }
 
+  // One load of cargo: a square crate of produce, a long container, or a truck with its cab.
+  function cargoIcon(ctx, kind, x, y, k) {
+    ctx.fillStyle = colors.cargo[kind];
+    if (kind === "produce") ctx.fillRect(x - k, y - k, 2 * k, 2 * k);
+    else if (kind === "containers") ctx.fillRect(x - k * 1.6, y - k * 0.9, k * 3.2, k * 1.8);
+    else {
+      ctx.fillRect(x - k * 1.6, y - k * 0.9, k * 2.2, k * 1.8); // trailer
+      ctx.fillRect(x + k * 0.8, y - k * 0.4, k * 0.9, k * 1.3); // cab
+    }
+  }
+
+  // The cargo yard: loads waiting to the left of the station.
+  function drawYard(ctx, st, x, y, r) {
+    const n = st.cargo.length;
+    if (!n) return;
+    const k = Math.max(2, r * 0.32);
+    const gapX = k * 4;
+    const gapY = k * 2.8;
+    const show = Math.min(n, 6);
+    for (let i = 0; i < show; i++) {
+      cargoIcon(ctx, st.cargo[i].kind, x - r - 8 - k * 1.6 - (i % 3) * gapX, y - r * 0.4 + Math.floor(i / 3) * gapY, k);
+    }
+    if (n > show) {
+      ctx.font = `700 9px ${MONO}`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      halo(ctx, `+${n - show}`, x - r - 8 - 3 * gapX, y - r * 0.4 + 2 * gapY, colors.muted, colors.land);
+    }
+  }
+
+  // A small anchor next to stations that have a seaport.
+  function drawAnchor(ctx, x, y, k) {
+    ctx.save();
+    ctx.strokeStyle = colors.ink;
+    ctx.lineWidth = 1.4;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.arc(x, y - k * 1.1, k * 0.35, 0, Math.PI * 2); // ring
+    ctx.moveTo(x, y - k * 0.75);
+    ctx.lineTo(x, y + k); // shank
+    ctx.moveTo(x - k * 0.6, y - k * 0.3);
+    ctx.lineTo(x + k * 0.6, y - k * 0.3); // stock
+    ctx.moveTo(x - k, y + k * 0.25);
+    ctx.quadraticCurveTo(x - k * 0.8, y + k, x, y + k); // left fluke
+    ctx.quadraticCurveTo(x + k * 0.8, y + k, x + k, y + k * 0.25); // right fluke
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawStations(ctx, s) {
     for (const st of s.stations) {
       const c = NR.cityById[st.id];
@@ -612,6 +663,8 @@
       halo(ctx, label, x, y + r + 6, s.style === "city" ? colors.ink : colors.muted, colors.land);
 
       drawWaiting(ctx, s, st, x, y, r);
+      drawYard(ctx, st, x, y, r);
+      if (c.port) drawAnchor(ctx, x + r + 4, y - r - 4, Math.max(4, r * 0.55));
     }
   }
 
@@ -633,7 +686,7 @@
       ctx.arcTo(x0, y1, x0, y0, k);
       ctx.arcTo(x0, y0, x0 + k, y0, k);
       ctx.closePath();
-    } else roundRect(ctx, x0, y0, L, H, type === "commuter" ? H * 0.12 : H * 0.35);
+    } else roundRect(ctx, x0, y0, L, H, type === "commuter" || NR.TRAIN_TYPES[type].carries ? H * 0.12 : H * 0.35);
   }
 
   function drawTrains(ctx, s, segs) {
@@ -661,7 +714,8 @@
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = colors.station;
       ctx.stroke();
-      const cars = tr.type === "commuter" ? 3 : tr.type === "regional" ? 2 : 1;
+      const isCargo = !!NR.TRAIN_TYPES[tr.type].carries;
+      const cars = isCargo ? 4 : tr.type === "commuter" ? 3 : tr.type === "regional" ? 2 : 1;
       if (cars > 1) {
         ctx.beginPath();
         for (let c = 1; c < cars; c++) {
@@ -673,8 +727,19 @@
       }
       ctx.fillStyle = colors.station;
       tr.pax.forEach((p, i) => {
+        const px = -L / 2 + H * 0.3 + dx * (Math.floor(i / 2) + 0.5);
+        const py = (i % 2 ? 1 : -1) * H * 0.22;
+        if (p.kind) {
+          // Cargo: a small square in the cargo's color, with a light edge so it shows on any line color
+          ctx.fillStyle = colors.station;
+          ctx.fillRect(px - dot * 1.5, py - dot * 1.5, dot * 3, dot * 3);
+          ctx.fillStyle = colors.cargo[p.kind];
+          ctx.fillRect(px - dot, py - dot, dot * 2, dot * 2);
+          return;
+        }
+        ctx.fillStyle = colors.station;
         ctx.beginPath();
-        ctx.arc(-L / 2 + H * 0.3 + dx * (Math.floor(i / 2) + 0.5), (i % 2 ? 1 : -1) * H * 0.22, dot, 0, Math.PI * 2);
+        ctx.arc(px, py, dot, 0, Math.PI * 2);
         ctx.fill();
       });
       ctx.restore();

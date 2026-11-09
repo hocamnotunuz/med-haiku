@@ -25,10 +25,14 @@
     firstCityAfter: 8, // seconds until the first new city appears
     cityEvery: [14, 22], // seconds between new cities (random in this range)
     levelReward: 150, // $k for finishing a level
+    yardRoom: 12, // loads of cargo a station's yard holds (more is turned away)
+    cargoEvery: [10, 16], // seconds between loads of produce or trucks at a station
+    shipEvery: [35, 55], // seconds between ships docking at one of your ports
+    shipLoad: 8, // containers a ship unloads
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 4; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 5; // bump when saved games from older versions no longer fit
 
   // ---- Train types ----
   // price and upkeep (per week) in $k. speed is compared with a Regular train.
@@ -74,7 +78,56 @@
       needsHighSpeed: true,
       about: "Three times as fast. Stops only at Metro cities. Needs high-speed track.",
     },
+    // Cargo trains carry one kind of cargo each (no passengers). seats = loads they hold.
+    freight: {
+      name: "Freight",
+      price: 100,
+      upkeep: 8,
+      seats: 10,
+      speed: 0.8,
+      fare: 1,
+      stops: "all",
+      unlockWeek: 0,
+      carries: ["produce"],
+      about: "Carries crates of produce from Farmland towns to Metro cities. No passengers.",
+    },
+    dock: {
+      name: "Dock train",
+      price: 120,
+      upkeep: 10,
+      seats: 16,
+      speed: 0.7,
+      fare: 1,
+      stops: "all",
+      unlockWeek: 0,
+      carries: ["containers"],
+      needsPort: true,
+      about: "Moves shipping containers from ports to Desert and Farmland warehouses. Needs a port on its line.",
+    },
+    truck: {
+      name: "Truck bypass",
+      price: 140,
+      upkeep: 12,
+      seats: 6,
+      speed: 1.1,
+      fare: 1,
+      stops: "all",
+      unlockWeek: 1,
+      carries: ["trucks"],
+      about: "Carries trucks on flat cars from Desert and Mountain towns to Metro cities, taking them off the highway.",
+    },
   };
+
+  // ---- Cargo ----
+  // Each kind is made at some stations, wanted at stations of the `to` types,
+  // and moved only by trains that carry it. fee: [base $k, extra $k per mile].
+  NR.CARGO = {
+    produce: { name: "Produce", unit: "crates", from: "Farmland towns", to: ["metro"], fee: [3, 0.015] },
+    containers: { name: "Containers", unit: "containers", from: "ports, when a ship docks", to: ["desert", "farm"], fee: [4, 0.02] },
+    trucks: { name: "Trucks", unit: "trucks", from: "Desert and Mountain towns (from week 2)", to: ["metro"], fee: [5, 0.025] },
+  };
+  // What a train type holds: "seats" for passengers, or its cargo's unit.
+  NR.unitOf = (key) => (NR.TRAIN_TYPES[key].carries ? NR.CARGO[NR.TRAIN_TYPES[key].carries[0]].unit : "seats");
 
   // Money is counted in thousands of dollars: 400 means $400k.
   NR.money = (k) => {
@@ -149,7 +202,9 @@
       money: T.startMoney,
       weekIncome: 0,
       lastWeek: null,
-      depot: { regular: T.startTrains, commuter: 0, regional: 0, highspeed: 0, bullet: 0 },
+      depot: Object.fromEntries(Object.keys(NR.TRAIN_TYPES).map((k) => [k, k === "regular" ? T.startTrains : 0])),
+      cargoDelivered: Object.fromEntries(Object.keys(NR.CARGO).map((k) => [k, 0])),
+      shipIn: rand(15, 25), // the first ship comes early
       linesUnlocked: T.startLines,
       extraSeats: 0,
       speed: T.trainSpeed,
@@ -172,8 +227,18 @@
   };
 
   function addStation(s, id, atStart) {
-    s.stations.push({ id, waiting: [], crowd: 0, spawnIn: rand(2, 5), born: atStart ? -10 : s.time });
+    s.stations.push({ id, waiting: [], cargo: [], crowd: 0, spawnIn: rand(2, 5), cargoIn: rand(4, 10), born: atStart ? -10 : s.time });
     rt.dirty = true;
+  }
+
+  // Put cargo in a station's yard. Returns how many loads fit.
+  function addCargo(s, st, kind, n) {
+    let landed = 0;
+    while (landed < n && st.cargo.length < T.yardRoom) {
+      st.cargo.push({ id: s.nextId++, kind, to: "@" + kind, from: st.id });
+      landed++;
+    }
+    return landed;
   }
 
   NR.stationById = (s, id) => s.stations.find((st) => st.id === id);
@@ -262,24 +327,37 @@
     return pick ? pick.id : null;
   }
 
+  // Cargo is delivered at a station of one of its `to` types (never back where it started).
+  const cargoArrives = (stationId, kind) => NR.CARGO[kind].to.includes(city(stationId).type);
+  // Does stopping here finish this passenger's or this load's trip?
+  function itemArrives(s, stationId, p) {
+    return p.kind ? stationId !== p.from && cargoArrives(stationId, p.kind) : arrives(s, stationId, p.to);
+  }
+
   // For every destination, count how many stops each station is from it.
-  // Passengers use this to decide which train to take and where to change.
+  // Passengers and cargo use this to decide which train to take and where to change.
+  // Passengers ride lines with passenger trains (or no trains yet); each kind of cargo
+  // rides only lines that have a train for it. Cargo destinations are keyed "@produce" etc.
   function rebuildRoutes(s) {
-    const next = {};
-    s.stations.forEach((st) => (next[st.id] = []));
-    s.lines.forEach((l) => {
-      for (let i = 0; i + 1 < l.stops.length; i++) {
-        next[l.stops[i]].push(l.stops[i + 1]);
-        next[l.stops[i + 1]].push(l.stops[i]);
-      }
-    });
-    const goals = s.style === "type" ? [...new Set(s.stations.map((st) => city(st.id).type))] : s.stations.map((st) => st.id);
-    rt.routes = {};
-    goals.forEach((goal) => {
+    const kindsOn = {};
+    s.trains.forEach((t) => (kindsOn[t.lineId] ||= []).push(...(typeOf(t).carries || ["passengers"])));
+    const graph = (useLine) => {
+      const next = {};
+      s.stations.forEach((st) => (next[st.id] = []));
+      s.lines.forEach((l) => {
+        if (!useLine(l)) return;
+        for (let i = 0; i + 1 < l.stops.length; i++) {
+          next[l.stops[i]].push(l.stops[i + 1]);
+          next[l.stops[i + 1]].push(l.stops[i]);
+        }
+      });
+      return next;
+    };
+    const distances = (next, isGoal) => {
       const dist = {};
       const queue = [];
       s.stations.forEach((st) => {
-        if (arrives(s, st.id, goal)) {
+        if (isGoal(st.id)) {
           dist[st.id] = 0;
           queue.push(st.id);
         }
@@ -293,7 +371,15 @@
           }
         });
       }
-      rt.routes[goal] = dist;
+      return dist;
+    };
+    rt.routes = {};
+    const people = graph((l) => !kindsOn[l.id] || kindsOn[l.id].includes("passengers"));
+    const goals = s.style === "type" ? [...new Set(s.stations.map((st) => city(st.id).type))] : s.stations.map((st) => st.id);
+    goals.forEach((goal) => (rt.routes[goal] = distances(people, (id) => arrives(s, id, goal))));
+    Object.keys(NR.CARGO).forEach((kind) => {
+      const freight = graph((l) => (kindsOn[l.id] || []).includes(kind));
+      rt.routes["@" + kind] = distances(freight, (id) => cargoArrives(id, kind));
     });
     rt.dirty = false;
   }
@@ -356,7 +442,23 @@
     s.weekIncome += amount;
   }
 
-  // A train has stopped: let passengers off and on. Returns how long it waits.
+  // A passenger or a load of cargo has arrived: collect the money.
+  function deliverItem(s, p, here) {
+    if (p.kind) {
+      const fee = NR.CARGO[p.kind].fee;
+      earn(s, fee[0] + miles(city(p.from), city(here)) * fee[1]);
+      s.cargoDelivered[p.kind]++;
+      emit("deliver", { at: here, cargo: p.kind });
+      return;
+    }
+    s.delivered++;
+    earn(s, fareFor(p, here));
+    emit("deliver", { at: here });
+    countGoals(s, here);
+  }
+
+  // A train has stopped: unload and load. Passenger trains use the platform (st.waiting),
+  // cargo trains use the yard (st.cargo). Returns how long the train waits.
   function serveStation(s, train, line) {
     if (rt.dirty) rebuildRoutes(s);
     const here = line.stops[train.i];
@@ -367,28 +469,31 @@
     const closer = (p) => nextId !== null && stopsAway(p.to, nextId) < stopsAway(p.to, here);
     let moved = 0;
     train.pax = train.pax.filter((p) => {
-      if (arrives(s, here, p.to)) {
-        s.delivered++;
-        earn(s, fareFor(p, here));
+      if (itemArrives(s, here, p)) {
+        deliverItem(s, p, here);
         moved++;
-        emit("deliver", { at: here });
-        countGoals(s, here);
         return false;
       }
       if (closer(p)) return true; // stay on board
-      st.waiting.push(p); // change trains here
+      (p.kind ? st.cargo : st.waiting).push(p); // change trains here
       moved++;
       return false;
     });
     const seats = NR.seatsOf(s, train);
-    st.waiting = st.waiting.filter((p) => {
-      if (train.pax.length >= seats || !closer(p)) return true;
-      p.premium = Math.max(p.premium || 1, type.fare);
-      if (train.type === "commuter") p.commuter = true;
-      train.pax.push(p);
-      moved++;
-      return false;
-    });
+    const board = (list) =>
+      list.filter((p) => {
+        if (train.pax.length >= seats || !closer(p)) return true;
+        if (type.carries ? !type.carries.includes(p.kind) : p.kind) return true; // not this train's load
+        if (!type.carries) {
+          p.premium = Math.max(p.premium || 1, type.fare);
+          if (train.type === "commuter") p.commuter = true;
+        }
+        train.pax.push(p);
+        moved++;
+        return false;
+      });
+    if (type.carries) st.cargo = board(st.cargo);
+    else st.waiting = board(st.waiting);
     return 0.35 + moved * (type.quick ? 0.03 : 0.08);
   }
 
@@ -456,6 +561,28 @@
         st.spawnIn = (11 / (0.6 + 0.25 * city(st.id).size) / pressure / rushBoost) * rand(0.7, 1.3);
       }
     });
+
+    // Cargo: farms send produce, desert and mountain towns send trucks (once Truck bypass
+    // trains exist), and ships bring containers to your ports.
+    const trucksOn = s.week >= NR.TRAIN_TYPES.truck.unlockWeek;
+    s.stations.forEach((st) => {
+      const t = city(st.id).type;
+      const kind = t === "farm" ? "produce" : trucksOn && (t === "desert" || t === "mountain") ? "trucks" : null;
+      if (!kind) return;
+      st.cargoIn -= dt;
+      if (st.cargoIn > 0) return;
+      addCargo(s, st, kind, 1);
+      st.cargoIn = rand(T.cargoEvery[0], T.cargoEvery[1]) / (0.7 + 0.15 * city(st.id).size);
+    });
+    s.shipIn -= dt;
+    if (s.shipIn <= 0) {
+      const ports = s.stations.filter((st) => city(st.id).port);
+      if (ports.length) {
+        const st = ports[Math.floor(Math.random() * ports.length)];
+        emit("ship", { at: st.id, landed: addCargo(s, st, "containers", T.shipLoad) });
+      }
+      s.shipIn = rand(T.shipEvery[0], T.shipEvery[1]);
+    }
 
     if (rt.dirty) rebuildRoutes(s);
     s.trains.forEach((tr) => updateTrain(s, tr, dt));
@@ -554,6 +681,7 @@
     const t = NR.TRAIN_TYPES[type];
     if (s.week < t.unlockWeek) return { ok: false, reason: `Unlocks in week ${t.unlockWeek + 1}` };
     if (t.needsHighSpeed && line.grade !== "high") return { ok: false, reason: "Needs high-speed track" };
+    if (t.needsPort && !line.stops.some((id) => city(id).port)) return { ok: false, reason: "Needs a port on the line" };
     if (t.maxLineMiles && NR.lineMiles(line) > t.maxLineMiles) return { ok: false, reason: `Only on lines up to ${t.maxLineMiles} mi` };
     if (line.stops.filter((id) => serves(type, id)).length < 2) return { ok: false, reason: "Needs 2 cities it stops at" };
     if (s.depot[type] > 0) return { ok: true, fromDepot: true };
@@ -581,20 +709,18 @@
       pax: [],
     };
     s.trains.push(train);
+    rt.dirty = true; // which lines carry what has changed
     train.wait = serveStation(s, train, line);
     return true;
   };
 
-  // Passengers on a train that leaves service get off at its last station.
+  // Passengers and cargo on a train that leaves service get off at its last station.
   function dropOff(s, train, line) {
     const here = line.stops[Math.min(train.i, line.stops.length - 1)];
     const st = NR.stationById(s, here);
     train.pax.forEach((p) => {
-      if (arrives(s, here, p.to)) {
-        s.delivered++;
-        earn(s, fareFor(p, here));
-        countGoals(s, here);
-      } else st.waiting.push(p);
+      if (itemArrives(s, here, p)) deliverItem(s, p, here);
+      else (p.kind ? st.cargo : st.waiting).push(p);
     });
     train.pax = [];
   }
@@ -607,6 +733,7 @@
     if (line) dropOff(s, train, line);
     s.trains = s.trains.filter((t) => t !== train);
     s.depot[train.type]++;
+    rt.dirty = true;
     return true;
   };
 
@@ -655,7 +782,13 @@
       ok: (s) => s.linesUnlocked < T.maxLines,
       apply: (s) => s.linesUnlocked++,
     },
-    seats: { title: "Bigger trains", text: "Every train gets 2 more seats.", ok: (s) => s.extraSeats < 6, apply: (s) => (s.extraSeats += 2) },
+    freight: {
+      title: "Free Freight train",
+      text: "Moves produce from Farmland towns to Metro cities. Waiting in your depot.",
+      ok: () => true,
+      apply: (s) => (s.depot.freight += 1),
+    },
+    seats: { title: "Bigger trains", text: "Every train gets 2 more seats or room for cargo.", ok: (s) => s.extraSeats < 6, apply: (s) => (s.extraSeats += 2) },
     speed: {
       title: "Faster trains",
       text: "Every train runs 15% faster.",

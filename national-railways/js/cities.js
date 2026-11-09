@@ -19,16 +19,16 @@ NR.LINE_NAMES = ["Golden", "Redwood", "Pacific", "Sierra", "Mojave", "Jacaranda"
 // A county's main station appears as soon as you own the county.
 // id = the short code shown on passengers. county = region id in NR.MAP.regions.
 // pop = county population in thousands (2020 census). size = how busy (1 to 5).
-// level = which level unlocks it in Levels mode.
+// level = which level unlocks it in Levels mode. port = the name of its seaport, if it has one.
 NR.CITIES = [
   // Level 1: Southern California
   { id: "LA", name: "Los Angeles", county: "los-angeles", lat: 34.05, lon: -118.24, type: "metro", size: 5, pop: 10014, main: true, level: "south" },
   { id: "ANA", name: "Anaheim", county: "orange", lat: 33.84, lon: -117.91, type: "metro", size: 5, pop: 3187, main: true, level: "south" },
-  { id: "SD", name: "San Diego", county: "san-diego", lat: 32.72, lon: -117.16, type: "metro", size: 5, pop: 3299, main: true, level: "south" },
+  { id: "SD", name: "San Diego", county: "san-diego", lat: 32.72, lon: -117.16, port: "Port of San Diego", type: "metro", size: 5, pop: 3299, main: true, level: "south" },
   { id: "RIV", name: "Riverside", county: "riverside", lat: 33.95, lon: -117.4, type: "desert", size: 4, pop: 2418, main: true, level: "south" },
   { id: "SBD", name: "San Bernardino", county: "san-bernardino", lat: 34.11, lon: -117.29, type: "desert", size: 4, pop: 2182, main: true, level: "south" },
   { id: "ELC", name: "El Centro", county: "imperial", lat: 32.79, lon: -115.56, type: "desert", size: 2, pop: 180, main: true, level: "south" },
-  { id: "OXN", name: "Oxnard", county: "ventura", lat: 34.2, lon: -119.18, type: "coast", size: 3, pop: 844, main: true, level: "south" },
+  { id: "OXN", name: "Oxnard", county: "ventura", lat: 34.2, lon: -119.18, port: "Port of Hueneme", type: "coast", size: 3, pop: 844, main: true, level: "south" },
   // Level 2: Central Valley and Central Coast
   { id: "SMX", name: "Santa Maria", county: "santa-barbara", lat: 34.95, lon: -120.44, type: "coast", size: 3, pop: 448, main: true, level: "central" },
   { id: "SLO", name: "San Luis Obispo", county: "san-luis-obispo", lat: 35.28, lon: -120.66, type: "coast", size: 2, pop: 282, main: true, level: "central" },
@@ -44,7 +44,7 @@ NR.CITIES = [
   { id: "SF", name: "San Francisco", county: "san-francisco", lat: 37.77, lon: -122.42, type: "metro", size: 5, pop: 874, main: true, level: "bay" },
   { id: "SMO", name: "San Mateo", county: "san-mateo", lat: 37.56, lon: -122.32, type: "metro", size: 3, pop: 764, main: true, level: "bay" },
   { id: "SJ", name: "San Jose", county: "santa-clara", lat: 37.34, lon: -121.89, type: "metro", size: 4, pop: 1936, main: true, level: "bay" },
-  { id: "OAK", name: "Oakland", county: "alameda", lat: 37.8, lon: -122.27, type: "metro", size: 4, pop: 1682, main: true, level: "bay" },
+  { id: "OAK", name: "Oakland", county: "alameda", lat: 37.8, lon: -122.27, port: "Port of Oakland", type: "metro", size: 4, pop: 1682, main: true, level: "bay" },
   { id: "CCR", name: "Concord", county: "contra-costa", lat: 37.98, lon: -122.03, type: "metro", size: 4, pop: 1166, main: true, level: "bay" },
   { id: "SRF", name: "San Rafael", county: "marin", lat: 37.97, lon: -122.53, type: "coast", size: 2, pop: 262, main: true, level: "bay" },
   { id: "SCZ", name: "Santa Cruz", county: "santa-cruz", lat: 36.97, lon: -122.03, type: "coast", size: 2, pop: 271, main: true, level: "bay" },
@@ -63,7 +63,7 @@ NR.CITIES = [
   { id: "SRO", name: "Santa Rosa", county: "sonoma", lat: 38.44, lon: -122.71, type: "farm", size: 3, pop: 489, main: true, level: "north" },
   { id: "CLK", name: "Clearlake", county: "lake", lat: 38.96, lon: -122.63, type: "mountain", size: 1, pop: 68, main: true, level: "north" },
   { id: "UKI", name: "Ukiah", county: "mendocino", lat: 39.15, lon: -123.21, type: "coast", size: 1, pop: 92, main: true, level: "north" },
-  { id: "EKA", name: "Eureka", county: "humboldt", lat: 40.8, lon: -124.16, type: "coast", size: 1, pop: 136, main: true, level: "north" },
+  { id: "EKA", name: "Eureka", county: "humboldt", lat: 40.8, lon: -124.16, port: "Humboldt Bay", type: "coast", size: 1, pop: 136, main: true, level: "north" },
   { id: "YRK", name: "Yreka", county: "del-norte-siskiyou-trinity", lat: 41.73, lon: -122.63, type: "mountain", size: 1, pop: 88, main: true, level: "north" },
   { id: "RBL", name: "Red Bluff", county: "tehama", lat: 40.18, lon: -122.24, type: "farm", size: 1, pop: 66, main: true, level: "north" },
   { id: "RDD", name: "Redding", county: "shasta", lat: 40.59, lon: -122.39, type: "mountain", size: 2, pop: 182, main: true, level: "north" },
@@ -81,7 +81,7 @@ NR.CITIES = [
 // Same fields as above, without level (they follow their county).
 NR.TOWNS = [
   // Los Angeles County
-  { id: "LGB", name: "Long Beach", county: "los-angeles", lat: 33.77, lon: -118.19, type: "coast", size: 4 },
+  { id: "LGB", name: "Long Beach", county: "los-angeles", lat: 33.77, lon: -118.19, port: "Port of Long Beach", type: "coast", size: 4 },
   { id: "LAN", name: "Lancaster", county: "los-angeles", lat: 34.7, lon: -118.14, type: "desert", size: 2 },
   { id: "SCL", name: "Santa Clarita", county: "los-angeles", lat: 34.39, lon: -118.54, type: "metro", size: 3 },
   { id: "MAL", name: "Malibu", county: "los-angeles", lat: 34.04, lon: -118.69, type: "coast", size: 1 },

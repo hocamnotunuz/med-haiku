@@ -8,6 +8,10 @@
   --county: #d5e0e5;
   --county-text: #93a6b0;
   --locked: rgba(160, 188, 201, 0.5); /* counties you don't own yet */
+  /* Cargo: produce crates, shipping containers, trucks */
+  --produce: #3d8b2c;
+  --container: #b0522c;
+  --truck: #5b6a74;
   --station: #ffffff;
   /* Text and panels */
   --ink: #1a2932;
@@ -43,6 +47,9 @@
     --county: #1f303b;
     --county-text: #5b7280;
     --locked: rgba(2, 8, 12, 0.55);
+    --produce: #6cbf4b;
+    --container: #e27c4a;
+    --truck: #9aa9b3;
     --station: #0c1720;
     --ink: #e3ecf0;
     --muted: #91a5b1;
@@ -72,6 +79,9 @@
   --county: #1f303b;
   --county-text: #5b7280;
   --locked: rgba(2, 8, 12, 0.55);
+  --produce: #6cbf4b;
+  --container: #e27c4a;
+  --truck: #9aa9b3;
   --station: #0c1720;
   --ink: #e3ecf0;
   --muted: #91a5b1;
@@ -162,6 +172,7 @@ button { font: inherit; color: inherit; }
   color: var(--muted);
 }
 .legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.legend-cargo { display: inline-block; width: 10px; height: 8px; border-radius: 1px; }
 .legend svg { width: 12px; height: 12px; fill: var(--station); stroke: var(--ink); stroke-width: 1.6; overflow: visible; }
 
 .stats { display: flex; gap: 6px; }
