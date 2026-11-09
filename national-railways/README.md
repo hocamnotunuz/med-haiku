@@ -120,7 +120,7 @@ Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own ci
 - Riders appear in the neighborhoods: most cross town, some (orange tags) head for the main station to catch a train and then join the trains across California.
 - **Hills and water:** each city map shows its real hills and water (San Francisco's hills, the Hollywood Hills, San Diego Bay and Mission Bay, the Sacramento and American rivers). Trams slow down on hills (Castro to Haight-Ashbury is a 6% climb). Metro tunnels under hills cost more but don't slow down. Cable cars climb at full speed but can't cross water. Water needs a bridge (or a tube for the metro): cheaper at a real bridge like the Coronado Bridge or Tower Bridge, and impossible if too wide. Lines can run along a shore.
 - Half of the train passengers arriving at the city's main station ride the metro home.
-- A city keeps running once opened. A neighborhood that stays overcrowded ends the game, like a station; you get a warning if you are away.
+- A city keeps running once opened. A neighborhood that stays overcrowded ends the game, like a station, but **only the map you're looking at can be lost**: while you're on a city map, the state map and the other cities keep running (trains, passengers, money, weeks) with their stations kept at most half full, and while you're on the state map, every city is kept that way. When you come back to a map, it's live again.
 - Up to 5 lines per city. Sell vehicles or delete lines to get half the price back.
 
 #### City budget and head of transportation

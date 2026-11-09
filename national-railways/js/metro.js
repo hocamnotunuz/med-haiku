@@ -651,10 +651,11 @@
       }
       for (const train of c.trains) moveVehicle(s, key, c, train, dt);
       // Crowding: a stop that stays too full for too long ends the game, just like a station.
-      // While the head of transportation runs the city, stops are kept at most half full
-      // (extra riders take the bus), so the city is in good shape when it comes back to you.
+      // While the head of transportation runs the city, or while you are not looking at this
+      // city's map, stops are kept at most half full instead (extra riders take the bus).
+      const away = rt.viewing !== key;
       for (const st of c.stations) {
-        if (managed) {
+        if (managed || away) {
           const calm = Math.floor(T.cityRoom / 2);
           if (st.waiting.length > calm) st.waiting.length = calm;
           st.crowd = 0;

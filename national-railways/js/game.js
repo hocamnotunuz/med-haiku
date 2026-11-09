@@ -389,6 +389,7 @@
     NR.START_COUNTIES.forEach((id) => ownCounty(s, id, true));
     rt.dirty = true;
     rt.events.length = 0;
+    rt.viewing = null; // the state map
     return s;
   };
 
@@ -1045,10 +1046,11 @@
     }
 
     // Overcrowding: a station that stays too full for too long ends the game.
-    // While a head of transportation manages a state, its stations are kept at most half full
-    // (extra passengers take the bus), so the state is in good shape when it comes back to you.
+    // While a head of transportation manages a state, or while you are looking at a city map
+    // (rt.viewing, set by js/ui.js), stations are kept at most half full instead (extra
+    // passengers take the bus): only the map you're looking at can be lost.
     for (const st of s.stations) {
-      if (NR.stateFrozen(s, NR.stateOf(st.id))) {
+      if (rt.viewing || NR.stateFrozen(s, NR.stateOf(st.id))) {
         const calm = Math.floor(T.stationRoom / 2);
         if (st.waiting.length > calm) st.waiting.length = calm;
         st.crowd = 0;

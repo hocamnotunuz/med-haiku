@@ -631,6 +631,7 @@
   }
 
   // ---------- City maps ----------
+  let awayHintShown = false; // explained once per page visit
   function enterCity(key) {
     if (!game || !NR.cityAvailable(game, key)) return;
     NR.openCity(game, key);
@@ -639,6 +640,11 @@
     closeContracts();
     draft = null;
     cityKey = key;
+    NR.runtime.viewing = key; // only the map you're looking at can overflow
+    if (!awayHintShown) {
+      awayHintShown = true;
+      toast("While you're on this city map, the state map and other cities keep running but can't overflow: their stations stay at most half full until you come back.");
+    }
     if (NR.CITY_MODES[cityMode].onlyIn && NR.CITY_MODES[cityMode].onlyIn !== key) cityMode = "tram";
     chipSig = "";
     renderCityBar();
@@ -651,6 +657,7 @@
     closeCityPanel();
     draft = null;
     cityKey = null;
+    NR.runtime.viewing = null; // back on the state map
     chipSig = "";
     for (let i = fx.length - 1; i >= 0; i--) if (fx[i].city) fx.splice(i, 1);
     renderCityBar();
