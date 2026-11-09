@@ -46,7 +46,7 @@ Some numbers are estimates and get exact once the scripts in step 4 run.
 
 **What this means:**
 - The game can't load all of North America at once on a phone. Each state or province becomes a **pack** (its own set of data files) that loads only when it's on screen or open.
-- Most of the work is **data and careful choices**: which city is the main station, where the real passes are. That is the part subagents do, in parallel.
+- Most of the work is **data and careful choices**: which city is the main station, where the real passes are. That is the part subagents do, **one state at a time**.
 - Changes to the game's **rules and drawing code** stay with one agent (me), done before the subagents start, so nobody steps on anybody else's work.
 
 ---
@@ -115,17 +115,18 @@ Known special cases the scripts must handle:
 
 ---
 
-## 6. Step 3: the subagent waves
+## 6. Step 3: the subagents, one state at a time
+
+**Rule: only one subagent works at any moment, and it does exactly one state or province.** When it finishes, I check its work, merge it, and only then does the next one start. That keeps usage low and steady, and you can stop after any state.
 
 ### Who does what
 
 | Agent | Job | Edits |
 | --- | --- | --- |
-| **Me (main agent)** | Foundation code, merging packs in, tests, balance, publishing | core code |
-| **Pack agent** (one per state or province) | All the hand-made choices for its pack (list below) | only its own pack folder, in its own copy of the project (a git worktree) |
-| **City map agent** (one per 4–5 big cities) | Neighborhoods, hubs, cable-car stops, checks water and hills | only its city maps |
-| **Reviewer agent** (fresh eyes, after each wave) | Checks a sample of each pack against the source data; flags anything suspicious | nothing; it reports |
-| **Look-and-feel agent** (after each wave) | Screenshots of every new state in both looks, light and dark; flags drawing problems | nothing; it reports |
+| **Me (main agent)** | Foundation code, checking and merging each pack, tests, balance, publishing; I also look over each state's screenshots | core code |
+| **Pack agent** (one state or province per run) | All the hand-made choices for that one pack (list below) | only that pack's folder |
+| **City map agent** (one state's big cities per run, later) | Neighborhoods, hubs, cable-car stops, checks water and hills | only that state's city maps |
+| **Reviewer agent** (every 5th state, or when the checker flags trouble) | Checks a sample of the latest packs against the source data; flags anything suspicious. Can run on a smaller, cheaper model | nothing; it reports |
 
 ### What a pack agent does
 
@@ -137,26 +138,39 @@ Known special cases the scripts must handle:
 6. Write 3–4 levels with goals.
 7. Run the checker and the pack test until both pass. Write a notes file listing every judgment call and its source.
 
-### Waves (at most 8 agents at a time; each wave waits for your OK)
+### The order (one after another)
 
-| Wave | Packs | Agents |
-| --- | --- | --- |
-| Pilot | WA, BC | 2 + 1 reviewer |
-| 1. West | ID, MT, WY, UT, CO, NM, AK, HI | 8 |
-| 2. Plains & Texas | ND, SD, NE, KS, OK, TX*, MN, IA | 8 |
-| 3. Midwest & South Central | MO, AR, LA, WI, IL, MI, IN, OH | 8 |
-| 4. South | KY, TN, MS, AL, GA, FL, SC, NC | 8 |
-| 5. Mid-Atlantic | VA, WV, MD + DC, DE, PA, NJ, NY, CT | 8 |
-| 6. New England | RI, MA, VT, NH, ME | 5 |
-| 7. Canada West & Centre | AB, SK, MB, ON, QC | 5 |
-| 8. Canada East (+ territories?) | NB, NS, PE, NL (+ YT, NT, NU) | 4–7 |
-| 9. City maps | ~35 big metros, 4–5 per agent | 7–8 |
+States are done in this order, neighbor by neighbor, so each new one joins the map next to finished ones. After each **group**, I update the online game and you say whether to continue. You can also stop or change the order after any single state.
 
-\* Texas has 254 counties, so it may get two agents (east and west).
+| Group | States and provinces, in order |
+| --- | --- |
+| Pilot | WA, then BC (I watch these two closely and fix the method) |
+| 1. West | ID, MT, WY, UT, CO, NM, AK, HI |
+| 2. Plains & Texas | ND, SD, NE, KS, OK, TX\*, MN, IA |
+| 3. Midwest & South Central | MO, AR, LA, WI, IL, MI, IN, OH |
+| 4. South | KY, TN, MS, AL, GA, FL, SC, NC |
+| 5. Mid-Atlantic | VA, WV, MD (with DC), DE, PA, NJ, NY, CT |
+| 6. New England | RI, MA, VT, NH, ME |
+| 7. Canada West & Centre | AB, SK, MB, ON, QC |
+| 8. Canada East (+ territories?) | NB, NS, PE, NL (+ YT, NT, NU) |
+| 9. City maps | one state's big cities per run, after the states are done |
 
-After every wave there are 2 reviewer runs and 1 look-and-feel run.
+\* Texas has 254 counties. If one run can't finish it, a second run continues the same state; it is still one state at a time.
 
-**All together:** about 60 pack agents, 8 city map agents, about 20 reviewer runs and about 10 look-and-feel runs, so roughly 100 agent runs over 10 waves. This is **a lot of usage**. Each pack agent is roughly like one long work session. That's why it goes wave by wave and you approve each one.
+### How much usage
+
+- **About 58 pack runs:** one per state or province, plus the 3 territories if you include them.
+- **About 25 city-map runs:** one per state or province that has big cities.
+- **About 12 reviewer runs:** every 5th state, plus any needed when the checker flags something.
+- **No separate look-and-feel agents:** I check the screenshots the pack test takes.
+
+That's roughly 95 runs, about the same total as running them side by side. But **only one runs at a time**, each run is small, and you can pause whenever you like, so usage stays low and spread out instead of coming in big bursts. It takes longer in calendar time.
+
+**Other ways it saves usage:**
+- Each agent gets a short brief and data that the scripts already prepared, so it doesn't spend effort re-reading the whole game.
+- The automatic checker does most of the checking, so fewer reviewer runs are needed.
+- Reviews can use a smaller, cheaper model.
+- Lessons from each state go into the brief for the next one, so later runs need fewer fixes.
 
 ### Suggested city maps (Tier 1: US metros of about 2 million people or more, and Canada's six biggest)
 
@@ -181,16 +195,22 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 - **Facts come from downloaded data**, not memory, wherever possible. The notes file lists the source of each hand-made choice.
 - **Reviewer agents** with no stake in the work check samples against sources.
 - **Test bots** play the new states (the economy bots we already have) to check game length and difficulty.
-- **Every wave** ends with all automatic tests passing before anything is published.
+- **Every state** must pass all automatic tests before it is merged, and every group before anything is published.
 
 ---
 
-## 8. Step 4: after each wave (main agent)
+## 8. Step 4: after each state, and after each group (main agent)
 
-1. Merge the wave's packs. Run the checker, every browser test and the test bots.
+**After each state:**
+1. Run the checker and the pack test. Look over the screenshots.
+2. Merge the pack and save to GitHub.
+3. Add anything learned to the pack agent brief.
+
+**After each group:**
+1. Run every browser test and the test bots.
 2. Check speed and memory at phone size with the whole map open.
-3. Update the README. Save to GitHub. Update the online game.
-4. Show you screenshots and anything the reviewers flagged. You approve the next wave.
+3. Update the README and the online game.
+4. Show you screenshots and anything the reviewers flagged. You decide whether to continue.
 
 ---
 
@@ -199,9 +219,9 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 | Risk | How it's handled |
 | --- | --- |
 | Wrong facts from agents | Checker + downloaded data + reviewer agents |
-| Too slow or too big for phones | Packs load as needed; simpler drawing when zoomed out; speed test every wave |
+| Too slow or too big for phones | Packs load as needed; simpler drawing when zoomed out; speed test after every group |
 | Online game size limits (16 MB per file, about 500 files and 256 MB per version) | Packs are split into small files |
-| Agents overwriting each other | Each agent works in its own copy and edits only its own pack; core code only by the main agent |
+| Agents overwriting each other | Only one agent works at a time, and it edits only its own pack; core code only by the main agent |
 | Old saved games breaking | Save format version bump; old California saves still load |
 | Game too long or too hard at continent size | Play starts in one state; neighbors open one at a time; test bots measure it |
 | Data licenses | Sources and credits listed in the README (Statistics Canada and the climate map need credit lines) |
@@ -215,14 +235,14 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 3. **Money across the border:** *Recommended: the US and Canada each have their own national money. Lines crossing the border are paid half and half, and their fares go to both.*
 4. **Starting place:** *Recommended: you choose any state or province; California stays the default.*
 5. **City maps:** *Recommended: Tier 1 list above (about 36 new cities).*
-6. **Order:** *Recommended: Step 0 (own repository), then foundation, then pilot, then waves in the order above.*
+6. **Order:** *Recommended: Step 0 (own repository), then foundation, then pilot, then one state at a time in the order above.*
 
 ---
 
 ## Appendix: brief for a pack agent (template)
 
 > You are building the **{STATE}** pack for National Railways to the standard in `PLAN-north-america.md` section 1.
-> Work only in `packs/{CODE}/` in your own worktree. Do not edit any other file.
+> Work only in `packs/{CODE}/`. Do not edit any other file. You are the only agent working right now; do just this one state.
 > Start from the script outputs in `packs/{CODE}/raw/` (borders, merges, populations, city candidates, terrain).
 > Use facts from those files. When you must add something by hand (a pass, a bridge, a scenic place), write its source in `packs/{CODE}/NOTES.md`.
 > Finish only when `node tools/check-pack.js {CODE}` and the pack test both pass.
