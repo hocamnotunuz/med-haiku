@@ -136,6 +136,20 @@
   };
   NR.panBy = (dx, dy) => NR.setCamera(cam.zoom, cam.x + dx, cam.y + dy);
   NR.resetCamera = () => NR.setCamera(1, 0, 0);
+  // Zoom in on these places ([longitude, latitude] pairs) with some room around them.
+  NR.focusOn = function (places, maxZoom = 4) {
+    if (!places.length) return NR.resetCamera();
+    NR.setCamera(1, 0, 0);
+    const pts = places.map(([lon, lat]) => NR.toScreen(lon, lat));
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const w = Math.max(40, Math.max(...xs) - Math.min(...xs)) * 1.5;
+    const h = Math.max(40, Math.max(...ys) - Math.min(...ys)) * 1.5;
+    const b = view.box;
+    const z = clamp(Math.min((view.w - b.left - b.right) / w, (view.h - b.top - b.bottom) / h), 1, maxZoom);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const [vx, vy] = NR.viewCenter();
+    NR.setCamera(z, vx - cx * z, vy - cy * z);
+  };
   // The middle of the map area on screen (used by the zoom buttons).
   NR.viewCenter = () => [(view.box.left + view.w - view.box.right) / 2, (view.box.top + view.h - view.box.bottom) / 2];
 
@@ -647,13 +661,27 @@
     NR.lineHandles(s).forEach((h) => {
       if (draft && draft.kind === "extend" && draft.lineId === h.lineId && draft.atHead === h.atHead) return;
       const pe = pos[h.stationId];
-      ctx.strokeStyle = NR.lineColor(h.color);
+      const color = NR.lineColor(h.color);
+      ctx.strokeStyle = color;
       ctx.beginPath();
       ctx.moveTo(pe[0] + h.dx * view.r, pe[1] + h.dy * view.r);
       ctx.lineTo(h.x, h.y);
-      ctx.moveTo(h.x - h.dy * 7, h.y + h.dx * 7);
-      ctx.lineTo(h.x + h.dy * 7, h.y - h.dx * 7);
       ctx.stroke();
+      // A round tab with a "+" at the end: drag it (or the end station) to extend the line.
+      const r = Math.max(7, view.lw * 1.3);
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = colors.panel;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(h.x - r * 0.5, h.y);
+      ctx.lineTo(h.x + r * 0.5, h.y);
+      ctx.moveTo(h.x, h.y - r * 0.5);
+      ctx.lineTo(h.x, h.y + r * 0.5);
+      ctx.stroke();
+      ctx.lineWidth = view.lw;
     });
   }
 
@@ -881,7 +909,31 @@
     ctx.restore();
   }
 
+  // Station names go below the station, or above when that spot is taken, so they don't
+  // overlap. Bigger places get their spot first. In "a specific city" mode every code is shown.
+  function drawStationLabels(ctx, labels, mustShow) {
+    labels.sort((a, b) => b.rank - a.rank);
+    const placed = [];
+    const taken = (x0, x1, y0, y1) => placed.some((p) => x0 < p.x1 && x1 > p.x0 && y0 < p.y1 && y1 > p.y0);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    for (const l of labels) {
+      ctx.font = l.font;
+      const w = ctx.measureText(l.text).width + 4;
+      const h = 13;
+      const spots = [l.y + l.r + 6, l.y - l.r - (l.marked ? 20 : 6) - h];
+      let y = spots.find((ty) => !taken(l.x - w / 2, l.x + w / 2, ty, ty + h));
+      if (y === undefined) {
+        if (!mustShow) continue;
+        y = spots[0];
+      }
+      placed.push({ x0: l.x - w / 2, x1: l.x + w / 2, y0: y, y1: y + h });
+      halo(ctx, l.text, l.x, y, l.color, colors.land);
+    }
+  }
+
   function drawStations(ctx, s) {
+    const labels = [];
     for (const st of s.stations) {
       const c = NR.cityById[st.id];
       const [x, y] = pos[st.id];
@@ -923,11 +975,16 @@
       ctx.strokeStyle = colors.ink;
       ctx.stroke();
 
-      const label = s.style === "city" ? (view.big ? `${c.id} · ${c.name}` : c.id) : view.big ? c.name : c.id;
-      ctx.font = `${s.style === "city" ? 700 : 600} ${view.big ? 11 : 10}px ${DISPLAY}`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      halo(ctx, label, x, y + r + 6, s.style === "city" ? colors.ink : colors.muted, colors.land);
+      labels.push({
+        text: s.style === "city" ? (view.big ? `${c.id} · ${c.name}` : c.id) : view.big ? c.name : c.id,
+        font: `${s.style === "city" ? 700 : 600} ${view.big ? 11 : 10}px ${DISPLAY}`,
+        color: s.style === "city" ? colors.ink : colors.muted,
+        x,
+        y,
+        r,
+        rank: c.size + (c.main ? 0.5 : 0),
+        marked: !!(c.port || c.airport || c.scenic),
+      });
 
       drawWaiting(ctx, s, st, x, y, r);
       drawYard(ctx, st, x, y, r);
@@ -949,6 +1006,42 @@
       }
       if (NR.METROS && NR.METROS[st.id] && NR.cityAvailable(s, st.id)) drawMetroBadge(ctx, s, st.id, x - r - 9, y - r - 6);
     }
+    drawStationLabels(ctx, labels, s.style === "city");
+  }
+
+  // Before the first line: a moving dashed arrow from Los Angeles to its nearest neighbor.
+  function drawFirstTrackHint(ctx, s, now) {
+    const from = s.stations[0] && s.stations[0].id;
+    const others = s.stations.filter((st) => st.id !== from);
+    if (!from || !others.length) return;
+    const to = others.reduce((a, b) => (NR.crowMiles(from, a.id) <= NR.crowMiles(from, b.id) ? a : b)).id;
+    const [x1, y1] = pos[from], [x2, y2] = pos[to];
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    if (len < 30) return;
+    const ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+    const a = [x1 + ux * (view.r + 6), y1 + uy * (view.r + 6)], b = [x2 - ux * (view.r + 10), y2 - uy * (view.r + 10)];
+    ctx.save();
+    ctx.strokeStyle = colors.accent;
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.setLineDash([8, 7]);
+    ctx.lineDashOffset = -((now || 0) / 40);
+    ctx.globalAlpha = 0.6 + 0.4 * Math.sin((now || 0) / 300);
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(b[0] - ux * 10 - uy * 7, b[1] - uy * 10 + ux * 7);
+    ctx.lineTo(b[0], b[1]);
+    ctx.lineTo(b[0] - ux * 10 + uy * 7, b[1] - uy * 10 - ux * 7);
+    ctx.stroke();
+    ctx.restore();
+    ctx.font = `700 11px ${MONO}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    halo(ctx, "Drag", (a[0] + b[0]) / 2 - uy * 14, (a[1] + b[1]) / 2 + ux * 14 - 4, colors.accent, colors.land);
   }
 
   // Each train type has its own outline: Regular is one car, Regional two cars,
@@ -1465,6 +1558,7 @@
     drawHandles(ctx, s, ui.draft);
     if (ui.draft) drawDraft(ctx, ui.draft, ui.pointer);
     drawStations(ctx, s);
+    if (!s.lines.length && !ui.draft) drawFirstTrackHint(ctx, s, ui.now);
     drawTrains(ctx, s, segs);
     drawFx(ctx, ui.fx, ui.now);
   };

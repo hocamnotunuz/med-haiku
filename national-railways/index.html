@@ -16,6 +16,7 @@
         <span id="paused-pill" class="paused-pill" hidden>Paused</span>
       </div>
       <span id="mode-label" class="mode-label">Endless · Type of place</span>
+      <button id="btn-legend" class="legend-toggle" type="button" aria-expanded="false" aria-controls="legend">Legend</button>
       <div id="legend" class="legend"></div>
       <div id="city-bar" class="city-bar" hidden>
         <button id="btn-back" class="btn btn-small" type="button">← California</button>
@@ -68,7 +69,7 @@
   <div id="zoom-controls" class="zoom-controls">
     <button id="btn-zoom-in" class="icon-btn" type="button" aria-label="Zoom in">+</button>
     <button id="btn-zoom-out" class="icon-btn" type="button" aria-label="Zoom out">−</button>
-    <button id="btn-zoom-fit" class="icon-btn" type="button" aria-label="Show the whole map">
+    <button id="btn-zoom-fit" class="icon-btn" type="button" aria-label="Switch between your network and the whole map" title="Your network / the whole map">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
@@ -101,6 +102,7 @@
       <button id="cp-close" class="lp-close" type="button" aria-label="Close county details">×</button>
     </div>
     <p id="cp-status" class="lp-meta"></p>
+    <p id="cp-connect" class="lp-meta" hidden></p>
     <p id="cp-info" class="lp-stops"></p>
     <div id="cp-goal" class="cp-goal" hidden>
       <p id="cp-goal-text" class="cp-goal-text"></p>
@@ -198,6 +200,8 @@
         </fieldset>
       </details>
 
+      <details class="guide howto-guide">
+        <summary>How to play</summary>
       <ul class="howto">
         <li><b>Build:</b> drag from one city to another to lay track. Keep dragging to add stops.</li>
         <li><b>Extend:</b> drag the tab at either end of a line.</li>
@@ -213,6 +217,7 @@
         <li><b>Money:</b> track and trains cost money. Passengers pay a fare when they arrive, and trains cost a little to run each week.</li>
         <li><b>Budgets and states:</b> every state has its own budget (tap the money at the bottom). Fares for trips inside a state go to its budget (less a 10% tax to national money; cities pay 10% of their fares to their state), and the state pays for its own track, trains and counties. National money gets fares for trips across state borders, contract rewards and grants; it pays for track across state borders and covers any state that runs short. Money can't be moved between budgets by hand. Once you own all of California, Nevada, Arizona and Oregon open. A state can hire a head of transportation too, just like a city.</li>
       </ul>
+      </details>
 
       <details class="guide">
         <summary>Train types</summary>

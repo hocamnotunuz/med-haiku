@@ -91,13 +91,21 @@
   let toastTimer = 0;
   let lastToast = "";
   let lastToastAt = 0;
-  function toast(msg) {
+  // A message under the score strip. With onTap, tapping the message does something.
+  function toast(msg, onTap) {
     const now = performance.now();
     if (msg === lastToast && now - lastToastAt < 2500) return;
     lastToast = msg;
     lastToastAt = now;
     const el = $("toast");
     el.textContent = msg;
+    el.onclick = onTap
+      ? () => {
+          el.hidden = true;
+          onTap();
+        }
+      : null;
+    el.classList.toggle("actionable", !!onTap);
     el.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => (el.hidden = true), 3200);
@@ -171,7 +179,7 @@
     leaveCity();
     game = NR.newGame(settings.mode, settings.style, settings.geo);
     levelSave = NR.save(game);
-    NR.resetCamera();
+    focusNetwork(); // start zoomed in on your first stations
     queue.length = 0;
     fx.length = 0;
     setPaused(false);
@@ -251,6 +259,25 @@
     }
   }
 
+  // Why a station or neighborhood overflowed, in one sentence.
+  function failCause(at, cityStop) {
+    if (cityStop) {
+      const c = game.cities[at];
+      const lines = c.lines.filter((l) => l.stops.includes(cityStop));
+      const name = NR.cityStop(at, cityStop).name;
+      if (!lines.length) return `${name} was never connected to a city line.`;
+      if (!lines.some((l) => NR.cityTrainsOn(c, l).length)) return `No vehicle ran on the lines through ${name}.`;
+      return `Too many riders waited at ${name}: its lines needed more vehicles, or another line.`;
+    }
+    const name = NR.cityById[at].name;
+    const lines = game.lines.filter((l) => l.stops.includes(at));
+    if (!lines.length) return `${name} was never connected to a line.`;
+    if (!lines.some((l) => NR.trainsOn(game, l).some((t) => NR.serves(t.type, at)))) return `No train stopped at ${name}: its lines had no train, or only express trains that skip it.`;
+    const cut = lines.some((l) => l.stops.some((id, i) => i && game.damage[NR.segKey(l.stops[i - 1], id)]));
+    if (cut) return `Damaged track cut ${name} off. A Work train on that line repairs damage in seconds.`;
+    return `Too many passengers waited at ${name}: its lines needed more trains, or another line.`;
+  }
+
   function openOver(kind, at, cityStop) {
     failAt = at || null;
     failCityStop = cityStop || null;
@@ -269,14 +296,12 @@
     } else if (wasLevels) {
       $("over-eyebrow").textContent = `Level ${game.level + 1} failed`;
       $("over-title").textContent = `${name} overflowed`;
-      $("over-text").textContent =
-        `Too many passengers were waiting in ${name}. Try this level again from its start, ` +
-        "or keep your network and carry on in Endless mode.";
+      $("over-text").textContent = `${failCause(at, cityStop)} Try this level again from its start, or keep your network and carry on in Endless mode.`;
     } else {
       $("over-eyebrow").textContent = "Game over";
       $("over-title").textContent = `${name} overflowed`;
       $("over-text").textContent =
-        `Too many passengers were waiting in ${name}. You delivered ${plural(game.delivered, "passenger")} ` +
+        `${failCause(at, cityStop)} You delivered ${plural(game.delivered, "passenger")} ` +
         `in ${plural(weeks, "week")}, plus ${plural(Object.values(game.cargoDelivered).reduce((a, b) => a + b, 0), "load")} of cargo. ` +
         `Your best with these settings: ${top}.`;
     }
@@ -355,7 +380,7 @@
         if (cityKey === ev.key) fx.push({ kind: "deliver", city: ev.key, at: ev.at, t0: now });
       } else if (ev.type === "contract") {
         const c = game.contracts.find((x) => x.id === ev.id);
-        if (c) toast(`New contract: ${NR.describeGoal(c)}. Reward: ${NR.rewardText(c.reward)}. Tap the clipboard to see it.`);
+        if (c) toast(`New contract: ${NR.describeGoal(c)} (${NR.rewardText(c.reward)}). Tap here to see it.`, () => game && openContracts());
       } else if (ev.type === "contractDone") {
         toast(`Contract complete: ${ev.text}. You earned ${NR.rewardText(ev.reward)}.`);
       } else if (ev.type === "contractExpired") {
@@ -442,7 +467,7 @@
     const sig = city
       ? ["city", cityKey, ...city.lines.map((l) => `${l.color}:${l.mode}:${NR.cityTrainsOn(city, l).length}`)].join(",")
       : game
-        ? [game.linesUnlocked, ...game.lines.map((l) => `${l.color}:${NR.trainsOn(game, l).length}`)].join(",")
+        ? [game.linesUnlocked, NR.canBuyLineColor(game), ...game.lines.map((l) => `${l.color}:${NR.trainsOn(game, l).length}`)].join(",")
         : "";
     if (sig === chipSig) return;
     chipSig = sig;
@@ -484,6 +509,25 @@
         b.setAttribute("aria-label", `${lineName(c)}, not built yet`);
         b.addEventListener("click", () => toast(`Drag from one city to another to build the ${lineName(c)}.`));
       }
+      box.appendChild(b);
+    }
+    // All colors in use: a "+" chip buys another one (tap twice).
+    if (NR.freeColor(game) < 0 && game.linesUnlocked < T.maxLines) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip buy-line";
+      b.textContent = "+";
+      const price = NR.lineColorPrice(game);
+      b.setAttribute("aria-label", `Buy a new line color for ${NR.money(price)}`);
+      b.addEventListener("click", () => {
+        if (!NR.canBuyLineColor(game)) return toast(`A new line color costs ${NR.money(price)} of national money (the richest state covers what it can't). Not enough money yet.`);
+        if (!b.dataset.armed) {
+          b.dataset.armed = "1";
+          setTimeout(() => (b.dataset.armed = ""), 4000);
+          return toast(`New line color: ${NR.money(price)} from national money (the richest state covers what it can't). Tap + again to buy.`);
+        }
+        if (NR.buyLineColor(game)) toast(`You bought the ${lineName(game.linesUnlocked - 1)}. Drag between cities to build it.`);
+      });
       box.appendChild(b);
     }
   }
@@ -595,6 +639,7 @@
     app.classList.toggle("in-city", inCity);
     $("city-bar").hidden = !inCity;
     $("legend").hidden = inCity;
+    $("btn-legend").hidden = inCity;
     $("res-depot").hidden = inCity;
     $("res-counties").hidden = inCity;
     $("res-city").hidden = !inCity;
@@ -802,6 +847,11 @@
       }
     }
   }
+  $("btn-legend").addEventListener("click", () => {
+    const open = $("legend").classList.toggle("open");
+    $("btn-legend").setAttribute("aria-expanded", String(open));
+    layout(); // the top bar changed height
+  });
   $("btn-budgets").addEventListener("click", () => game && (budgetsOpen() ? closeBudgetPanel() : openBudgetPanel()));
   $("bp-close").addEventListener("click", closeBudgetPanel);
 
@@ -863,6 +913,22 @@
         "cp-city",
         NR.cityActive(game, main.id) ? `Go to the ${NR.METROS[main.id].name} city map` : `Open city map (trams and metro) · ${NR.money(T.cityGrant)} from the ${NR.STATE_NAMES[NR.stateOf(main.id)]} budget`
       );
+    // What it would cost to connect the county's main station to your nearest stations.
+    const connect = $("cp-connect");
+    connect.hidden = !st.ok;
+    if (st.ok) {
+      const near = game.stations
+        .filter((x) => x.id !== main.id)
+        .sort((a, b) => NR.crowMiles(a.id, main.id) - NR.crowMiles(b.id, main.id))
+        .slice(0, 6)
+        .filter((x) => !NR.blockedReason(x.id, main.id))
+        .map((x) => ({ id: x.id, price: NR.trackPrice(x.id, main.id, "standard") }))
+        .sort((a, b) => a.price - b.price)[0];
+      if (near) {
+        const notes = NR.geoNotes(near.id, main.id);
+        setText("cp-connect", `Connecting ${main.name}: about ${NR.money(near.price)} of track from ${NR.cityById[near.id].name}${notes.length ? ` (${notes.join(", ")})` : ""}.`);
+      } else setText("cp-connect", `${main.name} can't be reached by track from your stations yet.`);
+    }
     if (st.ok) {
       setText("cp-goal-text", `Free unlock: deliver ${st.goal} passengers to your stations next to this county (${st.progress}/${st.goal}).`);
       $("cp-goal-fill").style.width = `${Math.min(100, (100 * st.progress) / st.goal)}%`;
@@ -904,6 +970,7 @@
     const sig = JSON.stringify(["city", cityKey, line.stops, vehicles.map((t) => t.id), NR.cityCanPay(game, cityKey, m.price), game.extraSeats, frozen]);
     if (sig === panelSig) return;
     panelSig = sig;
+    document.querySelectorAll("#line-panel .more-trains").forEach((el) => el.remove()); // rebuilt below
     $("lp-dot").style.background = `var(--line-${line.color + 1})`;
     $("lp-name").textContent = cityLineName(line);
     $("lp-meta").textContent = `${plural(line.stops.length, "stop")} · ${NR.cityLineMiles(cityKey, line).toFixed(1)} mi · ${m.name}`;
@@ -962,6 +1029,27 @@
     }
   }
 
+  // Is this kind of train worth showing first for this line? It must be usable (or only too
+  // expensive right now), and cargo, scenic and work trains only once they have a job here.
+  let moreTrainsOpen = false;
+  function trainUseful(line, key, check) {
+    if (game.depot[key] > 0) return true;
+    if (!check.ok && !/^Costs /.test(check.reason)) return false;
+    const types = line.stops.map((id) => NR.cityById[id]);
+    switch (key) {
+      case "freight":
+        return types.some((c) => c.type === "farm");
+      case "truck":
+        return types.some((c) => c.type === "desert" || c.type === "mountain");
+      case "scenic":
+        return types.some((c) => c.scenic);
+      case "work":
+        return game.week >= NR.disasterWeek() || line.stops.some((id, i) => i && game.damage[NR.segKey(line.stops[i - 1], id)]);
+      default:
+        return true;
+    }
+  }
+
   function renderLinePanel() {
     if (cityKey) return renderCityLinePanel();
     const line = game && NR.lineById(game, openLineId);
@@ -989,6 +1077,7 @@
     ]);
     if (sig === panelSig) return;
     panelSig = sig;
+    document.querySelectorAll("#line-panel .more-trains").forEach((el) => el.remove()); // rebuilt below
 
     $("lp-dot").style.background = `var(--line-${line.color + 1})`;
     $("lp-name").textContent = lineName(line.color);
@@ -1032,8 +1121,16 @@
       list.appendChild(li);
     });
 
+    // Trains you can use on this line now come first; the rest wait under "More trains".
     const buy = $("lp-buy");
     buy.textContent = "";
+    const more = document.createElement("details");
+    more.className = "more-trains";
+    more.open = moreTrainsOpen;
+    more.addEventListener("toggle", () => (moreTrainsOpen = more.open));
+    const moreList = document.createElement("div");
+    moreList.className = "lp-buy";
+    let hidden = 0;
     checks.forEach(([key, c]) => {
       const type = NR.TRAIN_TYPES[key];
       const b = button("", "buy", () => {
@@ -1048,8 +1145,18 @@
       note.className = "buy-note";
       note.textContent = c.ok ? (c.fromDepot ? `From depot (${game.depot[key]})` : `Buy ${NR.money(type.price)}`) : c.reason;
       b.append(name, note);
-      buy.appendChild(b);
+      if (trainUseful(line, key, c)) buy.appendChild(b);
+      else {
+        moreList.appendChild(b);
+        hidden++;
+      }
     });
+    if (hidden) {
+      const summary = document.createElement("summary");
+      summary.textContent = `More trains (${hidden})`;
+      more.append(summary, moreList);
+      buy.after(more);
+    }
 
     const up = $("lp-upgrade");
     up.hidden = line.grade === "high";
@@ -1061,6 +1168,14 @@
     tun.title = "Trains stop slowing down on the climbs over mountain passes on this line.";
     tun.disabled = !canTunnel || frozen;
     if (!$("lp-delete").dataset.armed) $("lp-delete").textContent = `Delete line (get back ${NR.money(NR.lineValue(line) * T.refundShare)})`;
+  }
+
+  // Zoom in on your stations and the counties you own.
+  function focusNetwork() {
+    if (!game) return NR.resetCamera();
+    const places = game.stations.map((st) => [NR.cityById[st.id].lon, NR.cityById[st.id].lat]);
+    game.owned.forEach((id) => places.push(NR.countyById[id].label));
+    NR.focusOn(places);
   }
 
   // ---------- Every frame ----------
@@ -1156,6 +1271,20 @@
   function at(e) {
     const r = canvas.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  // If a station is the end of exactly one line (from `ends`) and on no other line (of `all`),
+  // returns { line, atHead }: dragging from it extends that line.
+  function lineEndAt(ends, all, id) {
+    if (all.filter((l) => l.stops.includes(id)).length !== 1) return null;
+    const line = ends.find((l) => l.stops[0] === id || l.stops[l.stops.length - 1] === id);
+    return line ? { line, atHead: line.stops[0] === id } : null;
+  }
+  // The first few times, explain how to start a new line instead.
+  let extendHints = 0;
+  function extendHint(name) {
+    if (extendHints++ >= 2) return;
+    toast(`Extending the ${name}. To start a new line here instead, drag from the other city to this one.`);
   }
 
   // Prices, names and lines come from the state map or from the open city map.
@@ -1301,9 +1430,14 @@
       }
       const h = NR.hitCityHandle(c, p.x, p.y, grab + 4);
       const st = NR.hitCityStop(c, p.x, p.y, grab + 4);
+      const end = st && lineEndAt(c.lines.filter((l) => l.mode === cityMode), c.lines, st.id);
       if (h && (!st || h.d < st.d)) {
         const line = NR.cityLineById(c, h.lineId);
         draft = { city: cityKey, kind: "extend", lineId: line.id, atHead: h.atHead, color: line.color, mode: line.mode, chain: [h.stationId], cost: 0 };
+      } else if (end) {
+        // Dragging from the last stop of a line (of the kind you're building) extends that line.
+        draft = { city: cityKey, kind: "extend", lineId: end.line.id, atHead: end.atHead, color: end.line.color, mode: end.line.mode, chain: [st.id], cost: 0 };
+        extendHint(cityLineName(end.line));
       } else if (st) {
         const color = NR.cityFreeColor(c);
         if (color < 0) {
@@ -1323,13 +1457,18 @@
     }
     const h = NR.hitHandle(game, p.x, p.y, grab + 4);
     const st = NR.hitStation(game, p.x, p.y, grab + 4);
+    const end = st && lineEndAt(game.lines, game.lines, st.id);
     if (h && (!st || h.d < st.d)) {
       const line = NR.lineById(game, h.lineId);
       draft = { kind: "extend", lineId: line.id, atHead: h.atHead, color: line.color, grade: line.grade, chain: [h.stationId], cost: 0 };
+    } else if (end) {
+      // Dragging from the last station of a line extends that line (no new color needed).
+      draft = { kind: "extend", lineId: end.line.id, atHead: end.atHead, color: end.line.color, grade: end.line.grade, chain: [st.id], cost: 0 };
+      extendHint(lineName(end.line.color));
     } else if (st) {
       const color = NR.freeColor(game);
       if (color < 0) {
-        toast("Every line color is in use. Delete a line, or pick New line at the end of a week.");
+        toast("Every line color is in use. Tap + at the bottom to buy another, extend a line from its end, or pick New line at the end of the week.");
         return;
       }
       draft = { kind: "new", color, grade: "standard", chain: [st.id], cost: 0 };
@@ -1406,7 +1545,8 @@
   };
   $("btn-zoom-in").addEventListener("click", () => zoomBy(1.5));
   $("btn-zoom-out").addEventListener("click", () => zoomBy(1 / 1.5));
-  $("btn-zoom-fit").addEventListener("click", () => NR.resetCamera());
+  // The frame button switches between your network and the whole map.
+  $("btn-zoom-fit").addEventListener("click", () => (NR.camera.zoom > 1.05 ? NR.resetCamera() : focusNetwork()));
 
   // ---------- Buttons ----------
   function setPaused(v) {

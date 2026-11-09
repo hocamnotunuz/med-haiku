@@ -582,3 +582,34 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
 .lp-geo { margin: 0; font-size: 0.78rem; color: var(--muted); }
 .settings summary { cursor: pointer; font-weight: 700; }
 .settings .choice { margin-top: 10px; }
+
+/* ---------- Line panel: trains you don't need yet ---------- */
+.more-trains summary { cursor: pointer; font-size: 0.78rem; font-weight: 700; color: var(--muted); margin-top: 2px; }
+.more-trains[open] summary { margin-bottom: 6px; }
+.chip.buy-line { background: var(--panel); color: var(--ink); border: 2px dashed var(--muted); font-size: 1.1rem; }
+.chip.buy-line[data-armed="1"] { border-style: solid; border-color: var(--accent); color: var(--accent); }
+
+/* ---------- Small helps ---------- */
+.howto-guide summary { cursor: pointer; font-weight: 700; }
+.howto-guide .howto { margin-top: 8px; }
+.toast.actionable { pointer-events: auto; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.legend-toggle { display: none; }
+@media (max-width: 520px) {
+  /* Phones: the legend folds away behind a small button */
+  .legend-toggle {
+    display: inline-flex;
+    justify-self: start;
+    width: max-content;
+    margin-top: 4px;
+    padding: 2px 10px;
+    border: 1px solid var(--panel-line);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.74rem;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .legend:not(.open) { display: none; }
+}

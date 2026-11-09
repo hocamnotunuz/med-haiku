@@ -56,18 +56,21 @@ All these numbers live in `js/geography.js` (`NR.GEO`).
 - In **Levels** mode, finishing a level opens the next part of the state, so its counties can be unlocked.
 - Bridges count as borders: Golden Gate (San Francisco–Marin), Richmond–San Rafael (Contra Costa–Marin) and San Mateo (Alameda–San Mateo).
 
-Pinch or scroll to zoom, drag empty map to move around, or use the + / − buttons.
+Pinch or scroll to zoom, drag empty map to move around, or use the + / − buttons. A new game starts zoomed in on your first stations; the frame button switches between your network and the whole map. On phones the legend folds behind a **Legend** button.
 
 ## How to play
 
-- **Build a line:** drag from one city to another. Keep dragging to add more stops.
-- **Extend a line:** drag the tab at either end of a line to a new city.
-- **Manage a line:** tap its color at the bottom of the screen to buy trains, send them to the depot, upgrade to high-speed track, or delete the line.
+- **Build a line:** drag from one city to another. Keep dragging to add more stops. Before your first line, an orange arrow shows where to drag.
+- **Extend a line:** drag from its last station (or from the round + tab at its end) to a new city. To start a new line at a station that ends another line, drag from the other city to it instead.
+- **Manage a line:** tap its color at the bottom of the screen to buy trains, send them to the depot, upgrade to high-speed track, or delete the line. Trains you can use on that line are listed first; the others wait under **More trains**, with the reason they can't run yet.
+- **More line colors:** you start with 3. When all are in use, a **+** chip appears at the bottom: tap it twice to buy another color ($100k, then $150k, $200k and so on, up to 7 lines) from national money (the richest state covers what it can't). The weekly upgrade choice also always includes **New line** while every color is in use.
 - **Money:** track costs $1k per mile (high-speed track $2.5k per mile). Passengers pay a fare when they arrive: more for long trips and fast trains. Every train costs a little to run each week. Who pays is explained under **Budgets** below.
 - **Every week** a new Regular train arrives and you choose one upgrade.
 - **Rush hour:** now and then a big city gets very busy for a few seconds. Commuter trains help.
 - **New stations** (towns that appear, and main stations of counties you unlock) get about 25 seconds before their first passengers, so you have time to connect them. Rush hours and flights leave them alone during that time.
-- **Lose** when a station stays overcrowded too long (red ring fills up).
+- **Lose** when a station stays overcrowded too long (red ring fills up). The game-over screen says why: never connected, no train stopping there, damaged track, or not enough trains.
+- **Counties:** a county's panel also says what connecting its main station would cost, and from where.
+- **Contracts:** tap a "New contract" message to open the list.
 
 ### Modes
 

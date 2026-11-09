@@ -18,6 +18,7 @@
     grant: 150, // $k of national money from a federal grant
     startLines: 3, // line colors available at the start
     maxLines: 7,
+    lineColorPrice: [100, 50], // $k for a line color bought with money: the first one, then this much more each
     startTrains: 3, // Regular trains in the depot at the start
     trainSpeed: 110, // map miles per real second for a Regular train
     rushEvery: [30, 45], // seconds between rush hours (random in this range)
@@ -1501,7 +1502,34 @@
       },
     },
   };
-  NR.upgradeChoices = (s) => shuffle(Object.keys(NR.UPGRADES).filter((k) => NR.UPGRADES[k].ok(s))).slice(0, 2);
+  // Two upgrades to choose from. When every line color is in use, one of them is always "New line".
+  NR.upgradeChoices = (s) => {
+    const keys = shuffle(Object.keys(NR.UPGRADES).filter((k) => NR.UPGRADES[k].ok(s)));
+    if (NR.freeColor(s) >= 0 || !keys.includes("line")) return keys.slice(0, 2);
+    return shuffle(["line", ...keys.filter((k) => k !== "line").slice(0, 1)]);
+  };
+
+  // ---------- Buying a line color ----------
+  // A new line color costs money: national money pays, and the richest states cover what it can't.
+  NR.lineColorPrice = (s) => T.lineColorPrice[0] + T.lineColorPrice[1] * Math.max(0, s.linesBought || 0);
+  const nationalReach = (s) => Math.max(0, s.money) + Object.values(s.states).reduce((n, st) => n + (st.open ? Math.max(0, st.budget) : 0), 0);
+  NR.canBuyLineColor = (s) => s.linesUnlocked < T.maxLines && nationalReach(s) >= NR.lineColorPrice(s);
+  NR.buyLineColor = function (s) {
+    if (!NR.canBuyLineColor(s)) return false;
+    let left = NR.lineColorPrice(s);
+    const own = Math.min(left, Math.max(0, s.money));
+    s.money -= own;
+    left -= own;
+    for (const st of Object.values(s.states).filter((x) => x.open).sort((a, b) => b.budget - a.budget)) {
+      if (left <= 0) break;
+      const take = Math.min(left, Math.max(0, st.budget));
+      st.budget -= take;
+      left -= take;
+    }
+    s.linesUnlocked++;
+    s.linesBought = (s.linesBought || 0) + 1;
+    return true;
+  };
   // The week when earthquakes and wildfires begin (counted from 0, like s.week).
   NR.disasterWeek = () => Math.round(T.firstEvent / T.weekLength);
   // Every week a new Regular train arrives in the depot. The week disasters begin,
