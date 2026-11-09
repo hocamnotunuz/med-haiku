@@ -1,0 +1,137 @@
+<title>National Railways</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Overpass+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+
+<div id="app">
+  <canvas id="map" aria-label="Map of California with your rail network. Drag between cities to lay track."></canvas>
+
+  <!-- Top: name, mode and score -->
+  <header id="hud-top" class="hud-top">
+    <div class="brand">
+      <div class="brand-row">
+        <span class="brand-name">National Railways</span>
+        <span id="paused-pill" class="paused-pill" hidden>Paused</span>
+      </div>
+      <span id="mode-label" class="mode-label">Endless · Type of place</span>
+      <div id="legend" class="legend"></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="stat-label">Delivered</span><span id="score" class="stat-value">0</span></div>
+      <div class="stat"><span id="goal-label" class="stat-label">Best</span><span id="goal" class="stat-value">0</span></div>
+      <div class="stat"><span class="stat-label">Week</span><span id="clock" class="stat-value">1 · Mon</span></div>
+    </div>
+  </header>
+
+  <!-- Bottom: lines, trains, track and controls -->
+  <footer class="hud-bottom">
+    <div id="bar" class="bar">
+      <div id="line-chips" class="chips" aria-label="Your lines"></div>
+      <div class="resources">
+        <div class="res"><span class="res-label">Free trains</span><span id="trains-free" class="res-value">3</span></div>
+        <div class="res"><span class="res-label">Track left</span><span id="track-left" class="res-value">500 mi</span></div>
+      </div>
+      <div class="controls">
+        <button id="btn-pause" class="icon-btn" type="button" aria-label="Pause"></button>
+        <button id="btn-speed" class="icon-btn speed" type="button" aria-label="Double speed" aria-pressed="false">1×</button>
+        <button id="btn-menu" class="icon-btn" type="button" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="2" rx="1"/><rect x="4" y="11" width="16" height="2" rx="1"/><rect x="4" y="16" width="16" height="2" rx="1"/></svg>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Options for one line -->
+  <div id="line-panel" class="line-panel" role="dialog" aria-labelledby="lp-name" hidden>
+    <div class="lp-head">
+      <span id="lp-dot" class="lp-dot"></span>
+      <span id="lp-name" class="lp-name">Golden Line</span>
+      <button id="lp-close" class="lp-close" type="button" aria-label="Close line options">×</button>
+    </div>
+    <p id="lp-meta" class="lp-meta"></p>
+    <p id="lp-stops" class="lp-stops"></p>
+    <div class="lp-actions">
+      <button id="lp-remove" class="btn btn-small" type="button">− Train</button>
+      <button id="lp-add" class="btn btn-small" type="button">+ Train</button>
+      <button id="lp-delete" class="btn btn-small btn-danger" type="button">Delete line</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Start screen -->
+  <section id="screen-start" class="overlay" aria-labelledby="start-title" hidden>
+    <div class="card card-start">
+      <p class="eyebrow">California · Passenger rail</p>
+      <h1 id="start-title">National Railways</h1>
+      <p class="lede">Lay track between real California cities, run your trains, and get every passenger where they are going before a station overflows.</p>
+
+      <fieldset class="choice">
+        <legend>Game mode</legend>
+        <div class="options">
+          <label class="option"><input type="radio" name="mode" value="endless" id="mode-endless"><span class="option-title">Endless</span><span class="option-text">Play until a station overflows.</span></label>
+          <label class="option"><input type="radio" name="mode" value="timed" id="mode-timed"><span class="option-title">Timed</span><span class="option-text">Four weeks on the clock. Deliver as many as you can.</span></label>
+          <label class="option"><input type="radio" name="mode" value="levels" id="mode-levels"><span class="option-title">Levels</span><span class="option-text">Hit each goal to unlock the next region.</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="choice">
+        <legend>Passengers want to reach</legend>
+        <div class="options">
+          <label class="option"><input type="radio" name="style" value="type" id="style-type"><span class="option-title">A type of place</span><span class="option-text">Any city of that type, like any beach town. Shown by shape.</span></label>
+          <label class="option"><input type="radio" name="style" value="city" id="style-city"><span class="option-title">A specific city</span><span class="option-text">One city, shown by its code, like FRE for Fresno.</span></label>
+        </div>
+      </fieldset>
+
+      <ul class="howto">
+        <li><b>Build:</b> drag from one city to another to lay track. Keep dragging to add stops.</li>
+        <li><b>Extend:</b> drag the tab at either end of a line.</li>
+        <li><b>Manage:</b> tap a line color at the bottom to add trains or delete the line.</li>
+      </ul>
+
+      <div class="actions">
+        <button id="btn-start" class="btn btn-primary" type="button">Start new game</button>
+        <button id="btn-resume" class="btn" type="button" hidden>Resume game</button>
+      </div>
+      <p id="best-line" class="best-line"></p>
+    </div>
+  </section>
+
+  <!-- End of each week -->
+  <section id="screen-week" class="overlay" aria-labelledby="week-title" hidden>
+    <div class="card">
+      <p id="week-eyebrow" class="eyebrow">Week 2</p>
+      <h2 id="week-title">A new train has arrived</h2>
+      <p>It joins your fleet now. Pick one more upgrade for the week ahead:</p>
+      <div id="upgrade-list" class="upgrades"></div>
+    </div>
+  </section>
+
+  <!-- Level complete -->
+  <section id="screen-level" class="overlay" aria-labelledby="level-title" hidden>
+    <div class="card">
+      <p id="level-eyebrow" class="eyebrow">Level 1 complete</p>
+      <h2 id="level-title">Southern California is connected</h2>
+      <p id="level-text"></p>
+      <ul id="level-cities" class="city-list"></ul>
+      <div class="actions"><button id="btn-level-next" class="btn btn-primary" type="button">Continue</button></div>
+    </div>
+  </section>
+
+  <!-- Game over -->
+  <section id="screen-over" class="overlay" aria-labelledby="over-title" hidden>
+    <div class="card">
+      <p id="over-eyebrow" class="eyebrow">Game over</p>
+      <h2 id="over-title"></h2>
+      <p id="over-text"></p>
+      <div id="over-actions" class="actions"></div>
+    </div>
+  </section>
+</div>
+
+<script src="js/cities.js"></script>
+<script src="js/game.js"></script>
+<script src="js/draw.js"></script>
+<script src="js/ui.js"></script>
