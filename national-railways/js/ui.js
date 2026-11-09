@@ -68,7 +68,8 @@
   }
   const lineName = (c) => `${NR.LINE_NAMES[c]} Line`;
   const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
-  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  // "1 county", "10 counties", "3 days"
+  const plural = (n, word) => `${n} ${n === 1 ? word : word.replace(/([^aeiou])y$/, "$1ie") + "s"}`;
 
   let toastTimer = 0;
   let lastToast = "";
@@ -101,6 +102,7 @@
     if (name) {
       closeLinePanel();
       closeCountyPanel();
+      closeContracts();
       draft = null;
       const first = $("screen-" + name).querySelector("button:not([hidden])");
       if (first) first.focus({ preventScroll: true });
@@ -196,11 +198,12 @@
     if (nextLv) {
       $("level-title").textContent = `${lv.name} is connected`;
       $("level-text").textContent =
-        `You delivered ${plural(game.delivered, "passenger")} and earned a ${NR.money(T.levelReward)} bonus. ` +
-        `Next up: ${nextLv.name}. Reach ${nextLv.goal} passengers in total. These counties can now be unlocked:`;
-      NR.CITIES.filter((c) => nextLv.areas.includes(c.level)).forEach((c) => {
+        `You finished every goal on the checklist and earned a ${NR.money(T.levelReward)} bonus. ` +
+        `Next up: ${nextLv.name}, where ${plural(NR.CITIES.filter((c) => nextLv.areas.includes(c.level)).length, "county")} can now be unlocked. ` +
+        "Your new checklist:";
+      nextLv.goals.forEach((g) => {
         const li = document.createElement("li");
-        li.textContent = NR.countyById[c.county].name;
+        li.textContent = NR.describeGoal(Object.assign({ target: 1 }, g));
         list.appendChild(li);
       });
       $("btn-level-next").textContent = `Start level ${game.level + 2}`;
@@ -284,6 +287,13 @@
         const name = NR.countyById[ev.id].name;
         fx.push({ kind: "city", at: main.id, t0: now });
         toast(ev.free ? `Goal reached: ${name} unlocked for free! ${main.name} station is open.` : `${name} unlocked. ${main.name} station is open.`);
+      } else if (ev.type === "contract") {
+        const c = game.contracts.find((x) => x.id === ev.id);
+        if (c) toast(`New contract: ${NR.describeGoal(c)}. Reward: ${NR.rewardText(c.reward)}. Tap the clipboard to see it.`);
+      } else if (ev.type === "contractDone") {
+        toast(`Contract complete: ${ev.text}. You earned ${NR.rewardText(ev.reward)}.`);
+      } else if (ev.type === "contractExpired") {
+        toast(`Contract missed: ${ev.text}. Time ran out.`);
       } else if (ev.type === "ship") {
         const c = NR.cityById[ev.at];
         fx.push({ kind: "city", at: ev.at, t0: now });
@@ -364,9 +374,85 @@
     }
   }
 
+  // ---------- Goals and contracts panel ----------
+  let ctSig = "";
+  const contractsOpen = () => !$("contracts-panel").hidden;
+  function openContracts() {
+    closeLinePanel();
+    closeCountyPanel();
+    ctSig = "";
+    $("contracts-panel").hidden = false;
+    renderContracts();
+  }
+  function closeContracts() {
+    $("contracts-panel").hidden = true;
+  }
+  // One goal as a list item: what to do, a progress bar, and progress text.
+  function goalItem(g, extra) {
+    const li = document.createElement("li");
+    li.className = "ct-item" + (g.done ? " done" : "");
+    const text = document.createElement("span");
+    text.className = "ct-text";
+    text.textContent = (g.done ? "✓ " : "") + NR.describeGoal(g);
+    const bar = document.createElement("div");
+    bar.className = "cp-bar";
+    const fill = document.createElement("span");
+    fill.style.width = `${Math.min(100, (100 * g.progress) / g.target)}%`;
+    bar.append(fill);
+    const meta = document.createElement("div");
+    meta.className = "ct-meta";
+    const shown = document.createElement("span");
+    shown.textContent = NR.goalProgressText(g);
+    meta.append(shown, ...(extra || []));
+    li.append(text, bar, meta);
+    return li;
+  }
+  // Rebuilt only when something on it changes, so the buttons stay put while you tap them.
+  function renderContracts() {
+    if (!game || !contractsOpen()) return;
+    const daysLeft = (c) => Math.max(0, Math.ceil((c.deadline - game.time) / T.dayLength));
+    const sig = JSON.stringify([
+      game.mode,
+      game.level,
+      game.levelGoals.map((g) => [NR.goalProgressText(g), g.done]),
+      game.contracts.map((c) => [c.id, NR.goalProgressText(c), daysLeft(c)]),
+    ]);
+    if (sig === ctSig) return;
+    ctSig = sig;
+    const levels = game.mode === "levels" && game.levelGoals.length > 0;
+    $("ct-level").hidden = !levels;
+    if (levels) {
+      $("ct-level-title").textContent = `Level ${game.level + 1} checklist: ${NR.LEVELS[game.level].name}`;
+      const ul = $("ct-level-goals");
+      ul.textContent = "";
+      game.levelGoals.forEach((g) => ul.appendChild(goalItem(g)));
+    }
+    const list = $("ct-list");
+    list.textContent = "";
+    if (!game.contracts.length) {
+      const li = document.createElement("li");
+      li.className = "lp-empty";
+      li.textContent = "No contracts right now. A new one will be offered soon.";
+      list.appendChild(li);
+    }
+    game.contracts.forEach((c) => {
+      const when = document.createElement("span");
+      when.textContent = `${plural(daysLeft(c), "day")} left · ${NR.rewardText(c.reward)}`;
+      const li = goalItem(c, [when]);
+      li.append(
+        button("Dismiss", "btn btn-small ct-dismiss", () => {
+          NR.dismissContract(game, c.id);
+          renderContracts();
+        })
+      );
+      list.appendChild(li);
+    });
+  }
+
   // ---------- County panel ----------
   function openCountyPanel(id) {
     closeLinePanel();
+    closeContracts();
     openCountyId = id;
     renderCountyPanel();
     $("county-panel").hidden = false;
@@ -409,6 +495,7 @@
   let panelSig = "";
   function openLinePanel(id) {
     closeCountyPanel();
+    closeContracts();
     openLineId = id;
     panelSig = "";
     $("lp-delete").dataset.armed = "";
@@ -500,8 +587,8 @@
     const week = Math.min(Math.floor(game.time / T.weekLength), game.mode === "timed" ? T.timedWeeks - 1 : Infinity);
     setText("clock", `${week + 1} · ${NR.DAY_NAMES[Math.floor(game.time / T.dayLength) % 7]}`);
     if (game.mode === "levels") {
-      setText("goal-label", "Goal");
-      setText("goal", NR.LEVELS[game.level].goal);
+      setText("goal-label", "Goals");
+      setText("goal", `${game.levelGoals.filter((g) => g.done).length}/${game.levelGoals.length}`);
     } else if (game.mode === "timed") {
       setText("goal-label", "Time left");
       setText("goal", clock(Math.max(0, T.timedWeeks * T.weekLength - game.time)));
@@ -515,6 +602,9 @@
     setText("trains-free", NR.depotCount(game));
     setText("counties", `${game.owned.length}/${NR.MAP.regions.length}`);
     if (openCountyId) renderCountyPanel();
+    setText("contracts-badge", game.contracts.length);
+    $("contracts-badge").hidden = !game.contracts.length;
+    renderContracts();
     setText("money", NR.money(game.money));
     $("money").classList.toggle("negative", game.money < 0);
     if (openLineId) renderLinePanel();
@@ -550,6 +640,7 @@
     NR.layout(w, h, dpr, { top, bottom: h - barTop + 10, left: 18, right: 18 });
     $("line-panel").style.bottom = `${h - barTop + 10}px`;
     $("county-panel").style.bottom = `${h - barTop + 10}px`;
+    $("contracts-panel").style.bottom = `${h - barTop + 10}px`;
     $("zoom-controls").style.bottom = `${h - barTop + 12}px`;
     $("toast").style.top = `${top}px`; // messages sit under the score strip, clear of the buttons
   }
@@ -771,6 +862,8 @@
   });
   $("lp-close").addEventListener("click", closeLinePanel);
   $("cp-close").addEventListener("click", closeCountyPanel);
+  $("ct-close").addEventListener("click", closeContracts);
+  $("btn-contracts").addEventListener("click", () => game && (contractsOpen() ? closeContracts() : openContracts()));
   $("cp-buy").addEventListener("click", () => {
     if (game && openCountyId && NR.unlockCounty(game, openCountyId, false)) renderCountyPanel();
   });
@@ -779,6 +872,7 @@
     if (e.key === "Escape") {
       closeLinePanel();
       closeCountyPanel();
+      closeContracts();
     }
     if (game && !screen && (e.key === "+" || e.key === "=")) zoomBy(1.5);
     if (game && !screen && (e.key === "-" || e.key === "_")) zoomBy(1 / 1.5);

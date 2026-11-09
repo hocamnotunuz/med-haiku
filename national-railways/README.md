@@ -33,7 +33,7 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 | --- | --- |
 | Endless | Play until a station overflows. |
 | Timed | Four in-game weeks. Deliver as many passengers as you can. |
-| Levels | Reach each passenger goal to unlock the next region. If a level fails, retry it or continue in Endless. |
+| Levels | Finish each level's 3-goal checklist to open the next part of the state. If a level fails, retry it or continue in Endless. |
 
 ### Train types
 
@@ -61,6 +61,20 @@ Cargo shares the map with passengers. It waits in a **yard** to the left of each
 Ports (anchor symbol): Port of Hueneme (Oxnard), Port of Long Beach, Port of San Diego, Port of Oakland and Humboldt Bay (Eureka).
 
 All the numbers live in `js/game.js` (`TUNING` and `TRAIN_TYPES`).
+
+### Goals and contracts
+
+Tap the **clipboard** on the bottom bar.
+
+- **Contracts** (every mode): optional jobs offered every 30–50 seconds, up to 3 at a time, each with a deadline and a reward (money, sometimes a free train). Kinds: passengers between two cities, moving produce or containers, taking trucks off the road, connecting two cities by rail, owning more counties, and keeping every station uncrowded for 3 days. Dismiss one to make room.
+- **Level checklists** (Levels mode):
+
+| Level | Goals |
+| --- | --- |
+| 1 Southern California | 50 passengers in total · own 5 counties · move 10 containers |
+| 2 Central Valley | 140 passengers in total · move 25 crates of produce · connect Bakersfield and Fresno |
+| 3 Bay Area & Sierra Nevada | 280 passengers in total · connect Los Angeles and San Francisco · run a High-speed train |
+| 4 Northern California | 450 passengers in total · own 30 counties · take 30 trucks off the road |
 
 ### Passenger styles
 

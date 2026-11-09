@@ -32,7 +32,7 @@
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 5; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 6; // bump when saved games from older versions no longer fit
 
   // ---- Train types ----
   // price and upkeep (per week) in $k. speed is compared with a Regular train.
@@ -126,6 +126,11 @@
     containers: { name: "Containers", unit: "containers", from: "ports, when a ship docks", to: ["desert", "farm"], fee: [4, 0.02] },
     trucks: { name: "Trucks", unit: "trucks", from: "Desert and Mountain towns (from week 2)", to: ["metro"], fee: [5, 0.025] },
   };
+  // A train type's name as a noun: "High-speed train", "Dock train" (not "Dock train train").
+  NR.trainLabel = (key) => {
+    const name = NR.TRAIN_TYPES[key].name;
+    return /train$/i.test(name) ? name : `${name} train`;
+  };
   // What a train type holds: "seats" for passengers, or its cargo's unit.
   NR.unitOf = (key) => (NR.TRAIN_TYPES[key].carries ? NR.CARGO[NR.TRAIN_TYPES[key].carries[0]].unit : "seats");
 
@@ -216,6 +221,10 @@
       areas: mode === "levels" ? NR.LEVELS[0].areas.slice() : allAreas(), // parts of the state that are open
       owned: [], // counties you own
       goalProgress: {}, // passengers counted toward each county's free-unlock goal
+      levelGoals: mode === "levels" ? makeLevelGoals(0) : [], // the current level's checklist
+      contracts: [], // optional jobs on the contracts board
+      contractIn: 20, // seconds until the first contract is offered
+      contractsDone: 0,
       nextCityIn: T.firstCityAfter,
       nextId: 1,
       over: false,
@@ -444,6 +453,7 @@
 
   // A passenger or a load of cargo has arrived: collect the money.
   function deliverItem(s, p, here) {
+    goalTick(s, p, here);
     if (p.kind) {
       const fee = NR.CARGO[p.kind].fee;
       earn(s, fee[0] + miles(city(p.from), city(here)) * fee[1]);
@@ -586,6 +596,7 @@
 
     if (rt.dirty) rebuildRoutes(s);
     s.trains.forEach((tr) => updateTrain(s, tr, dt));
+    updateGoals(s, dt);
 
     // Overcrowding: a station that stays too full for too long ends the game.
     for (const st of s.stations) {
@@ -615,7 +626,7 @@
       emit("week", { week });
     }
 
-    if (s.mode === "levels" && !s.levelDone && s.delivered >= NR.LEVELS[s.level].goal) {
+    if (s.mode === "levels" && !s.levelDone && s.levelGoals.length && s.levelGoals.every((g) => g.done)) {
       s.levelDone = true;
       emit("level", { level: s.level });
     }
@@ -641,7 +652,9 @@
   };
   NR.depotCount = (s) => Object.values(s.depot).reduce((a, b) => a + b, 0);
   // The first train type waiting in the depot that can run on this line.
-  const depotTypeFor = (s, line) => Object.keys(NR.TRAIN_TYPES).find((k) => s.depot[k] > 0 && NR.canAddTrain(s, line, k).ok);
+  // (Only passenger trains are placed automatically; cargo trains wait for you to choose a line.)
+  const depotTypeFor = (s, line) =>
+    Object.keys(NR.TRAIN_TYPES).find((k) => !NR.TRAIN_TYPES[k].carries && s.depot[k] > 0 && NR.canAddTrain(s, line, k).ok);
 
   NR.createLine = function (s, stops, color) {
     const line = { id: s.nextId++, color, stops: stops.slice(), grade: "standard" };
@@ -758,6 +771,212 @@
     });
   };
 
+  // ---------- Goals and contracts ----------
+  // Level checklists and contracts are both lists of goals: { kind, target, progress, done } plus details.
+  //   totalPassengers  passengers delivered since the game began
+  //   passengers       passengers delivered while the goal is active
+  //   route            passengers from station `a` delivered at station `b`
+  //   cargo            loads of `cargo` delivered (only `from` one station / `to` one station, if given)
+  //   counties         counties owned
+  //   connect          stations `a` and `b` joined by rail (target 1)
+  //   hasTrain         trains of type `train` running
+  //   noCrowding       seconds in a row with no overcrowded station
+  const makeGoal = (spec) => Object.assign({ target: 1, progress: 0, done: false }, spec);
+  function makeLevelGoals(level) {
+    return NR.LEVELS[level].goals.map(makeGoal);
+  }
+
+  // Can you ride from station a to station b on your lines (any trains)?
+  function connected(s, a, b) {
+    if (!NR.stationById(s, a) || !NR.stationById(s, b)) return false;
+    const next = {};
+    s.lines.forEach((l) => {
+      for (let i = 0; i + 1 < l.stops.length; i++) {
+        (next[l.stops[i]] ||= []).push(l.stops[i + 1]);
+        (next[l.stops[i + 1]] ||= []).push(l.stops[i]);
+      }
+    });
+    const seen = new Set([a]);
+    const queue = [a];
+    for (let q = 0; q < queue.length; q++) (next[queue[q]] || []).forEach((v) => !seen.has(v) && (seen.add(v), queue.push(v)));
+    return seen.has(b);
+  }
+  NR.connected = connected;
+
+  // Goals whose progress is read from the game state rather than counted.
+  const stateGoal = {
+    totalPassengers: (s) => s.delivered,
+    counties: (s) => s.owned.length,
+    connect: (s, g) => (connected(s, g.a, g.b) ? 1 : 0),
+    hasTrain: (s, g) => s.trains.filter((t) => t.type === g.train).length,
+  };
+
+  // Plain-language description of a goal, for the screen.
+  NR.describeGoal = function (g) {
+    const name = (id) => city(id).name;
+    const loads = { produce: "crates of produce", containers: "containers", trucks: "trucks" };
+    switch (g.kind) {
+      case "totalPassengers":
+        return `Deliver ${g.target} passengers in total`;
+      case "passengers":
+        return `Deliver ${g.target} passengers`;
+      case "route":
+        return `Deliver ${g.target} passengers from ${name(g.a)} to ${name(g.b)}`;
+      case "cargo":
+        if (g.cargo === "trucks") return `Take ${g.target} trucks off the road`;
+        return `Move ${g.target} ${loads[g.cargo]}` + (g.from ? ` from the ${city(g.from).port || name(g.from)}` : "") + (g.to ? ` to ${name(g.to)}` : "");
+      case "counties":
+        return `Own ${g.target} counties`;
+      case "connect":
+        return `Connect ${name(g.a)} and ${name(g.b)} by rail`;
+      case "hasTrain":
+        return g.target > 1 ? `Run ${g.target} ${NR.trainLabel(g.train)}s` : `Run a ${NR.trainLabel(g.train)}`;
+      case "noCrowding":
+        return `Keep every station uncrowded for ${Math.round(g.target / T.dayLength)} days in a row`;
+      default:
+        return g.kind;
+    }
+  };
+  // Progress for the screen, like "6/15".
+  NR.goalProgressText = (g) =>
+    g.kind === "noCrowding"
+      ? `${Math.min(Math.floor(g.progress / T.dayLength), Math.round(g.target / T.dayLength))}/${Math.round(g.target / T.dayLength)} days`
+      : g.kind === "connect"
+        ? g.progress ? "Connected" : "Not yet"
+        : `${Math.min(Math.floor(g.progress), g.target)}/${g.target}`;
+
+  // A delivery counts toward goals that track deliveries.
+  function goalTick(s, p, here) {
+    for (const g of [...s.contracts, ...s.levelGoals]) {
+      if (g.done) continue;
+      if (g.kind === "passengers" && !p.kind) g.progress++;
+      else if (g.kind === "route" && !p.kind && p.from === g.a && here === g.b) g.progress++;
+      else if (g.kind === "cargo" && p.kind === g.cargo && (!g.from || p.from === g.from) && (!g.to || here === g.to)) g.progress++;
+    }
+  }
+
+  function refreshGoal(s, g, dt, crowded) {
+    if (g.done) return;
+    if (stateGoal[g.kind]) g.progress = stateGoal[g.kind](s, g);
+    else if (g.kind === "noCrowding") g.progress = crowded ? 0 : g.progress + dt;
+    if (g.progress >= g.target) g.done = true;
+  }
+
+  // ---- Contract offers ----
+  const pick = (list) => list[Math.floor(Math.random() * list.length)];
+  const roll = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  // Two stations on the map between minMi and maxMi apart (and passing `test`), or null.
+  function stationPair(s, minMi, maxMi, test) {
+    const ids = s.stations.map((st) => st.id);
+    for (let tries = 0; tries < 40; tries++) {
+      const a = pick(ids);
+      const b = pick(ids);
+      if (a === b) continue;
+      const d = miles(city(a), city(b));
+      if (d >= minMi && d <= maxMi && (!test || test(a, b))) return { a, b, d };
+    }
+    return null;
+  }
+  // A free cargo train as a reward, but only if you don't have that kind of train yet.
+  const starterTrain = (s, type) => (s.trains.some((t) => t.type === type) || s.depot[type] ? null : type);
+
+  // Each contract kind: how often it comes up, and how to make one (null if it doesn't fit right now).
+  // days = time allowed, money = reward in $k, train = a free train as an extra reward.
+  const CONTRACTS = [
+    {
+      weight: 3,
+      make: (s) => {
+        // In "type of place" mode a passenger only travels to a different kind of place.
+        const p = stationPair(s, 30, 250, (a, b) => s.style === "city" || city(a).type !== city(b).type);
+        if (!p) return null;
+        const n = roll(8, 15);
+        return { kind: "route", a: p.a, b: p.b, target: n, days: 14, money: Math.round(40 + n * 4 + p.d * 0.3) };
+      },
+    },
+    {
+      weight: 2,
+      make: (s) => {
+        const p = stationPair(s, 40, 300, (a, b) => !connected(s, a, b));
+        return p && { kind: "connect", a: p.a, b: p.b, days: 7, money: Math.round(60 + p.d * 0.4) };
+      },
+    },
+    {
+      weight: 2,
+      make: (s) => {
+        const metros = s.stations.filter((st) => city(st.id).type === "metro");
+        if (!metros.length || !s.stations.some((st) => city(st.id).type === "farm")) return null;
+        const n = roll(8, 14);
+        return { kind: "cargo", cargo: "produce", to: pick(metros).id, target: n, days: 14, money: 60 + n * 8, train: starterTrain(s, "freight") };
+      },
+    },
+    {
+      weight: 2,
+      make: (s) => {
+        const ports = s.stations.filter((st) => city(st.id).port);
+        if (!ports.length) return null;
+        const n = roll(8, 16);
+        return { kind: "cargo", cargo: "containers", from: pick(ports).id, target: n, days: 14, money: 70 + n * 8, train: starterTrain(s, "dock") };
+      },
+    },
+    {
+      weight: 1,
+      make: (s) =>
+        s.week < NR.TRAIN_TYPES.truck.unlockWeek ? null : { kind: "cargo", cargo: "trucks", target: 10, days: 14, money: 150, train: starterTrain(s, "truck") },
+    },
+    {
+      weight: 1,
+      make: (s) =>
+        NR.MAP.regions.filter((r) => NR.countyStatus(s, r.id).ok).length < 2 ? null : { kind: "counties", target: s.owned.length + 2, days: 14, money: 120 },
+    },
+    { weight: 1, make: () => ({ kind: "noCrowding", target: 3 * T.dayLength, days: 7, money: 90 }) },
+  ];
+
+  function offerContract(s) {
+    for (let tries = 0; tries < 12; tries++) {
+      const spec = pickWeighted(CONTRACTS, (c) => c.weight).make(s);
+      if (!spec) continue;
+      const same = (c) => c.kind === spec.kind && c.a === spec.a && c.b === spec.b && c.cargo === spec.cargo;
+      if (s.contracts.some(same)) continue;
+      const { days, money, train, ...goal } = spec;
+      const c = makeGoal(Object.assign(goal, { id: s.nextId++, deadline: s.time + days * T.dayLength, reward: { money, train: train || null } }));
+      if (stateGoal[c.kind]) c.progress = stateGoal[c.kind](s, c);
+      s.contracts.push(c);
+      emit("contract", { id: c.id });
+      return c;
+    }
+    return null;
+  }
+
+  // Turn down a contract you don't want (makes room for another).
+  NR.dismissContract = function (s, id) {
+    s.contracts = s.contracts.filter((c) => c.id !== id);
+  };
+  // What a contract pays, as text.
+  NR.rewardText = (r) => NR.money(r.money) + (r.train ? ` + a free ${NR.trainLabel(r.train)}` : "");
+
+  function updateGoals(s, dt) {
+    const crowded = s.stations.some((st) => st.waiting.length > T.stationRoom);
+    s.levelGoals.forEach((g) => refreshGoal(s, g, dt, crowded));
+    for (const c of s.contracts.slice()) {
+      refreshGoal(s, c, dt, crowded);
+      if (c.done) {
+        earn(s, c.reward.money);
+        if (c.reward.train) s.depot[c.reward.train]++;
+        s.contracts = s.contracts.filter((x) => x !== c);
+        s.contractsDone++;
+        emit("contractDone", { text: NR.describeGoal(c), reward: c.reward });
+      } else if (s.time > c.deadline) {
+        s.contracts = s.contracts.filter((x) => x !== c);
+        emit("contractExpired", { text: NR.describeGoal(c) });
+      }
+    }
+    s.contractIn -= dt;
+    if (s.contractIn <= 0) {
+      if (s.contracts.length < 3) offerContract(s);
+      s.contractIn = rand(30, 50);
+    }
+  }
+
   // ---------- Weekly upgrades ----------
   NR.UPGRADES = {
     grant: { title: "State grant", text: `${NR.money(T.grant)} to spend on track and trains.`, ok: () => true, apply: (s) => (s.money += T.grant) },
@@ -812,12 +1031,14 @@
     s.levelDone = false;
     if (s.level + 1 >= NR.LEVELS.length) {
       s.mode = "endless"; // every level beaten: carry on in Endless
+      s.levelGoals = [];
       return;
     }
     s.level++;
     NR.LEVELS[s.level].areas.forEach((a) => {
       if (!s.areas.includes(a)) s.areas.push(a); // its counties can now be unlocked
     });
+    s.levelGoals = makeLevelGoals(s.level);
   };
 
   // After a failed level: keep the network and switch to Endless.
@@ -827,6 +1048,7 @@
     s.stations.forEach((x) => (x.crowd = 0));
     s.mode = "endless";
     s.areas = allAreas();
+    s.levelGoals = [];
     s.over = false;
   };
 

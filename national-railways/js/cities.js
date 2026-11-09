@@ -170,13 +170,46 @@ NR.TOWNS = [
   { id: "ALT", name: "Alturas", county: "lassen-modoc", lat: 41.49, lon: -120.54, type: "mountain", size: 1 },
 ];
 
-// Level mode: deliver this many passengers in total to open the next part of the state.
+// Level mode: finish every goal on a level's checklist to open the next part of the state.
 // Counties in an open part can then be unlocked (bought, or earned through their goal).
+// Goal kinds are described in js/game.js (see "Goals and contracts").
 NR.LEVELS = [
-  { name: "Southern California", areas: ["south"], goal: 50 },
-  { name: "Central Valley", areas: ["central"], goal: 140 },
-  { name: "Bay Area & Sierra Nevada", areas: ["bay"], goal: 280 },
-  { name: "Northern California", areas: ["north"], goal: 450 },
+  {
+    name: "Southern California",
+    areas: ["south"],
+    goals: [
+      { kind: "totalPassengers", target: 50 },
+      { kind: "counties", target: 5 },
+      { kind: "cargo", cargo: "containers", target: 10 },
+    ],
+  },
+  {
+    name: "Central Valley",
+    areas: ["central"],
+    goals: [
+      { kind: "totalPassengers", target: 140 },
+      { kind: "cargo", cargo: "produce", target: 25 },
+      { kind: "connect", a: "BAK", b: "FRE" },
+    ],
+  },
+  {
+    name: "Bay Area & Sierra Nevada",
+    areas: ["bay"],
+    goals: [
+      { kind: "totalPassengers", target: 280 },
+      { kind: "connect", a: "LA", b: "SF" },
+      { kind: "hasTrain", train: "highspeed", target: 1 },
+    ],
+  },
+  {
+    name: "Northern California",
+    areas: ["north"],
+    goals: [
+      { kind: "totalPassengers", target: 450 },
+      { kind: "counties", target: 30 },
+      { kind: "cargo", cargo: "trucks", target: 30 },
+    ],
+  },
 ];
 
 // Every game starts owning these three counties.

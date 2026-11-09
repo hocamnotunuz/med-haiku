@@ -36,6 +36,10 @@
         <div class="res"><span class="res-label">Counties</span><span id="counties" class="res-value">3/49</span></div>
       </div>
       <div class="controls">
+        <button id="btn-contracts" class="icon-btn contracts-btn" type="button" aria-label="Goals and contracts">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3.5h6v3H9z"/><path d="M8 5H6.8A1.3 1.3 0 0 0 5.5 6.3v13.4A1.3 1.3 0 0 0 6.8 21h10.4a1.3 1.3 0 0 0 1.3-1.3V6.3A1.3 1.3 0 0 0 17.2 5H16M8.5 11h7M8.5 15h4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span id="contracts-badge" class="badge" hidden>0</span>
+        </button>
         <button id="btn-pause" class="icon-btn" type="button" aria-label="Pause"></button>
         <button id="btn-speed" class="icon-btn speed" type="button" aria-label="Double speed" aria-pressed="false">1×</button>
         <button id="btn-menu" class="icon-btn" type="button" aria-label="Menu">
@@ -90,6 +94,21 @@
     </div>
   </div>
 
+  <!-- Goals and contracts (clipboard button) -->
+  <div id="contracts-panel" class="line-panel" role="dialog" aria-labelledby="ct-title" hidden>
+    <div class="lp-head">
+      <span id="ct-title" class="lp-name">Goals and contracts</span>
+      <button id="ct-close" class="lp-close" type="button" aria-label="Close goals and contracts">×</button>
+    </div>
+    <div id="ct-level" hidden>
+      <p id="ct-level-title" class="lp-section">Level checklist</p>
+      <ul id="ct-level-goals" class="ct-list"></ul>
+    </div>
+    <p class="lp-section">Contracts</p>
+    <ul id="ct-list" class="ct-list"></ul>
+    <p class="ct-note">New contracts are offered every so often, up to 3 at a time. Finish one before its time runs out to earn the reward.</p>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <!-- Start screen -->
@@ -121,6 +140,7 @@
         <li><b>Extend:</b> drag the tab at either end of a line.</li>
         <li><b>Grow:</b> you start with 3 counties around Los Angeles. Tap a county with a dashed orange outline to unlock it with money, or deliver passengers next to it to earn it for free. Towns appear inside counties you own.</li>
         <li><b>Cargo:</b> farms send produce, ships bring containers to ports (anchor), and desert and mountain towns send trucks. Cargo waits in a yard left of the station and needs its own train: Freight, Dock train or Truck bypass. Cargo never ends your game, but it pays well.</li>
+        <li><b>Goals:</b> tap the clipboard to see contracts (optional jobs with a reward and a deadline) and, in Levels mode, the checklist for the current level.</li>
         <li><b>Zoom:</b> pinch or scroll to zoom, drag empty map to move around.</li>
         <li><b>Manage:</b> tap a line color at the bottom to add trains, upgrade to high-speed track, or delete the line.</li>
         <li><b>Money:</b> track and trains cost money. Passengers pay a fare when they arrive, and trains cost a little to run each week.</li>
