@@ -34,6 +34,10 @@
       sage: get("--toon-sage"),
       bush: get("--toon-bush"),
       lake: get("--toon-lake"),
+      fog: get("--toon-fog"),
+      fogShade: get("--toon-fog-shade"),
+      fogEdge: get("--toon-fog-edge"),
+      haze: get("--toon-haze"),
       riverEdge: get("--toon-river-edge"),
       river: get("--river"),
       land: get("--land"),
@@ -174,6 +178,22 @@
       kind[k] = Math.round(px[k * 4] / 50);
       lake[k] = px[k * 4 + 1] > 127 ? 1 : 0;
     }
+    // Which of the four states each cell is in (1-4, 0 = none), for the fog
+    const codes = Object.keys(NR.MAP.stateLand);
+    g.globalCompositeOperation = "source-over";
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, cols, rows);
+    g.restore();
+    codes.forEach((st, i) => {
+      g.beginPath();
+      NR.MAP.stateLand[st].forEach(trace);
+      g.fillStyle = `rgb(${(i + 1) * 50},0,0)`;
+      g.fill("evenodd");
+    });
+    const px2 = g.getImageData(0, 0, cols, rows).data;
+    const sid = new Uint8Array(cols * rows);
+    for (let k = 0; k < cols * rows; k++) sid[k] = Math.round(px2[k * 4] / 50);
     const level = (k) => code[k] & 3;
     const outside = (k) => code[k] >= 4;
     // Land outside the four states (Mexico, Utah, Idaho...), grown by a cell so it meets their borders.
@@ -199,6 +219,9 @@
       kind,
       lake,
       level,
+      codes,
+      sid,
+      grown,
       outside: outlines((k) => grown[k], cols, rows, lon0, lat1, step, 8, 400),
       dry: outlines((k) => kind[k] === 4 || (kind[k] === 0 && !outside(k) && near(k, (j) => kind[j] === 4)), cols, rows, lon0, lat1, step, 8),
       terraces: [1, 2, 3].map((t) => outlines((k) => !outside(k) && level(k) >= t, cols, rows, lon0, lat1, step, t === 1 ? 14 : t === 2 ? 8 : 4)),
@@ -650,6 +673,132 @@
     ctx.lineWidth = 1.6;
     ctx.stroke();
   }
+
+  // ---------- Fog over the closed states and the land outside the game ----------
+  // Two styles while we choose (data-fog on the page): "clouds", puffy cartoon clouds that
+  // drift a little, or "haze", a thick see-through mist. A state's fog clears when it opens.
+  const fogSeenClosed = {};
+  const fogOpenedAt = {};
+  C.fogColor = () => K.fog;
+  // Is this place under fog? (closed: the states not open yet)
+  function fogAt(g, lon, lat, closed) {
+    let c = Math.floor((lon - g.lon0) / g.step), r = Math.floor((g.lat1 - lat) / g.step);
+    if (c < -400 || r < -400 || c >= g.cols + 400 || r >= g.rows + 400) return null;
+    c = Math.min(g.cols - 1, Math.max(0, c));
+    r = Math.min(g.rows - 1, Math.max(0, r));
+    const k = r * g.cols + c;
+    if (g.sid[k]) return closed.has(g.codes[g.sid[k] - 1]) ? g.codes[g.sid[k] - 1] : null;
+    return g.grown[k] ? "outside" : null;
+  }
+  C.drawFog = function (ctx, s, now) {
+    const g = prepare();
+    const view = NR.view;
+    const P = NR.toScreen;
+    const cull = culler(P, view.w, view.h);
+    // Which states are closed, and which opened a moment ago (their fog is clearing)
+    const closed = new Set();
+    const clearing = {};
+    for (const code of Object.keys(s.states)) {
+      if (!s.states[code].open) {
+        closed.add(code);
+        fogSeenClosed[code] = true;
+        delete fogOpenedAt[code];
+      } else if (fogSeenClosed[code]) {
+        if (!fogOpenedAt[code]) fogOpenedAt[code] = now;
+        const t = (now - fogOpenedAt[code]) / 1800;
+        if (t < 1) {
+          closed.add(code);
+          clearing[code] = t;
+        }
+      }
+    }
+    const clouds = document.documentElement.dataset.fog !== "haze";
+    // The area under fog: the closed states, and the land outside the four states (never inside them)
+    const groups = [["outside"]].concat([...closed].map((c) => [c]));
+    for (const [code] of groups) {
+      const t = clearing[code] || 0;
+      ctx.save();
+      ctx.globalAlpha = 1 - t;
+      ctx.beginPath();
+      if (code === "outside") {
+        ctx.rect(-50, -50, view.w + 100, view.h + 100);
+        Object.values(NR.MAP.stateLand).forEach((rings) => rings.forEach((ring) => traceFlat(ctx, ring, P, true)));
+        ctx.clip("evenodd");
+        ctx.beginPath();
+        traceRings(ctx, g.outside, P, cull);
+      } else NR.MAP.stateLand[code].forEach((ring) => traceFlat(ctx, ring, P, true));
+      ctx.fillStyle = clouds ? K.fog : K.haze;
+      ctx.fill(code === "outside" ? "nonzero" : "evenodd");
+      ctx.restore();
+    }
+    if (!clouds) return;
+    // Puffy clouds on a jittered grid about 46 pixels apart, at the fog's edge and all over it
+    const a = P(-119, 37), b = P(-119, 38);
+    const ppd = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const STEPS = [3.2, 1.6, 0.8, 0.4, 0.2, 0.1, 0.05];
+    const step = STEPS.find((st) => st * ppd < 46 * 2) || 0.05;
+    let lon0 = Infinity, lon1 = -Infinity, lat0 = Infinity, lat1 = -Infinity;
+    for (const [x, y] of [
+      [0, 0],
+      [view.w, 0],
+      [0, view.h],
+      [view.w, view.h],
+    ]) {
+      const [lon, lat] = NR.fromScreen(x, y);
+      lon0 = Math.min(lon0, lon);
+      lon1 = Math.max(lon1, lon);
+      lat0 = Math.min(lat0, lat);
+      lat1 = Math.max(lat1, lat);
+    }
+    const puffs = [];
+    const time = now / 1000;
+    for (let j = Math.floor(lat0 / step) - 1; j <= Math.ceil(lat1 / step) + 1; j++)
+      for (let i = Math.floor(lon0 / step) - 1; i <= Math.ceil(lon1 / step) + 1; i++) {
+        const lon = (i + 0.15 + 0.7 * hash(i, j, 61)) * step, lat = (j + 0.15 + 0.7 * hash(i, j, 62)) * step;
+        const code = fogAt(g, lon, lat, closed);
+        if (!code) continue;
+        const t = clearing[code] || 0;
+        const [x, y] = P(lon, lat);
+        const ph = hash(i, j, 63) * 6.28;
+        const r = step * ppd * 0.42 * (0.85 + 0.35 * hash(i, j, 64)) * (1 + t * 0.6);
+        puffs.push({ x: x + Math.sin(time * 0.35 + ph) * 3 + t * (x - view.w / 2) * 0.4, y: y + Math.cos(time * 0.27 + ph) * 1.5, r, t });
+      }
+    puffs.sort((p, q) => p.y - q.y);
+    // A cloud: three round puffs, with a shaded underside and a soft outline around the whole bank
+    const shape = (p, grow, dy) => {
+      const { x, y, r } = p;
+      ctx.moveTo(x + r + grow, y + dy);
+      ctx.arc(x, y + dy, r + grow, 0, Math.PI * 2);
+      ctx.moveTo(x - r * 0.75 + r * 0.72 + grow, y + r * 0.3 + dy);
+      ctx.arc(x - r * 0.75, y + r * 0.3 + dy, r * 0.72 + grow, 0, Math.PI * 2);
+      ctx.moveTo(x + r * 0.8 + r * 0.68 + grow, y + r * 0.32 + dy);
+      ctx.arc(x + r * 0.8, y + r * 0.32 + dy, r * 0.68 + grow, 0, Math.PI * 2);
+    };
+    const layer = (list, grow, dy, color) => {
+      ctx.beginPath();
+      list.forEach((p) => shape(p, grow, dy));
+      ctx.fillStyle = color;
+      ctx.fill();
+    };
+    for (const t of [...new Set(puffs.map((p) => p.t))]) {
+      const list = puffs.filter((p) => p.t === t);
+      ctx.save();
+      ctx.globalAlpha = 1 - t;
+      layer(list, 2, 0, K.fogEdge);
+      layer(list, 2, list[0] ? list[0].r * 0.14 : 0, K.fogEdge);
+      layer(list, 0, list[0] ? list[0].r * 0.14 : 0, K.fogShade);
+      ctx.restore();
+    }
+    // The white tops last, back to front, so every cloud keeps its shaded underside
+    for (const p of puffs) {
+      ctx.globalAlpha = 1 - p.t;
+      ctx.beginPath();
+      shape(p, 0, -p.r * 0.06);
+      ctx.fillStyle = K.fog;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  };
 
   // ---------- City maps: hills as layers, water with a lighter shore ----------
   const B64 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-";

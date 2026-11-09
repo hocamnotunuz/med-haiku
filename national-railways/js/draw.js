@@ -470,12 +470,14 @@
       });
       ctx.fillStyle = colors.locked;
       ctx.fill("evenodd");
-      // States that aren't open yet are shaded twice as dark.
-      ctx.beginPath();
-      Object.keys(s.states).forEach((code) => {
-        if (!s.states[code].open) NR.MAP.stateLand[code].forEach((ring) => tracePath(ctx, ring, true));
-      });
-      ctx.fill("evenodd");
+      // States that aren't open yet are shaded twice as dark (the cartoon look covers them in fog instead).
+      if (!toon) {
+        ctx.beginPath();
+        Object.keys(s.states).forEach((code) => {
+          if (!s.states[code].open) NR.MAP.stateLand[code].forEach((ring) => tracePath(ctx, ring, true));
+        });
+        ctx.fill("evenodd");
+      }
     }
     if (!toon) drawWaterways(ctx);
     // County borders (dotted in the cartoon look)
@@ -611,10 +613,11 @@
       ctx.textBaseline = "middle";
       ctx.font = `700 12px ${MONO}`;
       if ("letterSpacing" in ctx) ctx.letterSpacing = "2px";
-      halo(ctx, NR.STATE_NAMES[code].toUpperCase(), x, y - 7, colors.muted, colors.land);
+      const back = toon ? NR.cartoon.fogColor() : colors.land; // the names sit on the fog in the cartoon look
+      halo(ctx, NR.STATE_NAMES[code].toUpperCase(), x, y - 7, colors.muted, back);
       if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
       ctx.font = `500 10px ${MONO}`;
-      halo(ctx, `Opens once you own all of ${NR.STATE_NAMES[NR.HOME_STATE]}`, x, y + 9, colors.muted, colors.land);
+      halo(ctx, `Opens once you own all of ${NR.STATE_NAMES[NR.HOME_STATE]}`, x, y + 9, colors.muted, back);
     }
   }
 
@@ -1647,6 +1650,7 @@
     drawFire(ctx, s, ui.now);
     drawCrossings(ctx);
     drawCountyNames(ctx);
+    if (toon) NR.cartoon.drawFog(ctx, s, ui.now || performance.now());
     drawClosedStates(ctx, s);
     drawCountyTags(ctx, s);
     drawCompass(ctx);
