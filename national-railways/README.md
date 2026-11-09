@@ -4,7 +4,16 @@ A passenger-rail strategy game set in California. Lay track between real cities,
 
 ## The map
 
-California is divided into its real counties (U.S. Census Bureau borders). Counties with fewer than 50,000 people are merged with small neighbors into regions such as **Del Norte-Siskiyou-Trinity County**, which turns 58 counties into **49 regions**. Every region has one station at its biggest city (Yuba County uses Wheatland, because its larger towns sit across the river from Yuba City).
+California is divided into its real counties (U.S. Census Bureau borders). Counties with fewer than 50,000 people are merged with small neighbors into regions such as **Del Norte-Siskiyou-Trinity County**, which turns 58 counties into **49 regions**. Every region has one main station at its biggest city (Yuba County uses Wheatland, because its larger towns sit across the river from Yuba City), plus up to five **towns** (71 in all).
+
+### Unlocking counties
+
+- Every game starts with **Los Angeles, Ventura and Riverside** counties.
+- Counties next to yours have a dashed orange outline and a tag like `$85k · 0/33`. Tap one to see its details.
+- **Pay** to unlock it now (bigger counties cost more), or unlock it **for free** by delivering the goal number of passengers to your stations next to it.
+- When a county is unlocked, its main station opens right away. Its towns then appear over time.
+- In **Levels** mode, finishing a level opens the next part of the state, so its counties can be unlocked.
+- Bridges count as borders: Golden Gate (San Francisco–Marin), Richmond–San Rafael (Contra Costa–Marin) and San Mateo (Alameda–San Mateo).
 
 Pinch or scroll to zoom, drag empty map to move around, or use the + / − buttons.
 
@@ -50,7 +59,7 @@ All the numbers live in `js/game.js` (`TUNING` and `TRAIN_TYPES`).
 | `index.html` | The page: screens, buttons and the map area. |
 | `style.css` | Colors, fonts and layout (light and dark themes). |
 | `js/map-california.js` | California's land, county borders and county regions. Generated: do not edit by hand. |
-| `js/cities.js` | The 49 county stations and the levels. |
+| `js/cities.js` | The 49 county main stations, the 71 towns, and the levels. |
 | `tools/build-map.js` | Rebuilds the map file from Census data (see below). |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
 | `js/draw.js` | Draws the map, lines, stations and trains. |
@@ -67,4 +76,4 @@ cd ..
 node tools/build-map.js tools/node_modules CA
 ```
 
-To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code and which small counties to merge), run the script, then list its county stations in `js/cities.js`.
+To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code, which small counties to merge, and any bridges), run the script, then list its main stations and towns in `js/cities.js`.

@@ -52,6 +52,7 @@
   let draft = null; // the line being drawn right now
   let pointer = null;
   let openLineId = null;
+  let openCountyId = null; // county shown in the county panel
   let failAt = null;
   const fx = [];
   NR.debug = { get game() { return game; } };
@@ -99,6 +100,7 @@
     ["start", "week", "level", "over"].forEach((n) => ($("screen-" + n).hidden = n !== name));
     if (name) {
       closeLinePanel();
+      closeCountyPanel();
       draft = null;
       const first = $("screen-" + name).querySelector("button:not([hidden])");
       if (first) first.focus({ preventScroll: true });
@@ -195,10 +197,10 @@
       $("level-title").textContent = `${lv.name} is connected`;
       $("level-text").textContent =
         `You delivered ${plural(game.delivered, "passenger")} and earned a ${NR.money(T.levelReward)} bonus. ` +
-        `Next up: ${nextLv.name}. Reach ${nextLv.goal} passengers in total. These cities will start to appear:`;
-      NR.CITIES.filter((c) => nextLv.regions.includes(c.level)).forEach((c) => {
+        `Next up: ${nextLv.name}. Reach ${nextLv.goal} passengers in total. These counties can now be unlocked:`;
+      NR.CITIES.filter((c) => nextLv.areas.includes(c.level)).forEach((c) => {
         const li = document.createElement("li");
-        li.textContent = c.name;
+        li.textContent = NR.countyById[c.county].name;
         list.appendChild(li);
       });
       $("btn-level-next").textContent = `Start level ${game.level + 2}`;
@@ -276,6 +278,11 @@
       else if (ev.type === "city") {
         fx.push({ kind: "city", at: ev.id, t0: now });
         toast(`${NR.cityById[ev.id].name} joined the map.`);
+      } else if (ev.type === "county") {
+        const main = NR.mainStation[ev.id];
+        const name = NR.countyById[ev.id].name;
+        fx.push({ kind: "city", at: main.id, t0: now });
+        toast(ev.free ? `Goal reached: ${name} unlocked for free! ${main.name} station is open.` : `${name} unlocked. ${main.name} station is open.`);
       } else if (ev.type === "rush") {
         fx.push({ kind: "city", at: ev.at, t0: now });
         toast(`Rush hour in ${NR.cityById[ev.at].name}! Extra passengers for a few seconds. Commuter trains help.`);
@@ -337,9 +344,47 @@
     }
   }
 
+  // ---------- County panel ----------
+  function openCountyPanel(id) {
+    closeLinePanel();
+    openCountyId = id;
+    renderCountyPanel();
+    $("county-panel").hidden = false;
+  }
+  function closeCountyPanel() {
+    openCountyId = null;
+    $("county-panel").hidden = true;
+  }
+  function renderCountyPanel() {
+    const id = openCountyId;
+    if (!game || !id) return closeCountyPanel();
+    const county = NR.countyById[id];
+    const main = NR.mainStation[id];
+    const st = NR.countyStatus(game, id);
+    const towns = NR.TOWNS.filter((t) => t.county === id);
+    const onMap = game.stations.filter((x) => NR.cityById[x.id].county === id).length;
+    const people = main.pop >= 1000 ? `${(main.pop / 1000).toFixed(1)} million` : `${main.pop},000`;
+    setText("cp-name", county.name);
+    setText("cp-status", st.owned ? `Yours · ${plural(onMap, "station")} on the map` : st.ok ? "Next to your network: can be unlocked" : `Locked · ${st.reason}`);
+    setText(
+      "cp-info",
+      `${people} people. Main station: ${main.name} (${NR.PLACE_TYPES[main.type].name}).` +
+        (towns.length ? ` Towns that appear once it is yours: ${towns.map((t) => t.name).join(", ")}.` : "")
+    );
+    $("cp-goal").hidden = !st.ok;
+    $("cp-buy").hidden = !st.ok;
+    if (st.ok) {
+      setText("cp-goal-text", `Free unlock: deliver ${st.goal} passengers to your stations next to this county (${st.progress}/${st.goal}).`);
+      $("cp-goal-fill").style.width = `${Math.min(100, (100 * st.progress) / st.goal)}%`;
+      setText("cp-buy", `Unlock now · ${NR.money(st.price)}`);
+      $("cp-buy").disabled = game.money < st.price;
+    }
+  }
+
   // ---------- Line options panel ----------
   let panelSig = "";
   function openLinePanel(id) {
+    closeCountyPanel();
     openLineId = id;
     panelSig = "";
     $("lp-delete").dataset.armed = "";
@@ -443,6 +488,8 @@
       game.mode === "levels" ? `Level ${game.level + 1}: ${NR.LEVELS[game.level].name}` : game.mode === "timed" ? "Timed challenge" : "Endless";
     setText("mode-label", `${modeName} · ${game.style === "type" ? "Type of place" : "Specific city"}`);
     setText("trains-free", NR.depotCount(game));
+    setText("counties", `${game.owned.length}/${NR.MAP.regions.length}`);
+    if (openCountyId) renderCountyPanel();
     setText("money", NR.money(game.money));
     $("money").classList.toggle("negative", game.money < 0);
     if (openLineId) renderLinePanel();
@@ -458,7 +505,7 @@
         handleEvents(now);
       }
     }
-    NR.draw(ctx, game, { draft, pointer, fx, now });
+    NR.draw(ctx, game, { draft, pointer, fx, now, county: openCountyId });
     updateHud();
     requestAnimationFrame(frame);
   }
@@ -477,6 +524,7 @@
     const barTop = $("bar").getBoundingClientRect().top - rect.top;
     NR.layout(w, h, dpr, { top, bottom: h - barTop + 10, left: 18, right: 18 });
     $("line-panel").style.bottom = `${h - barTop + 10}px`;
+    $("county-panel").style.bottom = `${h - barTop + 10}px`;
     $("zoom-controls").style.bottom = `${h - barTop + 12}px`;
     $("toast").style.top = `${top}px`; // messages sit under the score strip, clear of the buttons
   }
@@ -579,11 +627,12 @@
     } else {
       // Empty map: drag to move it around.
       closeLinePanel();
-      gesture = { kind: "pan", last: p };
+      gesture = { kind: "pan", last: p, start: p, moved: false };
       canvas.classList.add("is-panning");
       return;
     }
     closeLinePanel();
+    draft.start = p; // to tell a tap on a station from a drag
     pointer = p;
     e.preventDefault();
   });
@@ -598,19 +647,30 @@
     if (gesture && gesture.kind === "pan") {
       NR.panBy(p.x - gesture.last.x, p.y - gesture.last.y);
       gesture.last = p;
+      if (Math.hypot(p.x - gesture.start.x, p.y - gesture.start.y) > 6) gesture.moved = true;
       return;
     }
     if (!draft) return;
     pointer = p;
+    if (Math.hypot(p.x - draft.start.x, p.y - draft.start.y) > 6) draft.moved = true;
     const st = NR.hitStation(game, pointer.x, pointer.y, grab);
     if (st) extendDraft(st.id);
   });
   function endPointer(e) {
     touches.delete(e.pointerId);
+    // A tap (no dragging) on the map: show that county's details.
+    if (e.type === "pointerup" && gesture && gesture.kind === "pan" && !gesture.moved && !touches.size) {
+      const id = NR.hitCounty(gesture.start.x, gesture.start.y);
+      if (id && id !== openCountyId) openCountyPanel(id);
+      else closeCountyPanel();
+    }
     if (draft) {
+      // A tap on a station (no dragging) shows its county instead of building.
+      const tappedStation = e.type === "pointerup" && !draft.moved && draft.chain.length < 2 ? draft.chain[0] : null;
       if (e.type === "pointerup") finishDraft();
       draft = null;
       pointer = null;
+      if (tappedStation) openCountyPanel(NR.cityById[tappedStation].county);
     }
     if (!touches.size) {
       gesture = null;
@@ -685,9 +745,16 @@
     toast(`${lineName(line.color)} deleted. Its track and trains are free again.`);
   });
   $("lp-close").addEventListener("click", closeLinePanel);
+  $("cp-close").addEventListener("click", closeCountyPanel);
+  $("cp-buy").addEventListener("click", () => {
+    if (game && openCountyId && NR.unlockCounty(game, openCountyId, false)) renderCountyPanel();
+  });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeLinePanel();
+    if (e.key === "Escape") {
+      closeLinePanel();
+      closeCountyPanel();
+    }
     if (game && !screen && (e.key === "+" || e.key === "=")) zoomBy(1.5);
     if (game && !screen && (e.key === "-" || e.key === "_")) zoomBy(1 / 1.5);
     if (e.code === "Space" && game && !screen && e.target === document.body) {

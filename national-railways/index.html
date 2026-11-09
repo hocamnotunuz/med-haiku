@@ -32,6 +32,7 @@
       <div class="resources">
         <div class="res"><span class="res-label">In depot</span><span id="trains-free" class="res-value">3</span></div>
         <div class="res"><span class="res-label">Money</span><span id="money" class="res-value">$400k</span></div>
+        <div class="res"><span class="res-label">Counties</span><span id="counties" class="res-value">3/49</span></div>
       </div>
       <div class="controls">
         <button id="btn-pause" class="icon-btn" type="button" aria-label="Pause"></button>
@@ -71,6 +72,23 @@
     </div>
   </div>
 
+  <!-- Details for one county (tap a county on the map) -->
+  <div id="county-panel" class="line-panel" role="dialog" aria-labelledby="cp-name" hidden>
+    <div class="lp-head">
+      <span id="cp-name" class="lp-name">Kern County</span>
+      <button id="cp-close" class="lp-close" type="button" aria-label="Close county details">×</button>
+    </div>
+    <p id="cp-status" class="lp-meta"></p>
+    <p id="cp-info" class="lp-stops"></p>
+    <div id="cp-goal" class="cp-goal" hidden>
+      <p id="cp-goal-text" class="cp-goal-text"></p>
+      <div class="cp-bar"><span id="cp-goal-fill"></span></div>
+    </div>
+    <div class="lp-actions">
+      <button id="cp-buy" class="btn btn-small btn-primary" type="button">Unlock</button>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <!-- Start screen -->
@@ -100,7 +118,8 @@
       <ul class="howto">
         <li><b>Build:</b> drag from one city to another to lay track. Keep dragging to add stops.</li>
         <li><b>Extend:</b> drag the tab at either end of a line.</li>
-        <li><b>Zoom:</b> pinch or scroll to zoom, drag empty map to move around. Every county has one station.</li>
+        <li><b>Grow:</b> you start with 3 counties around Los Angeles. Tap a county with a dashed orange outline to unlock it with money, or deliver passengers next to it to earn it for free. Towns appear inside counties you own.</li>
+        <li><b>Zoom:</b> pinch or scroll to zoom, drag empty map to move around.</li>
         <li><b>Manage:</b> tap a line color at the bottom to add trains, upgrade to high-speed track, or delete the line.</li>
         <li><b>Money:</b> track and trains cost money. Passengers pay a fare when they arrive, and trains cost a little to run each week.</li>
       </ul>

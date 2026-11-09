@@ -7,6 +7,7 @@
   --coast: #9ab3bf;
   --county: #d5e0e5;
   --county-text: #93a6b0;
+  --locked: rgba(160, 188, 201, 0.5); /* counties you don't own yet */
   --station: #ffffff;
   /* Text and panels */
   --ink: #1a2932;
@@ -41,6 +42,7 @@
     --coast: #2c4553;
     --county: #1f303b;
     --county-text: #5b7280;
+    --locked: rgba(2, 8, 12, 0.55);
     --station: #0c1720;
     --ink: #e3ecf0;
     --muted: #91a5b1;
@@ -69,6 +71,7 @@
   --coast: #2c4553;
   --county: #1f303b;
   --county-text: #5b7280;
+  --locked: rgba(2, 8, 12, 0.55);
   --station: #0c1720;
   --ink: #e3ecf0;
   --muted: #91a5b1;
@@ -401,6 +404,16 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   border-radius: 999px;
   font-size: 0.82rem;
 }
+
+/* ---------- County details ---------- */
+@media (min-width: 900px) {
+  /* On wide screens the county panel sits at the right, leaving the middle of the map free to tap. */
+  #county-panel { left: auto; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 52px); transform: none; }
+}
+.cp-goal { display: grid; gap: 5px; }
+.cp-goal-text { margin: 0; font-size: 0.84rem; }
+.cp-bar { height: 6px; border-radius: 3px; background: var(--panel-line); overflow: hidden; }
+.cp-bar span { display: block; height: 100%; width: 0; background: var(--accent); }
 
 /* ---------- Zoom buttons ---------- */
 .zoom-controls {

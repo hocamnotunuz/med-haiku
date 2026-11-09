@@ -25,6 +25,8 @@
       coast: get("--coast"),
       county: get("--county"),
       countyText: get("--county-text"),
+      locked: get("--locked"),
+      panel: get("--panel"),
       station: get("--station"),
       ink: get("--ink"),
       muted: get("--muted"),
@@ -122,7 +124,34 @@
     const [rx, ry] = turn(x, y, view.cos, view.sin);
     return [cam.x + (view.ox + rx * view.scale) * cam.zoom, cam.y + (view.oy + ry * view.scale) * cam.zoom];
   };
-  const updatePositions = () => NR.CITIES.forEach((c) => (pos[c.id] = NR.toScreen(c.lon, c.lat)));
+  const updatePositions = () => NR.PLACES.forEach((c) => (pos[c.id] = NR.toScreen(c.lon, c.lat)));
+
+  // The opposite of toScreen: which longitude and latitude is under this screen point?
+  NR.fromScreen = function (sx, sy) {
+    const rx = ((sx - cam.x) / cam.zoom - view.ox) / view.scale;
+    const ry = ((sy - cam.y) / cam.zoom - view.oy) / view.scale;
+    const dx = rx * view.cos + ry * view.sin; // undo the tilt
+    const dy = -rx * view.sin + ry * view.cos;
+    return [(dx + MID[0]) / COS, -(dy + MID[1])];
+  };
+  // Is a point inside a flat ring of longitude, latitude pairs?
+  function inRing(x, y, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) {
+      const xi = ring[i];
+      const yi = ring[i + 1];
+      const xj = ring[j];
+      const yj = ring[j + 1];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  // Which county is under this screen point (or null for the sea)?
+  NR.hitCounty = function (sx, sy) {
+    const [lon, lat] = NR.fromScreen(sx, sy);
+    const r = NR.MAP.regions.find((reg) => reg.rings.reduce((inside, ring) => (inRing(lon, lat, ring) ? !inside : inside), false));
+    return r ? r.id : null;
+  };
 
   // ---------- Shapes for each type of place ----------
   NR.shapePath = function (ctx, shape, x, y, r) {
@@ -281,11 +310,20 @@
     if (close) ctx.closePath();
   }
 
-  function drawLand(ctx) {
+  function drawLand(ctx, s, selected) {
     ctx.beginPath();
     NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
     ctx.fillStyle = colors.land;
     ctx.fill("evenodd");
+    if (s) {
+      // Counties you don't own yet are shaded.
+      ctx.beginPath();
+      NR.MAP.regions.forEach((r) => {
+        if (!s.owned.includes(r.id)) r.rings.forEach((ring) => tracePath(ctx, ring, true));
+      });
+      ctx.fillStyle = colors.locked;
+      ctx.fill("evenodd");
+    }
     // County borders
     ctx.beginPath();
     NR.MAP.borders.forEach((line) => tracePath(ctx, line, false));
@@ -299,6 +337,48 @@
     ctx.strokeStyle = colors.coast;
     ctx.lineWidth = 1.5;
     ctx.stroke();
+    if (!s) return;
+    // Counties you can unlock now: a dashed outline. The county you tapped: a solid one.
+    ctx.save();
+    ctx.strokeStyle = colors.accent;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    NR.MAP.regions.forEach((r) => {
+      if (r.id !== selected && NR.countyStatus(s, r.id).ok) r.rings.forEach((ring) => tracePath(ctx, ring, true));
+    });
+    ctx.stroke();
+    if (selected) {
+      ctx.setLineDash([]);
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      NR.countyById[selected].rings.forEach((ring) => tracePath(ctx, ring, true));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Price and goal tags on counties you can unlock now.
+  function drawCountyTags(ctx, s) {
+    ctx.font = `700 10px ${MONO}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (const r of NR.MAP.regions) {
+      const st = NR.countyStatus(s, r.id);
+      if (!st.ok) continue;
+      const p = NR.toScreen(r.label[0], r.label[1]);
+      const y = p[1] + (view.showCounties ? 14 : 0);
+      const text = `${NR.money(st.price)} · ${st.progress}/${st.goal}`;
+      const w = ctx.measureText(text).width + 12;
+      roundRect(ctx, p[0] - w / 2, y - 8, w, 16, 8);
+      ctx.fillStyle = colors.panel;
+      ctx.fill();
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = colors.accent;
+      ctx.stroke();
+      ctx.fillStyle = colors.ink;
+      ctx.fillText(text, p[0], y + 0.5);
+    }
   }
 
   // County names, once there is room for them.
@@ -641,12 +721,13 @@
     ctx.fillRect(0, 0, view.w, view.h);
     updatePositions();
     drawGraticule(ctx);
-    drawLand(ctx);
+    drawLand(ctx, s, ui.county);
     if (!s) {
       drawPreview(ctx);
       return;
     }
     drawCountyNames(ctx);
+    drawCountyTags(ctx, s);
     drawCompass(ctx);
     const segs = segmentOffsets(s);
     drawLines(ctx, s, segs);

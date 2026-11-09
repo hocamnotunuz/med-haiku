@@ -28,7 +28,7 @@
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 3; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 4; // bump when saved games from older versions no longer fit
 
   // ---- Train types ----
   // price and upkeep (per week) in $k. speed is compared with a Regular train.
@@ -84,9 +84,16 @@
     return a >= 1000 ? `${sign}$${(a / 1000).toFixed(2)}M` : `${sign}$${a}k`;
   };
 
+  // Every place on the map: county main stations and towns.
+  NR.PLACES = [...NR.CITIES, ...NR.TOWNS];
   NR.cityById = {};
-  NR.CITIES.forEach((c) => (NR.cityById[c.id] = c));
+  NR.PLACES.forEach((c) => (NR.cityById[c.id] = c));
   const city = (id) => NR.cityById[id];
+  // Counties: their shape and neighbors (from the map file) and their main station.
+  NR.countyById = {};
+  NR.MAP.regions.forEach((r) => (NR.countyById[r.id] = r));
+  NR.mainStation = {};
+  NR.CITIES.forEach((c) => (NR.mainStation[c.county] = c));
 
   // Great-circle distance between two cities, in miles.
   function miles(a, b) {
@@ -124,7 +131,7 @@
     }
     return list;
   }
-  const allRegions = () => [...new Set(NR.CITIES.map((c) => c.level))];
+  const allAreas = () => [...new Set(NR.CITIES.map((c) => c.level))];
 
   // ---------- Starting a game ----------
   // mode: "endless" | "timed" | "levels"    style: "type" | "city"
@@ -151,12 +158,14 @@
       rushIn: rand(T.rushEvery[0], T.rushEvery[1]),
       level: 0,
       levelDone: false,
-      regions: mode === "levels" ? NR.LEVELS[0].regions.slice() : allRegions(),
+      areas: mode === "levels" ? NR.LEVELS[0].areas.slice() : allAreas(), // parts of the state that are open
+      owned: [], // counties you own
+      goalProgress: {}, // passengers counted toward each county's free-unlock goal
       nextCityIn: T.firstCityAfter,
       nextId: 1,
       over: false,
     };
-    NR.START_CITIES.forEach((id) => addStation(s, id, true));
+    NR.START_COUNTIES.forEach((id) => ownCounty(s, id, true));
     rt.dirty = true;
     rt.events.length = 0;
     return s;
@@ -170,10 +179,11 @@
   NR.stationById = (s, id) => s.stations.find((st) => st.id === id);
   NR.lineById = (s, id) => s.lines.find((l) => l.id === id);
   NR.trainsOn = (s, line) => s.trains.filter((t) => t.lineId === line.id);
-  NR.cityPool = (s) => NR.CITIES.filter((c) => s.regions.includes(c.level) && !NR.stationById(s, c.id));
+  // Towns that can still appear: inside counties you own, not on the map yet.
+  NR.townPool = (s) => NR.TOWNS.filter((t) => s.owned.includes(t.county) && !NR.stationById(s, t.id));
 
   function addNextCity(s) {
-    const pool = NR.cityPool(s);
+    const pool = NR.townPool(s);
     if (!pool.length) return;
     // Cities close to the existing map are more likely to appear next.
     const pick = pickWeighted(pool, (c) => {
@@ -183,6 +193,53 @@
     });
     addStation(s, pick.id, false);
     emit("city", { id: pick.id });
+  }
+
+  // ---------- Counties: unlocked one by one ----------
+  const countyArea = (id) => NR.mainStation[id].level;
+  // Price in $k: bigger counties cost more (pop is in thousands of people).
+  NR.countyPrice = (id) => Math.round(40 + NR.mainStation[id].pop * 0.05);
+  // Free unlock: deliver this many passengers to your stations next to the county.
+  NR.countyGoal = (id) => Math.max(15, Math.min(80, Math.round(15 + NR.mainStation[id].pop / 50)));
+
+  // Where a county stands: { owned } or { ok, price, goal, progress } or { ok: false, reason }.
+  NR.countyStatus = function (s, id) {
+    if (s.owned.includes(id)) return { owned: true };
+    if (!s.areas.includes(countyArea(id))) {
+      const lv = NR.LEVELS.findIndex((l) => l.areas.includes(countyArea(id)));
+      return { ok: false, reason: `Opens in level ${lv + 1}` };
+    }
+    if (!NR.countyById[id].neighbors.some((n) => s.owned.includes(n))) return { ok: false, reason: "Own a neighboring county first" };
+    return { ok: true, price: NR.countyPrice(id), goal: NR.countyGoal(id), progress: s.goalProgress[id] || 0 };
+  };
+
+  function ownCounty(s, id, atStart) {
+    if (s.owned.includes(id)) return;
+    s.owned.push(id);
+    delete s.goalProgress[id];
+    addStation(s, NR.mainStation[id].id, atStart);
+  }
+
+  // Unlock a county: pay its price, or free when its goal is reached.
+  NR.unlockCounty = function (s, id, free) {
+    const st = NR.countyStatus(s, id);
+    if (!st.ok) return false;
+    if (!free) {
+      if (s.money < st.price) return false;
+      s.money -= st.price;
+    }
+    ownCounty(s, id, false);
+    emit("county", { id, free: !!free });
+    return true;
+  };
+
+  // A passenger delivered here counts toward the goals of locked neighboring counties.
+  function countGoals(s, stationId) {
+    for (const n of NR.countyById[city(stationId).county].neighbors) {
+      if (!NR.countyStatus(s, n).ok) continue;
+      s.goalProgress[n] = (s.goalProgress[n] || 0) + 1;
+      if (s.goalProgress[n] >= NR.countyGoal(n)) NR.unlockCounty(s, n, true);
+    }
   }
 
   // ---------- Where passengers want to go ----------
@@ -315,6 +372,7 @@
         earn(s, fareFor(p, here));
         moved++;
         emit("deliver", { at: here });
+        countGoals(s, here);
         return false;
       }
       if (closer(p)) return true; // stay on board
@@ -535,6 +593,7 @@
       if (arrives(s, here, p.to)) {
         s.delivered++;
         earn(s, fareFor(p, here));
+        countGoals(s, here);
       } else st.waiting.push(p);
     });
     train.pax = [];
@@ -623,10 +682,9 @@
       return;
     }
     s.level++;
-    NR.LEVELS[s.level].regions.forEach((r) => {
-      if (!s.regions.includes(r)) s.regions.push(r);
+    NR.LEVELS[s.level].areas.forEach((a) => {
+      if (!s.areas.includes(a)) s.areas.push(a); // its counties can now be unlocked
     });
-    s.nextCityIn = 2;
   };
 
   // After a failed level: keep the network and switch to Endless.
@@ -635,7 +693,7 @@
     if (st) st.waiting = [];
     s.stations.forEach((x) => (x.crowd = 0));
     s.mode = "endless";
-    s.regions = allRegions();
+    s.areas = allAreas();
     s.over = false;
   };
 

@@ -29,6 +29,12 @@ const STATES = {
       ["Inyo", "Mono"],
       ["Mariposa", "Tuolumne"],
     ],
+    // Bridges across water also count as a shared border.
+    bridges: [
+      ["San Francisco", "Marin"], // Golden Gate Bridge
+      ["Contra Costa", "Marin"], // Richmond–San Rafael Bridge
+      ["Alameda", "San Mateo"], // San Mateo Bridge
+    ],
   },
 };
 
@@ -97,15 +103,29 @@ function centroid(ring) {
   }
   return { area: Math.abs(a / 2), lon: cx / (3 * a) / cosLat, lat: cy / (3 * a) };
 }
+const idOf = (name) => name.toLowerCase().replace(/[^a-z]+/g, "-");
+const countyNeighbors = tc.neighbors(counties);
 const regions = [...new Set(regionName.values())].sort().map((name) => {
   const members = counties.filter((g) => regionName.get(g) === name);
   const shape = tc.merge(topo, members);
   const best = shape.coordinates.map((poly) => centroid(poly[0])).sort((a, b) => b.area - a.area)[0];
+  // Regions that share a border with this one.
+  const near = new Set();
+  members.forEach((g) => countyNeighbors[counties.indexOf(g)].forEach((j) => near.add(idOf(regionName.get(counties[j])))));
+  for (const [a, b] of cfg.bridges || []) {
+    const ra = regionName.get(counties.find((g) => g.properties.name === a));
+    const rb = regionName.get(counties.find((g) => g.properties.name === b));
+    if (ra === name) near.add(idOf(rb));
+    if (rb === name) near.add(idOf(ra));
+  }
+  near.delete(idOf(name));
   return {
-    id: name.toLowerCase().replace(/[^a-z]+/g, "-"),
+    id: idOf(name),
     name: `${name} County`,
     fips: members.map((g) => String(g.id)).sort(),
     label: [Math.round(best.lon * 100) / 100, Math.round(best.lat * 100) / 100],
+    neighbors: [...near].sort(),
+    rings: shape.coordinates.flatMap((poly) => poly.map(flat)), // outline (with islands and holes)
   };
 });
 
