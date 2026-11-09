@@ -39,7 +39,7 @@
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 7; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 8; // bump when saved games from older versions no longer fit
 
   // ---- Time of day: night runs from 21:00 to 05:00 ----
   NR.hourOf = (s) => ((s.time % T.dayLength) / T.dayLength) * 24;
@@ -294,6 +294,7 @@
       eventIn: T.firstEvent,
       damage: {}, // stretches of track closed by an earthquake or wildfire: { "A|B": { since, cause } }
       fire: null, // a wildfire burning: { county, left }
+      cities: {}, // city tram and metro networks you have opened (see js/metro.js)
       linesUnlocked: T.startLines,
       extraSeats: 0,
       speed: T.trainSpeed,
@@ -407,6 +408,13 @@
     return s.style === "type" ? city(stationId).type === to : stationId === to;
   }
   NR.arrives = arrives;
+
+  // A rider from a city's neighborhoods reaches the main station and boards the trains.
+  NR.feedState = function (s, key) {
+    const st = NR.stationById(s, key);
+    const to = st && pickDestination(s, st);
+    if (to) st.waiting.push({ id: s.nextId++, to, from: key, fromCity: true });
+  };
 
   function pickDestination(s, st) {
     if (s.style === "type") {
@@ -554,6 +562,7 @@
     earn(s, fareFor(p, here));
     emit("deliver", { at: here });
     countGoals(s, here);
+    if (NR.onStateDelivery) NR.onStateDelivery(s, p, here);
   }
 
   // A train has stopped: unload and load. Passenger trains use the platform (st.waiting),
@@ -716,7 +725,8 @@
         if (to) st.waiting.push({ id: s.nextId++, to, from: st.id });
         const rushBoost = s.rush && s.rush.at === st.id ? 3 : 1;
         const nightCalm = NR.isNight(s) ? 0.6 : 1; // fewer people travel at night
-        st.spawnIn = (11 / (0.6 + 0.25 * city(st.id).size) / pressure / rushBoost / nightCalm) * rand(0.7, 1.3);
+        const viaCity = s.cities[st.id] ? 0.7 : 1; // with a city network, many trips start in the neighborhoods
+        st.spawnIn = (11 / (0.6 + 0.25 * city(st.id).size) / pressure / rushBoost / nightCalm / viaCity) * rand(0.7, 1.3);
       }
     });
 
@@ -795,6 +805,10 @@
     if (rt.dirty) rebuildRoutes(s);
     s.trains.forEach((tr) => updateTrain(s, tr, dt));
     updateGoals(s, dt);
+    if (NR.updateCities) {
+      NR.updateCities(s, dt); // trams, metro and cable cars (js/metro.js)
+      if (s.over) return;
+    }
 
     // Overcrowding: a station that stays too full for too long ends the game.
     for (const st of s.stations) {
@@ -812,7 +826,7 @@
     if (week > s.week) {
       s.week = week;
       // Pay the running costs of every train on the map.
-      const upkeep = s.trains.reduce((sum, t) => sum + typeOf(t).upkeep, 0);
+      const upkeep = s.trains.reduce((sum, t) => sum + typeOf(t).upkeep, 0) + (NR.cityUpkeep ? NR.cityUpkeep(s) : 0);
       s.money -= upkeep;
       s.lastWeek = { income: s.weekIncome, upkeep };
       s.weekIncome = 0;

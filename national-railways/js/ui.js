@@ -63,6 +63,9 @@
   let pointer = null;
   let openLineId = null;
   let openCountyId = null; // county shown in the county panel
+  let cityKey = null; // the city map being shown (e.g. "LA"), or null for the state map
+  let cityMode = "tram"; // kind of line to build on city maps
+  let failCityStop = null; // the city stop that overflowed, if any
   let failAt = null;
   const fx = [];
   NR.debug = { get game() { return game; } };
@@ -160,6 +163,7 @@
     settings.mode = checkedValue("mode") || "endless";
     settings.style = checkedValue("style") || "type";
     store.set("nr-settings", settings);
+    leaveCity();
     game = NR.newGame(settings.mode, settings.style);
     levelSave = NR.save(game);
     NR.resetCamera();
@@ -238,12 +242,13 @@
     }
   }
 
-  function openOver(kind, at) {
+  function openOver(kind, at, cityStop) {
     failAt = at || null;
+    failCityStop = cityStop || null;
     const wasLevels = game.mode === "levels";
     recordBest();
     show("over");
-    const name = at ? NR.cityById[at].name : "";
+    const name = cityStop ? `${NR.cityStop(at, cityStop).name} (${NR.METROS[at].name})` : at ? NR.cityById[at].name : "";
     const weeks = Math.min(Math.floor(game.time / T.weekLength) + 1, game.mode === "timed" ? T.timedWeeks : Infinity);
     const top = best[bestKey(game.mode, game.style)] || 0;
     const actions = $("over-actions");
@@ -275,7 +280,13 @@
           show(null);
         }),
         button("Continue in Endless", "btn", () => {
-          NR.continueEndless(game, failAt);
+          if (failCityStop) {
+            // A city stop overflowed: clear it and calm the whole city down.
+            const c = game.cities[failAt];
+            c.stations.forEach((x) => (x.crowd = 0));
+            c.stations.find((x) => x.id === failCityStop).waiting = [];
+            NR.continueEndless(game, null);
+          } else NR.continueEndless(game, failAt);
           queue.length = 0;
           setPaused(false);
           show(null);
@@ -301,6 +312,12 @@
         const name = NR.countyById[ev.id].name;
         fx.push({ kind: "city", at: main.id, t0: now });
         toast(ev.free ? `Goal reached: ${name} unlocked for free! ${main.name} station is open.` : `${name} unlocked. ${main.name} station is open.`);
+      } else if (ev.type === "cityOpen") {
+        toast(`${NR.METROS[ev.key].name} city map is open. Riders will start to appear in the neighborhoods.`);
+      } else if (ev.type === "cityCrowd") {
+        if (cityKey !== ev.key) toast(`Crowding at ${NR.cityStop(ev.key, ev.at).name} in ${NR.METROS[ev.key].name}! Open the city map to help.`);
+      } else if (ev.type === "cityDeliver") {
+        if (cityKey === ev.key) fx.push({ kind: "deliver", city: ev.key, at: ev.at, t0: now });
       } else if (ev.type === "contract") {
         const c = game.contracts.find((x) => x.id === ev.id);
         if (c) toast(`New contract: ${NR.describeGoal(c)}. Reward: ${NR.rewardText(c.reward)}. Tap the clipboard to see it.`);
@@ -340,7 +357,7 @@
       else if (ev.type === "level") enqueue(openLevel);
       else if (ev.type === "fail") {
         queue.length = 0;
-        openOver("fail", ev.at);
+        openOver("fail", ev.at, ev.cityStop);
       } else if (ev.type === "timeup") {
         queue.length = 0;
         openOver("time");
@@ -386,12 +403,37 @@
   // ---------- Bottom bar: one round button per line color ----------
   let chipSig = "";
   function renderChips() {
-    const sig = game ? [game.linesUnlocked, ...game.lines.map((l) => `${l.color}:${NR.trainsOn(game, l).length}`)].join(",") : "";
+    const city = cityKey && game && game.cities[cityKey];
+    const sig = city
+      ? ["city", cityKey, ...city.lines.map((l) => `${l.color}:${l.mode}:${NR.cityTrainsOn(city, l).length}`)].join(",")
+      : game
+        ? [game.linesUnlocked, ...game.lines.map((l) => `${l.color}:${NR.trainsOn(game, l).length}`)].join(",")
+        : "";
     if (sig === chipSig) return;
     chipSig = sig;
     const box = $("line-chips");
     box.textContent = "";
     if (!game) return;
+    if (city) {
+      for (let k = 0; k < T.cityLines; k++) {
+        const line = city.lines.find((l) => l.color === k);
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = line ? "chip" : "chip free";
+        b.style.setProperty("--chip", `var(--line-${k + 1})`);
+        if (line) {
+          const n = NR.cityTrainsOn(city, line).length;
+          b.textContent = n;
+          b.setAttribute("aria-label", `${cityLineName(line)}, ${plural(n, NR.CITY_MODES[line.mode].vehicle)}. Open line options.`);
+          b.addEventListener("click", () => (openLineId === line.id ? closeLinePanel() : openLinePanel(line.id)));
+        } else {
+          b.setAttribute("aria-label", `${NR.LINE_NAMES[k]} city line, not built yet`);
+          b.addEventListener("click", () => toast("Choose Tram, Metro or Cable car at the top, then drag between neighborhoods."));
+        }
+        box.appendChild(b);
+      }
+      return;
+    }
     for (let c = 0; c < game.linesUnlocked; c++) {
       const line = game.lines.find((l) => l.color === c);
       const b = document.createElement("button");
@@ -486,6 +528,58 @@
     });
   }
 
+  // ---------- City maps ----------
+  function enterCity(key) {
+    if (!game || !NR.cityAvailable(game, key)) return;
+    NR.openCity(game, key);
+    closeLinePanel();
+    closeCountyPanel();
+    closeContracts();
+    draft = null;
+    cityKey = key;
+    if (NR.CITY_MODES[cityMode].onlyIn && NR.CITY_MODES[cityMode].onlyIn !== key) cityMode = "tram";
+    chipSig = "";
+    renderCityBar();
+  }
+  function leaveCity() {
+    if (!cityKey) return;
+    closeLinePanel();
+    draft = null;
+    cityKey = null;
+    chipSig = "";
+    for (let i = fx.length - 1; i >= 0; i--) if (fx[i].city) fx.splice(i, 1);
+    renderCityBar();
+  }
+  function renderCityBar() {
+    const inCity = !!cityKey;
+    app.classList.toggle("in-city", inCity);
+    $("city-bar").hidden = !inCity;
+    $("legend").hidden = inCity;
+    $("res-depot").hidden = inCity;
+    $("res-counties").hidden = inCity;
+    $("res-riders").hidden = !inCity;
+    if (!inCity) return;
+    document.querySelectorAll(".mode-btn").forEach((b) => {
+      const m = NR.CITY_MODES[b.dataset.mode];
+      b.disabled = !!(m.onlyIn && m.onlyIn !== cityKey);
+      b.setAttribute("aria-pressed", String(b.dataset.mode === cityMode));
+      b.title = `${m.about} Track ${NR.money(m.track)} per mile, ${m.vehicle} ${NR.money(m.price)}.`;
+    });
+    const m = NR.CITY_MODES[cityMode];
+    $("city-hint").textContent = `Drag between neighborhoods to build a ${m.name.toLowerCase()} line: ${NR.money(m.track)} per mile plus ${NR.money(m.price)} for the first ${m.vehicle}.`;
+  }
+  document.querySelectorAll(".mode-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      cityMode = b.dataset.mode;
+      renderCityBar();
+    })
+  );
+  $("btn-back").addEventListener("click", leaveCity);
+  $("cp-city").addEventListener("click", () => {
+    const main = openCountyId && NR.mainStation[openCountyId];
+    if (main) enterCity(main.id);
+  });
+
   // ---------- County panel ----------
   function openCountyPanel(id) {
     closeLinePanel();
@@ -528,6 +622,9 @@
     );
     $("cp-goal").hidden = !st.ok;
     $("cp-buy").hidden = !st.ok;
+    const hasCity = !!NR.METROS[main.id];
+    $("cp-city").hidden = !(hasCity && st.owned);
+    if (hasCity && st.owned) setText("cp-city", NR.cityActive(game, main.id) ? `Go to the ${NR.METROS[main.id].name} city map` : `Open city map (trams and metro)`);
     if (st.ok) {
       setText("cp-goal-text", `Free unlock: deliver ${st.goal} passengers to your stations next to this county (${st.progress}/${st.goal}).`);
       $("cp-goal-fill").style.width = `${Math.min(100, (100 * st.progress) / st.goal)}%`;
@@ -553,7 +650,67 @@
   }
 
   // The panel is rebuilt only when something on it changes, so buttons stay put while you tap them.
+  const cityLineName = (line) => `${NR.LINE_NAMES[line.color]} ${NR.CITY_MODES[line.mode].name} line`;
+
+  // The line panel for a tram, metro or cable car line on a city map.
+  function renderCityLinePanel() {
+    const c = game.cities[cityKey];
+    const line = c && NR.cityLineById(c, openLineId);
+    if (!line) return closeLinePanel();
+    const m = NR.CITY_MODES[line.mode];
+    const vehicles = NR.cityTrainsOn(c, line);
+    const sig = JSON.stringify(["city", cityKey, line.stops, vehicles.map((t) => t.id), game.money >= m.price, game.extraSeats]);
+    if (sig === panelSig) return;
+    panelSig = sig;
+    $("lp-dot").style.background = `var(--line-${line.color + 1})`;
+    $("lp-name").textContent = cityLineName(line);
+    $("lp-meta").textContent = `${plural(line.stops.length, "stop")} · ${NR.cityLineMiles(cityKey, line).toFixed(1)} mi · ${m.name}`;
+    $("lp-stops").textContent = line.stops.map((id) => NR.cityStop(cityKey, id).name).join(" – ");
+    const list = $("lp-trains");
+    list.textContent = "";
+    vehicles.forEach((t) => {
+      const li = document.createElement("li");
+      const label = document.createElement("span");
+      label.textContent = `${m.name} · ${m.seats + game.extraSeats} riders`;
+      li.append(
+        label,
+        button(`Sell (+${NR.money(m.price * T.refundShare)})`, "btn btn-small", () => {
+          NR.cityRemoveVehicle(game, cityKey, t.id);
+          renderLinePanel();
+        })
+      );
+      list.appendChild(li);
+    });
+    if (!vehicles.length) {
+      const li = document.createElement("li");
+      li.className = "lp-empty";
+      li.textContent = `No ${m.vehicle}s yet. Add one below.`;
+      list.appendChild(li);
+    }
+    const buy = $("lp-buy");
+    buy.textContent = "";
+    const add = button("", "buy", () => {
+      if (NR.cityAddVehicle(game, cityKey, line)) renderLinePanel();
+    });
+    add.disabled = game.money < m.price;
+    add.title = m.about;
+    const name = document.createElement("span");
+    name.className = "buy-name";
+    name.textContent = `Add a ${m.vehicle}`;
+    const note = document.createElement("span");
+    note.className = "buy-note";
+    note.textContent = `Buy ${NR.money(m.price)}`;
+    add.append(name, note);
+    buy.appendChild(add);
+    $("lp-upgrade").hidden = true;
+    if (!$("lp-delete").dataset.armed) {
+      const value = NR.cityLineMiles(cityKey, line) * m.track + vehicles.length * m.price;
+      $("lp-delete").textContent = `Delete line (get back ${NR.money(value * T.refundShare)})`;
+    }
+  }
+
   function renderLinePanel() {
+    if (cityKey) return renderCityLinePanel();
     const line = game && NR.lineById(game, openLineId);
     if (!line) return closeLinePanel();
     const trains = NR.trainsOn(game, line);
@@ -646,8 +803,12 @@
     }
     const modeName =
       game.mode === "levels" ? `Level ${game.level + 1}: ${NR.LEVELS[game.level].name}` : game.mode === "timed" ? "Timed challenge" : "Endless";
-    setText("mode-label", `${modeName} · ${game.style === "type" ? "Type of place" : "Specific city"}`);
+    if (!cityKey) setText("mode-label", `${modeName} · ${game.style === "type" ? "Type of place" : "Specific city"}`);
     setText("trains-free", NR.depotCount(game));
+    if (cityKey) {
+      setText("mode-label", `${NR.METROS[cityKey].name} city map · trams and metro`);
+      setText("city-riders", game.cities[cityKey].delivered);
+    }
     setText("counties", `${game.owned.length}/${NR.MAP.regions.length}`);
     if (openCountyId) renderCountyPanel();
     setText("contracts-badge", game.contracts.length);
@@ -668,7 +829,7 @@
         handleEvents(now);
       }
     }
-    NR.draw(ctx, game, { draft, pointer, fx, now, county: openCountyId });
+    NR.draw(ctx, game, { draft, pointer, fx, now, county: openCountyId, city: cityKey });
     updateHud();
     requestAnimationFrame(frame);
   }
@@ -699,23 +860,26 @@
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
 
+  // Prices, names and lines come from the state map or from the open city map.
+  const draftPrice = (a, b) => (draft.city ? NR.cityTrackPrice(draft.city, draft.mode, a, b) : NR.trackPrice(a, b, draft.grade));
+  const placeName = (id) => (draft.city ? NR.cityStop(draft.city, id).name : NR.cityById[id].name);
+  const draftLine = () => (draft.city ? NR.cityLineById(game.cities[draft.city], draft.lineId) : NR.lineById(game, draft.lineId));
+
   function extendDraft(id) {
     const chain = draft.chain;
     const lastId = chain[chain.length - 1];
     if (id === lastId) return;
     if (chain.length >= 2 && id === chain[chain.length - 2]) {
-      draft.cost -= NR.trackPrice(id, lastId, draft.grade); // dragged back: undo the last stop
+      draft.cost -= draftPrice(id, lastId); // dragged back: undo the last stop
       chain.pop();
       return;
     }
     if (chain.includes(id)) return;
-    if (draft.kind === "extend" && NR.lineById(game, draft.lineId).stops.includes(id)) return;
-    const cost = NR.trackPrice(lastId, id, draft.grade);
+    if (draft.kind === "extend" && draftLine().stops.includes(id)) return;
+    const cost = draftPrice(lastId, id);
     const left = game.money - draft.cost;
     if (cost > left) {
-      toast(
-        `Not enough money: track from ${NR.cityById[lastId].name} to ${NR.cityById[id].name} costs ${NR.money(cost)}, and you have ${NR.money(Math.max(0, left))}.`
-      );
+      toast(`Not enough money: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.money(cost)}, and you have ${NR.money(Math.max(0, left))}.`);
       return;
     }
     chain.push(id);
@@ -730,6 +894,25 @@
     if (!game || d.chain.length < 2) return;
     if (game.money < d.cost) {
       toast(`Not enough money to build this: it costs ${NR.money(d.cost)}.`);
+      return;
+    }
+    if (d.city) {
+      // A tram, metro or cable car line on a city map
+      const c = game.cities[d.city];
+      const m = NR.CITY_MODES[d.mode];
+      if (d.kind === "new") {
+        const problem = NR.cityModeProblem(d.city, d.mode, d.chain);
+        if (problem) return toast(`${problem}.`);
+        if (game.money < d.cost + m.price) return toast(`Not enough money: this ${m.name.toLowerCase()} line costs ${NR.money(d.cost + m.price)} with its first ${m.vehicle}.`);
+        if (NR.cityFreeColor(c) === d.color) NR.cityCreateLine(game, d.city, d.chain, d.color, d.mode);
+      } else {
+        const line = NR.cityLineById(c, d.lineId);
+        if (!line) return;
+        const all = d.atHead ? [...d.chain.slice(1).reverse(), ...line.stops] : [...line.stops, ...d.chain.slice(1)];
+        const problem = NR.cityModeProblem(d.city, line.mode, all);
+        if (problem) return toast(`${problem}.`);
+        NR.cityExtendLine(game, d.city, line, d.atHead, d.chain.slice(1));
+      }
       return;
     }
     if (d.kind === "new") {
@@ -773,9 +956,36 @@
     } catch (err) {
       /* keep going: the gesture still works without capture */
     }
-    if (touches.size === 2) return startPinch();
-    if (touches.size > 2) return;
+    if (touches.size >= 2) {
+      if (touches.size === 2 && !cityKey) startPinch(); // city maps don't zoom
+      return;
+    }
     if (game.over) return;
+    if (cityKey) {
+      // City map: drag from a neighborhood to build, or drag a line's end tab to extend it
+      const c = game.cities[cityKey];
+      const h = NR.hitCityHandle(c, p.x, p.y, grab + 4);
+      const st = NR.hitCityStop(c, p.x, p.y, grab + 4);
+      if (h && (!st || h.d < st.d)) {
+        const line = NR.cityLineById(c, h.lineId);
+        draft = { city: cityKey, kind: "extend", lineId: line.id, atHead: h.atHead, color: line.color, mode: line.mode, chain: [h.stationId], cost: 0 };
+      } else if (st) {
+        const color = NR.cityFreeColor(c);
+        if (color < 0) {
+          toast(`${NR.METROS[cityKey].name} already has ${T.cityLines} lines. Delete one to build another.`);
+          return;
+        }
+        draft = { city: cityKey, kind: "new", color, mode: cityMode, chain: [st.id], cost: 0 };
+      } else {
+        closeLinePanel();
+        return;
+      }
+      closeLinePanel();
+      draft.start = p;
+      pointer = p;
+      e.preventDefault();
+      return;
+    }
     const h = NR.hitHandle(game, p.x, p.y, grab + 4);
     const st = NR.hitStation(game, p.x, p.y, grab + 4);
     if (h && (!st || h.d < st.d)) {
@@ -817,7 +1027,7 @@
     if (!draft) return;
     pointer = p;
     if (Math.hypot(p.x - draft.start.x, p.y - draft.start.y) > 6) draft.moved = true;
-    const st = NR.hitStation(game, pointer.x, pointer.y, grab);
+    const st = draft.city ? NR.hitCityStop(game.cities[draft.city], pointer.x, pointer.y, grab) : NR.hitStation(game, pointer.x, pointer.y, grab);
     if (st) extendDraft(st.id);
   });
   function endPointer(e) {
@@ -830,7 +1040,7 @@
     }
     if (draft) {
       // A tap on a station (no dragging) shows its county instead of building.
-      const tappedStation = e.type === "pointerup" && !draft.moved && draft.chain.length < 2 ? draft.chain[0] : null;
+      const tappedStation = e.type === "pointerup" && !draft.moved && draft.chain.length < 2 && !draft.city ? draft.chain[0] : null;
       if (e.type === "pointerup") finishDraft();
       draft = null;
       pointer = null;
@@ -848,7 +1058,7 @@
   canvas.addEventListener(
     "wheel",
     (e) => {
-      if (!game || screen) return;
+      if (!game || screen || cityKey) return;
       e.preventDefault();
       const p = at(e);
       NR.zoomAt(p.x, p.y, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
@@ -897,11 +1107,18 @@
   });
   $("lp-delete").addEventListener("click", () => {
     const btn = $("lp-delete");
-    const line = NR.lineById(game, openLineId);
+    const city = cityKey && game.cities[cityKey];
+    const line = city ? NR.cityLineById(city, openLineId) : NR.lineById(game, openLineId);
     if (!line) return;
     if (!btn.dataset.armed) {
       btn.dataset.armed = "1";
       btn.textContent = "Tap again to delete";
+      return;
+    }
+    if (city) {
+      NR.cityDeleteLine(game, cityKey, line);
+      closeLinePanel();
+      toast(`${cityLineName(line)} deleted. You got back half of what it cost.`);
       return;
     }
     NR.deleteLine(game, line);
@@ -918,6 +1135,7 @@
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      if (cityKey && $("line-panel").hidden) leaveCity();
       closeLinePanel();
       closeCountyPanel();
       closeContracts();

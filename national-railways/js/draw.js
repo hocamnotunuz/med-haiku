@@ -34,6 +34,7 @@
       ink: get("--ink"),
       muted: get("--muted"),
       accent: get("--accent"),
+      accentInk: get("--accent-ink"),
       danger: get("--danger"),
       lines: [1, 2, 3, 4, 5, 6, 7].map((n) => get("--line-" + n)),
     };
@@ -497,20 +498,20 @@
     });
   }
 
-  function drawDraft(ctx, draft, pointer) {
+  function drawDraft(ctx, draft, pointer, P = pos) {
     ctx.strokeStyle = NR.lineColor(draft.color);
     ctx.lineWidth = view.lw;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.beginPath();
     draft.chain.forEach((id, i) => {
-      const p = pos[id];
+      const p = P[id];
       if (i) ctx.lineTo(p[0], p[1]);
       else ctx.moveTo(p[0], p[1]);
     });
     ctx.stroke();
     if (!pointer) return;
-    const last = pos[draft.chain[draft.chain.length - 1]];
+    const last = P[draft.chain[draft.chain.length - 1]];
     ctx.setLineDash([view.lw * 1.4, view.lw * 1.6]);
     ctx.globalAlpha = 0.75;
     ctx.beginPath();
@@ -624,6 +625,24 @@
     ctx.quadraticCurveTo(x + k * 0.8, y + k, x + k, y + k * 0.25); // right fluke
     ctx.stroke();
     ctx.restore();
+  }
+
+  // "M" badge: this station has a city map with trams and metro. Filled once opened,
+  // red when a stop in that city is getting crowded.
+  function drawMetroBadge(ctx, s, key, x, y) {
+    const c = s.cities[key];
+    const crowded = c && c.stations.some((st) => st.crowd > 0);
+    roundRect(ctx, x - 7, y - 7, 14, 14, 3);
+    ctx.fillStyle = crowded ? colors.danger : c ? colors.accent : colors.panel;
+    ctx.fill();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = c ? colors.panel : colors.ink;
+    ctx.stroke();
+    ctx.font = `800 9px ${DISPLAY}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = c ? colors.accentInk : colors.ink;
+    ctx.fillText("M", x, y + 0.5);
   }
 
   // A small plane seen from above, pointing up: stations with an airport.
@@ -763,6 +782,7 @@
         ctx.fillStyle = colors.accent;
         ctx.fill();
       }
+      if (NR.METROS && NR.METROS[st.id] && NR.cityAvailable(s, st.id)) drawMetroBadge(ctx, s, st.id, x - r - 9, y - r - 6);
     }
   }
 
@@ -868,6 +888,7 @@
   function drawFx(ctx, fx, now) {
     for (let i = fx.length - 1; i >= 0; i--) {
       const f = fx[i];
+      if (f.city) continue; // drawn on the city map
       const life = f.kind === "city" ? 1600 : 600;
       const t = (now - f.t0) / life;
       const p = pos[f.at];
@@ -899,10 +920,326 @@
     ctx.globalAlpha = 1;
   }
 
+  // ---------- City maps: trams, metro and cable cars ----------
+  const cityPos = (NR.cityPos = {}); // screen position of each stop in the open city
+  const cv = { cos: 1, s: 1, ox: 0, oy: 0 }; // the city map's own scale (north up)
+  const cityPt = (lon, lat) => [cv.ox + lon * cv.cos * cv.s, cv.oy - lat * cv.s];
+
+  // Fit a city's stops into the map area, leaving room around them for labels and riders.
+  function layoutCity(key) {
+    const stops = NR.METROS[key].stops;
+    cv.cos = Math.cos((stops[0].lat * Math.PI) / 180);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    stops.forEach((p) => {
+      x0 = Math.min(x0, p.lon * cv.cos);
+      x1 = Math.max(x1, p.lon * cv.cos);
+      y0 = Math.min(y0, -p.lat);
+      y1 = Math.max(y1, -p.lat);
+    });
+    const b = view.box;
+    const bw = Math.max(80, view.w - b.left - b.right - 140);
+    const bh = Math.max(80, view.h - b.top - b.bottom - 80);
+    cv.s = Math.min(bw / (x1 - x0), bh / (y1 - y0));
+    cv.ox = b.left + 70 + (bw - (x1 - x0) * cv.s) / 2 - x0 * cv.s;
+    cv.oy = b.top + 40 + (bh - (y1 - y0) * cv.s) / 2 - y0 * cv.s;
+    for (const k of Object.keys(cityPos)) delete cityPos[k];
+    stops.forEach((p) => (cityPos[p.id] = cityPt(p.lon, p.lat)));
+  }
+  function traceCity(ctx, list, close) {
+    for (let i = 0; i < list.length; i += 2) {
+      const p = cityPt(list[i], list[i + 1]);
+      if (i) ctx.lineTo(p[0], p[1]);
+      else ctx.moveTo(p[0], p[1]);
+    }
+    if (close) ctx.closePath();
+  }
+  const cityR = () => view.baseR * 1.15;
+  const cityLw = () => view.baseLw * 1.1;
+
+  // Lines sharing a stretch sit side by side, as on the state map.
+  function citySegs(c) {
+    const map = {};
+    c.lines.forEach((l) => {
+      for (let i = 0; i + 1 < l.stops.length; i++) (map[segKey(l.stops[i], l.stops[i + 1])] ||= []).push(l.id);
+    });
+    return map;
+  }
+  function cityLeg(segs, a, b, lineId) {
+    const list = segs[segKey(a, b)] || [lineId];
+    const off = list.length < 2 ? 0 : (a < b ? 1 : -1) * (list.indexOf(lineId) - (list.length - 1) / 2) * cityLw() * 1.4;
+    const pa = cityPos[a];
+    const pb = cityPos[b];
+    const len = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]) || 1;
+    const nx = (-(pb[1] - pa[1]) / len) * off;
+    const ny = ((pb[0] - pa[0]) / len) * off;
+    return [pa[0] + nx, pa[1] + ny, pb[0] + nx, pb[1] + ny];
+  }
+
+  // Tabs at both ends of each city line (drag them to extend the line).
+  NR.cityHandles = function (c) {
+    const out = [];
+    for (const l of c.lines) {
+      const n = l.stops.length;
+      for (const atHead of [true, false]) {
+        const end = atHead ? l.stops[0] : l.stops[n - 1];
+        const prev = atHead ? l.stops[1] : l.stops[n - 2];
+        const pe = cityPos[end];
+        const pp = cityPos[prev];
+        const len = Math.hypot(pe[0] - pp[0], pe[1] - pp[1]) || 1;
+        const dx = (pe[0] - pp[0]) / len;
+        const dy = (pe[1] - pp[1]) / len;
+        const reach = cityR() + 18;
+        out.push({ lineId: l.id, color: l.color, atHead, stationId: end, dx, dy, x: pe[0] + dx * reach, y: pe[1] + dy * reach });
+      }
+    }
+    return out;
+  };
+  NR.hitCityStop = function (c, x, y, extra) {
+    let best = null;
+    let bestD = cityR() + extra;
+    c.stations.forEach((st) => {
+      const p = cityPos[st.id];
+      const d = p ? Math.hypot(p[0] - x, p[1] - y) : Infinity;
+      if (d < bestD) {
+        bestD = d;
+        best = st.id;
+      }
+    });
+    return best ? { id: best, d: bestD } : null;
+  };
+  NR.hitCityHandle = function (c, x, y, extra) {
+    let best = null;
+    let bestD = 10 + extra;
+    NR.cityHandles(c).forEach((h) => {
+      const d = Math.hypot(h.x - x, h.y - y);
+      if (d < bestD) {
+        bestD = d;
+        best = Object.assign({ d }, h);
+      }
+    });
+    return best;
+  };
+
+  function drawCity(ctx, s, key, ui) {
+    layoutCity(key);
+    const c = s.cities[key];
+    const r = cityR();
+    const lw = cityLw();
+    // Land and coast (the same Census map, zoomed in), county borders, and the night
+    ctx.beginPath();
+    NR.MAP.land.forEach((ring) => traceCity(ctx, ring, true));
+    ctx.fillStyle = colors.land;
+    ctx.fill("evenodd");
+    ctx.beginPath();
+    NR.MAP.borders.forEach((line) => traceCity(ctx, line, false));
+    ctx.strokeStyle = colors.county;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.beginPath();
+    NR.MAP.land.forEach((ring) => traceCity(ctx, ring, true));
+    ctx.strokeStyle = colors.coast;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    const dark = NR.nightAmount(s);
+    if (dark > 0) {
+      ctx.globalAlpha = dark;
+      ctx.fillStyle = colors.night;
+      ctx.fillRect(0, 0, view.w, view.h);
+      ctx.globalAlpha = 1;
+    }
+
+    // Lines: metro thick with a dark edge (tunnels), tram thinner, cable car with ties
+    const segs = citySegs(c);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (const l of c.lines) {
+      const width = l.mode === "metro" ? lw * 1.35 : lw * 0.85;
+      ctx.beginPath();
+      for (let i = 0; i + 1 < l.stops.length; i++) {
+        const [x1, y1, x2, y2] = cityLeg(segs, l.stops[i], l.stops[i + 1], l.id);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+      }
+      if (l.mode === "metro") {
+        ctx.lineWidth = width + 3;
+        ctx.strokeStyle = colors.ink;
+        ctx.stroke();
+      } else if (l.mode === "cable") {
+        ctx.save();
+        ctx.setLineDash([2, 5]);
+        ctx.lineCap = "butt";
+        ctx.lineWidth = width + 6;
+        ctx.strokeStyle = colors.ink;
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.lineWidth = width;
+      ctx.strokeStyle = NR.lineColor(l.color);
+      ctx.stroke();
+    }
+    // Line-end tabs
+    ctx.lineWidth = lw * 0.85;
+    NR.cityHandles(c).forEach((h) => {
+      if (ui.draft && ui.draft.kind === "extend" && ui.draft.lineId === h.lineId && ui.draft.atHead === h.atHead) return;
+      const pe = cityPos[h.stationId];
+      ctx.strokeStyle = NR.lineColor(h.color);
+      ctx.beginPath();
+      ctx.moveTo(pe[0] + h.dx * r, pe[1] + h.dy * r);
+      ctx.lineTo(h.x, h.y);
+      ctx.moveTo(h.x - h.dy * 7, h.y + h.dx * 7);
+      ctx.lineTo(h.x + h.dy * 7, h.y - h.dx * 7);
+      ctx.stroke();
+    });
+    if (ui.draft) drawDraft(ctx, ui.draft, ui.pointer, cityPos);
+
+    // Stops, with riders waiting beside them
+    for (const st of c.stations) {
+      const stop = NR.cityStop(key, st.id);
+      const [x, y] = cityPos[st.id];
+      if (st.crowd > 0) {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = colors.danger;
+        ctx.globalAlpha = 0.22;
+        ctx.beginPath();
+        ctx.arc(x, y, r + 7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, r + 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * st.crowd);
+        ctx.stroke();
+      }
+      if (stop.hub) {
+        // The main station: where riders change to and from trains across California
+        roundRect(ctx, x - r * 1.15, y - r * 1.15, r * 2.3, r * 2.3, r * 0.35);
+        ctx.fillStyle = colors.ink;
+        ctx.fill();
+        roundRect(ctx, x - r * 0.5, y - r * 0.5, r, r, r * 0.2);
+        ctx.fillStyle = colors.station;
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = colors.station;
+        ctx.fill();
+        ctx.lineWidth = Math.max(2, r * 0.3);
+        ctx.strokeStyle = colors.ink;
+        ctx.stroke();
+      }
+      if (stop.cable) {
+        // a little cable car: this stop is on the cable car network
+        roundRect(ctx, x + r + 3, y - r - 8, 10, 6, 2);
+        ctx.fillStyle = colors.cargo.containers;
+        ctx.fill();
+      }
+      ctx.font = `${stop.hub ? 700 : 600} 11px ${DISPLAY}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      halo(ctx, stop.name, x, y + r + 6, stop.hub ? colors.ink : colors.muted, colors.land);
+      // Riders as tags with where they are going; orange ones are off to catch a train
+      const n = st.waiting.length;
+      if (n) {
+        const tw = 24;
+        const th = 12;
+        const show = Math.min(n, 9);
+        ctx.font = `700 9px ${MONO}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (let i = 0; i < show; i++) {
+          const p = st.waiting[i];
+          const tx = x + r + 6 + (i % 3) * (tw + 3);
+          const ty = y - r + Math.floor(i / 3) * (th + 3);
+          roundRect(ctx, tx, ty, tw, th, 3);
+          ctx.fillStyle = n > NR.TUNING.cityRoom ? colors.danger : p.out ? colors.accent : colors.ink;
+          ctx.fill();
+          ctx.fillStyle = colors.station;
+          ctx.fillText(p.to, tx + tw / 2, ty + th / 2 + 0.5);
+        }
+        if (n > show) {
+          ctx.textAlign = "left";
+          ctx.font = `700 10px ${MONO}`;
+          halo(ctx, `+${n - show}`, x + r + 6 + 3 * (tw + 3), y - r + 2 * (th + 3) + th / 2, colors.danger, colors.land);
+        }
+      }
+    }
+
+    // Vehicles
+    for (const tr of c.trains) {
+      const l = NR.cityLineById(c, tr.lineId);
+      if (!l) continue;
+      let n = tr.i + tr.dir;
+      if (n < 0 || n >= l.stops.length) n = tr.i - tr.dir;
+      const a = l.stops[tr.i];
+      const b = l.stops[n];
+      if (!a || !b) continue;
+      const [x1, y1, x2, y2] = cityLeg(segs, a, b, l.id);
+      const e = tr.moving ? ease(Math.min(1, tr.t)) : 0;
+      const L = r * (l.mode === "metro" ? 3.2 : l.mode === "cable" ? 1.7 : 2.3);
+      const H = r * 1.05;
+      ctx.save();
+      ctx.translate(x1 + (x2 - x1) * e, y1 + (y2 - y1) * e);
+      ctx.rotate(Math.atan2(y2 - y1, x2 - x1));
+      roundRect(ctx, -L / 2, -H / 2, L, H, l.mode === "tram" ? H * 0.5 : H * 0.2);
+      ctx.fillStyle = NR.lineColor(l.color);
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = l.mode === "metro" ? colors.ink : colors.station;
+      ctx.stroke();
+      ctx.fillStyle = colors.station;
+      const per = Math.max(1, Math.ceil(tr.pax.length / 2));
+      tr.pax.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(-L / 2 + H * 0.35 + ((L - H * 0.7) / per) * (Math.floor(i / 2) + 0.5), (i % 2 ? 1 : -1) * H * 0.2, Math.max(1.1, H * 0.11), 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    // Delivery rings for this city
+    for (let i = ui.fx.length - 1; i >= 0; i--) {
+      const f = ui.fx[i];
+      if (f.city !== key) continue;
+      const t = (ui.now - f.t0) / 600;
+      const p = cityPos[f.at];
+      if (t >= 1 || !p) {
+        ui.fx.splice(i, 1);
+        continue;
+      }
+      ctx.globalAlpha = (1 - t) * 0.5;
+      ctx.strokeStyle = colors.ink;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], r + 4 + t * 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Scale bar (north is up on city maps)
+    const pxPerMile = cv.s / 69;
+    const mi = [20, 10, 5, 2, 1, 0.5].find((m) => m * pxPerMile <= 130) || 0.5;
+    const x0 = view.box.left + 8;
+    const y0 = view.h - view.box.bottom - 12;
+    ctx.strokeStyle = colors.ink;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0 - 4);
+    ctx.lineTo(x0, y0);
+    ctx.lineTo(x0 + mi * pxPerMile, y0);
+    ctx.lineTo(x0 + mi * pxPerMile, y0 - 4);
+    ctx.stroke();
+    ctx.font = `500 10px ${MONO}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    halo(ctx, `${mi} mi · north is up`, x0, y0 - 11, colors.muted, colors.sea);
+  }
+
   NR.draw = function (ctx, s, ui) {
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
     ctx.fillStyle = colors.sea;
     ctx.fillRect(0, 0, view.w, view.h);
+    if (s && ui.city && s.cities[ui.city]) {
+      drawCity(ctx, s, ui.city, ui);
+      return;
+    }
     updatePositions();
     drawGraticule(ctx);
     drawLand(ctx, s, ui.county);

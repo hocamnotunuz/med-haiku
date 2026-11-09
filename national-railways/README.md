@@ -59,6 +59,21 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 - **Flights** land at airports (✈) with 5 travelers at a time: LAX, SFO (San Mateo), San Diego, San José, Oakland, Sacramento, Ontario, Fresno and Palm Springs.
 - **Earthquakes and wildfires** (from week 3) damage track (red ✕). Trains turn back at the damage. A Work train on that line repairs it in a few seconds; otherwise it mends after 3 weeks.
 
+### City maps: trams, metro and cable cars
+
+Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own city maps (an **M** badge on the station). Once you own the county, tap the station and choose **Open city map**. **← California** takes you back.
+
+| Line | Track | Vehicle | Riders | Notes |
+| --- | --- | --- | --- | --- |
+| Tram | $3k/mi | $40k | 8 | Street-running, cheap. |
+| Metro | $10k/mi | $120k | 16 | Fast; riders pay ×1.3. |
+| Cable car | $8k/mi | $60k | 6 | San Francisco only, between cable car stops (Transit Center, Union Square, Nob Hill, Fisherman's Wharf), up to 3.5 miles; riders pay ×2. |
+
+- Riders appear in the neighborhoods: most cross town, some (orange tags) head for the main station to catch a train and then join the trains across California.
+- Half of the train passengers arriving at the city's main station ride the metro home.
+- A city keeps running once opened. A neighborhood that stays overcrowded ends the game, like a station; you get a warning if you are away.
+- Up to 5 lines per city. Sell vehicles or delete lines to get half the price back.
+
 ### Cargo
 
 Cargo shares the map with passengers. It waits in a **yard** to the left of each station (up to 12 loads; extra loads are turned away) and never ends your game, but it pays well.
@@ -102,6 +117,7 @@ Tap the **clipboard** on the bottom bar.
 | `js/cities.js` | The 49 county main stations, the 71 towns, and the levels. |
 | `tools/build-map.js` | Rebuilds the map file from Census data (see below). |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
+| `js/metro.js` | City maps: neighborhoods, trams, metro and cable cars. |
 | `js/draw.js` | Draws the map, lines, stations and trains. |
 | `js/ui.js` | Menus, buttons, touch/mouse input and the game loop. |
 
