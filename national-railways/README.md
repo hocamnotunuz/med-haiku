@@ -15,6 +15,31 @@ Four states share one map: **California, Nevada, Arizona and Oregon**, divided i
 
 Every region has one main station at its biggest city, with a few exceptions to keep stations apart or names clear: Yuba County uses Wheatland (its larger towns sit across the river from Yuba City), Clackamas County uses Oregon City (Lake Oswego is right next to Portland), and Pinal County uses Casa Grande (the city of Maricopa shares its name with Maricopa County). Regions outside California are named with their state, like "Clark County, Nevada".
 
+### Real geography
+
+The map shows real mountains (shaded relief from elevation data), lakes, rivers, mountain passes (⌃) and real bridges (=). Zoom in to see the names. They change what track costs and how fast trains go:
+
+- **Hills** cost a little more and slow trains a little.
+- **Mountains** must be crossed **over a real pass** (Donner Pass, Cajon Pass, Tejon Pass, Siskiyou Summit, Santiam Pass and about 120 more) or **through a tunnel**. Over a pass, track costs more and trains slow down on the climb. A tunnel costs much more but trains keep their speed. Some ranges are too wide to tunnel: the game tells you which passes are nearest. Later, **Dig tunnels under the passes** in a line's panel speeds its trains up.
+- **Bays and lakes** need a bridge. Real bridges (Golden Gate, Bay Bridge, San Mateo, Richmond-San Rafael, Carquinez, the Colorado River crossings and others) are cheaper and can be any length; a new bridge costs more and can only span narrow water. Track can't run over open water, but where a straight line would cut across the sea between two coastal towns, it follows the shore instead (longer, so pricier and slower).
+- **Rivers** (Sacramento, Colorado, Columbia, Willamette and others) need a small bridge, cheaper where a real one stands.
+- While you drag a line, the label next to the price says what the last stretch crosses. A line's panel lists everything it crosses.
+
+**Gentle** (the default) or **Tough**: choose under **Settings** on the start screen.
+
+| | Gentle | Tough |
+| --- | --- | --- |
+| Hills: price / train speed | ×1.25 / ×0.9 | ×1.5 / ×0.8 |
+| Over a pass: price / train speed | ×2 / ×0.6 | ×3 / ×0.4 |
+| Tunnel: price / longest | ×4 / 40 mi | ×7 / 15 mi |
+| Pass counts if the track passes within | 12 mi (plus 20 mi of approach) | 9 mi (plus 15 mi of approach) |
+| Along the shore: price / train speed | ×1.6 / ×0.7 | ×2.2 / ×0.55 |
+| Real bridge / new bridge, price per mile | ×3 / ×6 | ×4 / ×10 |
+| Widest new bridge | 8 mi | 2 mi |
+| River bridge: new / real | $10k / $3k | $25k / $5k |
+
+All these numbers live in `js/geography.js` (`NR.GEO`).
+
 ### Opening more states
 
 - Every game starts in California. Nevada, Arizona and Oregon are shaded darker until they open.
@@ -85,6 +110,7 @@ Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own ci
 | Cable car | $8k/mi | $60k | 6 | San Francisco only, between cable car stops (Transit Center, Union Square, Nob Hill, Fisherman's Wharf), up to 3.5 miles; riders pay ×2. |
 
 - Riders appear in the neighborhoods: most cross town, some (orange tags) head for the main station to catch a train and then join the trains across California.
+- **Hills and water:** each city map shows its real hills and water (San Francisco's hills, the Hollywood Hills, San Diego Bay and Mission Bay, the Sacramento and American rivers). Trams slow down on hills (Castro to Haight-Ashbury is a 6% climb). Metro tunnels under hills cost more but don't slow down. Cable cars climb at full speed but can't cross water. Water needs a bridge (or a tube for the metro): cheaper at a real bridge like the Coronado Bridge or Tower Bridge, and impossible if too wide. Lines can run along a shore.
 - Half of the train passengers arriving at the city's main station ride the metro home.
 - A city keeps running once opened. A neighborhood that stays overcrowded ends the game, like a station; you get a warning if you are away.
 - Up to 5 lines per city. Sell vehicles or delete lines to get half the price back.
@@ -160,8 +186,12 @@ Tap the **clipboard** on the bottom bar.
 | `index.html` | The page: screens, buttons and the map area. |
 | `style.css` | Colors, fonts and layout (light and dark themes). |
 | `js/map.js` | The land, state and county borders, and county regions of all four states. Generated: do not edit by hand. |
+| `js/terrain.js` | Real geography: the mountains grid, lakes, rivers, passes, bridges, and each city's hills and water. Generated: do not edit by hand. |
+| `img/relief*.png` | Shaded relief (mountain shading) for the state map and each city map. Generated. |
+| `js/geography.js` | The geography rules: passes, tunnels, bridges, prices and train speeds, Gentle and Tough. |
 | `js/cities.js` | The 94 county main stations, the 151 towns, and the levels. |
 | `tools/build-map.js` | Rebuilds the map file from Census data (see below). |
+| `tools/build-terrain.js` | Rebuilds the geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. The list of passes and bridges is in this file. |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
 | `js/metro.js` | City maps: neighborhoods, trams, metro and cable cars. |
 | `js/draw.js` | Draws the map, lines, stations and trains. |
@@ -176,6 +206,11 @@ cd national-railways/tools
 npm install
 cd ..
 node tools/build-map.js tools/node_modules CA NV AZ OR
+node tools/build-terrain.js tools/node_modules .terrain-cache
 ```
+
+`build-terrain.js` downloads its data into the cache folder (about 30 MB, so a second run takes seconds) and needs `curl` and `unzip`. Run it after `build-map.js`, and again after adding cities or editing its lists of passes and bridges.
+
+Data: county shapes and city coastlines from the U.S. Census Bureau; elevation from [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (SRTM, USGS and other public sources); lakes, rivers and mountain range names from [Natural Earth](https://www.naturalearthdata.com/) (public domain).
 
 To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code, and either a list of which small counties to merge or a table of county populations so small ones merge automatically), add its code to the command above, run it, then list its main stations and towns in `js/cities.js`. Every game starts in the counties listed in `NR.START_COUNTIES` (in `js/cities.js`), and their state is the home state.

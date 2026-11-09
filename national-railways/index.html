@@ -82,12 +82,14 @@
     </div>
     <p id="lp-meta" class="lp-meta"></p>
     <p id="lp-stops" class="lp-stops"></p>
+    <p id="lp-geo" class="lp-geo" hidden></p>
     <p class="lp-section">Trains on this line</p>
     <ul id="lp-trains" class="lp-trains"></ul>
     <p class="lp-section">Add a train</p>
     <div id="lp-buy" class="lp-buy"></div>
     <div class="lp-actions">
       <button id="lp-upgrade" class="btn btn-small" type="button">High-speed track</button>
+      <button id="lp-tunnel" class="btn btn-small" type="button" hidden>Dig tunnels</button>
       <button id="lp-delete" class="btn btn-small btn-danger" type="button">Delete line</button>
     </div>
   </div>
@@ -189,6 +191,17 @@
         </div>
       </fieldset>
 
+      <details class="guide settings">
+        <summary>Settings</summary>
+        <fieldset class="choice">
+          <legend>Geography (mountains, bays, lakes and rivers)</legend>
+          <div class="options">
+            <label class="option"><input type="radio" name="geo" value="gentle" id="geo-gentle"><span class="option-title">Gentle</span><span class="option-text">Geography costs a little more and slows trains a little. Long tunnels and bridges are allowed.</span></label>
+            <label class="option"><input type="radio" name="geo" value="tough" id="geo-tough"><span class="option-title">Tough</span><span class="option-text">Mountains and water are real obstacles: pricey and slow, and some routes need the right pass or bridge.</span></label>
+          </div>
+        </fieldset>
+      </details>
+
       <ul class="howto">
         <li><b>Build:</b> drag from one city to another to lay track. Keep dragging to add stops.</li>
         <li><b>Extend:</b> drag the tab at either end of a line.</li>
@@ -200,6 +213,7 @@
         <li><b>Goals:</b> tap the clipboard to see contracts (optional jobs with a reward and a deadline) and, in Levels mode, the checklist for the current level.</li>
         <li><b>Zoom:</b> pinch or scroll to zoom, drag empty map to move around.</li>
         <li><b>Manage:</b> tap a line color at the bottom to add trains, upgrade to high-speed track, or delete the line.</li>
+        <li><b>Geography:</b> the map shows real mountains, lakes and rivers. Track over a mountain pass (like Donner Pass) costs more and trains slow down on the climb; elsewhere mountains need an expensive tunnel, and some are too wide to tunnel. Bays and lakes need a bridge: cheaper at real bridges like the Golden Gate. Rivers need small bridges. Choose Gentle or Tough under Settings.</li>
         <li><b>Money:</b> track and trains cost money. Passengers pay a fare when they arrive, and trains cost a little to run each week.</li>
         <li><b>Budgets and states:</b> every state has its own budget (tap the money at the bottom). Fares go to the state where the trip ends, and the state pays for its own track, trains and counties. National money gets contract rewards and grants, pays for track across state borders, and covers any state that runs short. Once you own all of California, Nevada, Arizona and Oregon open. A state can hire a head of transportation too, just like a city.</li>
       </ul>
@@ -252,8 +266,10 @@
 </div>
 
 <script src="js/map.js"></script>
+<script src="js/terrain.js"></script>
 <script src="js/cities.js"></script>
 <script src="js/game.js"></script>
+<script src="js/geography.js"></script>
 <script src="js/metro.js"></script>
 <script src="js/draw.js"></script>
 <script src="js/ui.js"></script>

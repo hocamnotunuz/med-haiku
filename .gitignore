@@ -4,3 +4,6 @@
 
 # Map tool downloads
 national-railways/tools/node_modules/
+
+# Geography tool downloads
+national-railways/.terrain-cache/

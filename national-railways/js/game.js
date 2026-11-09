@@ -41,7 +41,7 @@
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 10; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 11; // bump when saved games from older versions no longer fit
 
   // ---- Time of day: night runs from 21:00 to 05:00 ----
   NR.hourOf = (s) => ((s.time % T.dayLength) / T.dayLength) * 24;
@@ -244,7 +244,8 @@
   }
   NR.trackMiles = (a, b) => Math.round(miles(city(a), city(b)) * T.trackDetour);
   NR.crowMiles = (a, b) => miles(city(a), city(b));
-  // Price of laying track between two cities, in $k.
+  // Price of laying track between two cities on flat ground, in $k. js/geography.js replaces
+  // this with a price that includes mountains, water and rivers.
   NR.trackPrice = (a, b, grade) => NR.trackMiles(a, b) * (T.trackPrice + (grade === "high" ? T.highSpeedPrice : 0));
 
   // ---------- States and budgets ----------
@@ -329,11 +330,13 @@
   }
 
   // ---------- Starting a game ----------
-  // mode: "endless" | "timed" | "levels"    style: "type" | "city"
-  NR.newGame = function (mode, style) {
+  // mode: "endless" | "timed" | "levels"    style: "type" | "city"    geo: "gentle" | "tough"
+  NR.newGame = function (mode, style, geo) {
+    rt.geoLevel = geo || "gentle"; // how hard real geography is (see js/geography.js)
     const s = {
       mode,
       style,
+      geo: rt.geoLevel,
       time: 0,
       delivered: 0,
       week: 0,
@@ -727,7 +730,8 @@
       train.dir = dir;
       train.moving = true;
       train.t = 0;
-      train.segLen = Math.max(1, miles(city(line.stops[train.i]), city(line.stops[n])));
+      // Slower over mountain passes, hills and along the coast (see js/geography.js)
+      train.segLen = NR.travelMiles ? NR.travelMiles(line, line.stops[train.i], line.stops[n]) : Math.max(1, miles(city(line.stops[train.i]), city(line.stops[n])));
       return;
     }
     train.t += (dt * s.speed * typeOf(train).speed) / train.segLen;
@@ -784,7 +788,7 @@
   NR.stateInfraValue = function (s, code) {
     let value = 0;
     s.lines.forEach((l) => {
-      value += NR.chainBill(l.stops, l.grade)[code] || 0;
+      value += NR.chainBill(l.stops, l.grade, 1, l)[code] || 0;
       if (NR.linePayer(l) === code) NR.trainsOn(s, l).forEach((t) => (value += typeOf(t).price));
     });
     return value;
@@ -1040,19 +1044,30 @@
     for (let i = 0; i + 1 < l.stops.length; i++) m += NR.trackMiles(l.stops[i], l.stops[i + 1]);
     return m;
   };
-  // What the track of a line cost to build, in $k.
-  NR.lineValue = (l) => NR.lineMiles(l) * (T.trackPrice + (l.grade === "high" ? T.highSpeedPrice : 0));
-  // Price of track through a list of stops, in $k.
-  NR.chainPrice = (chain, grade) => {
+  // Is a stretch of a line's track dug as a tunnel under a pass? (js/geography.js)
+  const tunneled = (line, a, b) => !!(NR.tunneled && NR.tunneled(line, a, b));
+  // Price of track through a list of stops, in $k (line: the line it belongs to, if any).
+  NR.chainPrice = (chain, grade, line) => {
     let p = 0;
-    for (let i = 0; i + 1 < chain.length; i++) p += NR.trackPrice(chain[i], chain[i + 1], grade);
+    for (let i = 0; i + 1 < chain.length; i++) p += NR.trackPrice(chain[i], chain[i + 1], grade, tunneled(line, chain[i], chain[i + 1]));
     return p;
   };
+  // What the track of a line cost to build, in $k.
+  NR.lineValue = (l) => NR.chainPrice(l.stops, l.grade, l);
   // The same, as a bill: each stretch is paid by its state, or by national money across a border.
-  NR.chainBill = (chain, grade, share = 1) => {
+  NR.chainBill = (chain, grade, share = 1, line) => {
     const bill = {};
-    for (let i = 0; i + 1 < chain.length; i++) NR.addToBill(bill, NR.segmentPayer(chain[i], chain[i + 1]), NR.trackPrice(chain[i], chain[i + 1], grade) * share);
+    for (let i = 0; i + 1 < chain.length; i++)
+      NR.addToBill(bill, NR.segmentPayer(chain[i], chain[i + 1]), NR.trackPrice(chain[i], chain[i + 1], grade, tunneled(line, chain[i], chain[i + 1])) * share);
     return bill;
+  };
+  // Why track can't be laid through these stops (mountains too wide, water too wide), or null.
+  NR.chainBlocked = (chain) => {
+    for (let i = 0; i + 1 < chain.length; i++) {
+      const why = NR.blockedReason && NR.blockedReason(chain[i], chain[i + 1]);
+      if (why) return why;
+    }
+    return null;
   };
   // Track inside a state that a head of transportation is managing can't change.
   NR.chainFrozen = (s, chain) => chain.some((id, i) => i > 0 && NR.stateFrozen(s, NR.segmentPayer(chain[i - 1], id)));
@@ -1068,7 +1083,8 @@
     Object.keys(NR.TRAIN_TYPES).find((k) => !NR.TRAIN_TYPES[k].carries && s.depot[k] > 0 && NR.canAddTrain(s, line, k).ok);
 
   NR.createLine = function (s, stops, color) {
-    const line = { id: s.nextId++, color, stops: stops.slice(), grade: "standard" };
+    if (NR.chainBlocked(stops)) return null;
+    const line = { id: s.nextId++, color, stops: stops.slice(), grade: "standard", tunnels: [] };
     NR.pay(s, NR.chainBill(stops, "standard"));
     s.lines.push(line);
     rt.dirty = true;
@@ -1080,6 +1096,7 @@
   // added = new stops in the order they were dragged, starting next to the old end.
   NR.extendLine = function (s, line, atHead, added) {
     const end = atHead ? line.stops[0] : line.stops[line.stops.length - 1];
+    if (NR.chainBlocked([end, ...added])) return false;
     NR.pay(s, NR.chainBill([end, ...added], line.grade));
     if (atHead) {
       line.stops.unshift(...added.slice().reverse());
@@ -1091,15 +1108,17 @@
   };
 
   // Price of upgrading a whole line to high-speed track, in $k.
-  NR.highSpeedUpgradePrice = (line) => NR.lineMiles(line) * T.highSpeedPrice;
+  // The difference between high-speed and standard track (more over mountains and water).
   NR.upgradeBill = (line) => {
     const bill = {};
     for (let i = 0; i + 1 < line.stops.length; i++) {
       const [a, b] = [line.stops[i], line.stops[i + 1]];
-      NR.addToBill(bill, NR.segmentPayer(a, b), NR.trackMiles(a, b) * T.highSpeedPrice);
+      const t = tunneled(line, a, b);
+      NR.addToBill(bill, NR.segmentPayer(a, b), NR.trackPrice(a, b, "high", t) - NR.trackPrice(a, b, "standard", t));
     }
     return bill;
   };
+  NR.highSpeedUpgradePrice = (line) => Object.values(NR.upgradeBill(line)).reduce((a, b) => a + b, 0);
   NR.upgradeLine = function (s, line) {
     const bill = NR.upgradeBill(line);
     if (line.grade === "high" || NR.lineFrozen(s, line) || !NR.canPay(s, bill)) return false;
@@ -1181,7 +1200,7 @@
     });
     s.trains = s.trains.filter((t) => t.lineId !== line.id);
     s.lines = s.lines.filter((l) => l !== line);
-    NR.refund(s, NR.chainBill(line.stops, line.grade, T.refundShare));
+    NR.refund(s, NR.chainBill(line.stops, line.grade, T.refundShare, line));
     rt.dirty = true;
     return true;
   };
@@ -1490,6 +1509,7 @@
   NR.save = (s) => JSON.stringify(s);
   NR.load = (text) => {
     const s = JSON.parse(text);
+    rt.geoLevel = s.geo || "gentle";
     rt.dirty = true;
     rt.events.length = 0;
     return s;

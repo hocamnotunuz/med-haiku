@@ -49,7 +49,7 @@
       }
     },
   };
-  const settings = Object.assign({ mode: "endless", style: "type" }, store.get("nr-settings", {}));
+  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle" }, store.get("nr-settings", {}));
   const best = store.get("nr-best", {});
 
   // ---------- What is happening right now ----------
@@ -156,17 +156,20 @@
     $("btn-resume").hidden = !(game && !game.over);
     const mode = document.querySelector(`input[name="mode"][value="${settings.mode}"]`);
     const style = document.querySelector(`input[name="style"][value="${settings.style}"]`);
+    const geo = document.querySelector(`input[name="geo"][value="${settings.geo}"]`);
     if (mode) mode.checked = true;
     if (style) style.checked = true;
+    if (geo) geo.checked = true;
     updateBestLine();
   }
 
   function startGame() {
     settings.mode = checkedValue("mode") || "endless";
     settings.style = checkedValue("style") || "type";
+    settings.geo = checkedValue("geo") || "gentle";
     store.set("nr-settings", settings);
     leaveCity();
-    game = NR.newGame(settings.mode, settings.style);
+    game = NR.newGame(settings.mode, settings.style, settings.geo);
     levelSave = NR.save(game);
     NR.resetCamera();
     queue.length = 0;
@@ -915,6 +918,14 @@
     $("lp-name").textContent = cityLineName(line);
     $("lp-meta").textContent = `${plural(line.stops.length, "stop")} · ${NR.cityLineMiles(cityKey, line).toFixed(1)} mi · ${m.name}`;
     $("lp-stops").textContent = line.stops.map((id) => NR.cityStop(cityKey, id).name).join(" – ");
+    // Hills and water along the line
+    const legs = [];
+    for (let i = 0; i + 1 < line.stops.length; i++) {
+      const notes = NR.cityLegNotes(cityKey, line.mode, line.stops[i], line.stops[i + 1]);
+      if (notes.length) legs.push(`${NR.cityStop(cityKey, line.stops[i]).name}–${NR.cityStop(cityKey, line.stops[i + 1]).name}: ${notes.join(", ")}`);
+    }
+    $("lp-geo").hidden = !legs.length;
+    $("lp-geo").textContent = legs.join(" · ");
     const list = $("lp-trains");
     list.textContent = "";
     vehicles.forEach((t) => {
@@ -953,9 +964,10 @@
     add.append(name, note);
     buy.appendChild(add);
     $("lp-upgrade").hidden = true;
+    $("lp-tunnel").hidden = true;
     $("lp-delete").disabled = frozen;
     if (!$("lp-delete").dataset.armed) {
-      const value = NR.cityLineMiles(cityKey, line) * m.track + vehicles.length * m.price;
+      const value = NR.cityLinePrice(cityKey, line) + vehicles.length * m.price;
       $("lp-delete").textContent = `Delete line (get back ${NR.money(value * T.refundShare)})`;
     }
   }
@@ -969,6 +981,9 @@
     const checks = Object.keys(NR.TRAIN_TYPES).map((k) => [k, NR.canAddTrain(game, line, k)]);
     const upgradePrice = NR.highSpeedUpgradePrice(line);
     const canUpgrade = NR.canPay(game, NR.upgradeBill(line));
+    const tunnelBill = NR.tunnelBill(game, line);
+    const tunnelPrice = Object.values(tunnelBill).reduce((a, b) => a + b, 0);
+    const canTunnel = tunnelPrice > 0 && NR.canPay(game, tunnelBill);
     const frozen = NR.lineFrozen(game, line);
     const payer = NR.linePayer(line);
     const sig = JSON.stringify([
@@ -977,6 +992,8 @@
       trains.map((t) => t.id),
       checks.map(([k, c]) => [c.ok, c.reason, game.depot[k]]),
       canUpgrade,
+      canTunnel,
+      tunnelPrice > 0,
       frozen,
       game.extraSeats,
     ]);
@@ -991,6 +1008,14 @@
       `${plural(line.stops.length, "stop")} · ${NR.lineMiles(line)} mi · ${line.grade === "high" ? "high-speed" : "standard"} track · ${paidBy}` +
       (frozen ? " · frozen while its state is managed" : "");
     $("lp-stops").textContent = line.stops.map((id) => NR.cityById[id].name).join(" – ");
+    // What the track crosses: passes, tunnels, bridges...
+    const crossings = [];
+    for (let i = 0; i + 1 < line.stops.length; i++) {
+      const notes = NR.geoNotes(line.stops[i], line.stops[i + 1], line);
+      if (notes.length) crossings.push(`${NR.cityById[line.stops[i]].name}–${NR.cityById[line.stops[i + 1]].name}: ${notes.join(", ")}`);
+    }
+    $("lp-geo").hidden = !crossings.length;
+    $("lp-geo").textContent = crossings.join(" · ");
 
     const list = $("lp-trains");
     list.textContent = "";
@@ -1040,6 +1065,11 @@
     up.hidden = line.grade === "high";
     up.textContent = `Upgrade to high-speed track · ${NR.money(upgradePrice)}`;
     up.disabled = !canUpgrade || frozen;
+    const tun = $("lp-tunnel");
+    tun.hidden = !tunnelPrice;
+    tun.textContent = `Dig tunnels under the passes · ${NR.money(tunnelPrice)}`;
+    tun.title = "Trains stop slowing down on the climbs over mountain passes on this line.";
+    tun.disabled = !canTunnel || frozen;
     if (!$("lp-delete").dataset.armed) $("lp-delete").textContent = `Delete line (get back ${NR.money(NR.lineValue(line) * T.refundShare)})`;
   }
 
@@ -1064,7 +1094,7 @@
     }
     const modeName =
       game.mode === "levels" ? `Level ${game.level + 1}: ${NR.LEVELS[game.level].name}` : game.mode === "timed" ? "Timed challenge" : "Endless";
-    if (!cityKey) setText("mode-label", `${modeName} · ${game.style === "type" ? "Type of place" : "Specific city"}`);
+    if (!cityKey) setText("mode-label", `${modeName} · ${game.style === "type" ? "Type of place" : "Specific city"}${game.geo === "tough" ? " · Tough geography" : ""}`);
     setText("trains-free", NR.depotCount(game));
     if (cityKey) {
       setText("mode-label", `${NR.METROS[cityKey].name} city map · trams and metro`);
@@ -1150,12 +1180,19 @@
     if (chain.length >= 2 && id === chain[chain.length - 2]) {
       draft.cost -= draftPrice(id, lastId); // dragged back: undo the last stop
       chain.pop();
+      draft.note = "";
       return;
     }
     if (chain.includes(id)) return;
     if (draft.kind === "extend" && draftLine().stops.includes(id)) return;
     const cost = draftPrice(lastId, id);
     if (draft.city) {
+      // Water too wide to cross, or a cable car asked to cross water
+      const leg = NR.cityLegGeo(draft.city, lastId, id);
+      if (leg.blocked || (draft.mode === "cable" && leg.water.length)) {
+        toast(NR.cityModeProblem(draft.city, draft.mode, [lastId, id]) + ".");
+        return;
+      }
       const left = game.cities[draft.city].budget - draft.cost;
       if (cost > left) {
         toast(`Not enough in the city budget: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.money(cost)}, and you have ${NR.money(Math.max(0, left))}.`);
@@ -1165,6 +1202,12 @@
       // Each stretch is paid by its state (national money across a border, or when a state runs short).
       if (NR.chainFrozen(game, [lastId, id])) {
         toast(`Track inside ${NR.STATE_NAMES[NR.stateOf(id)]} can't change while its head of transportation manages it.`);
+        return;
+      }
+      // Real geography: some mountains are too wide to tunnel, some water too wide to bridge.
+      const blocked = NR.blockedReason(lastId, id);
+      if (blocked) {
+        toast(`No track from ${placeName(lastId)} to ${placeName(id)}: ${blocked}`);
         return;
       }
       if (!NR.canPay(game, NR.chainBill([...chain, id], draft.grade))) {
@@ -1179,6 +1222,7 @@
     }
     chain.push(id);
     draft.cost += cost;
+    draft.note = (draft.city ? NR.cityLegNotes(draft.city, draft.mode, lastId, id) : NR.geoNotes(lastId, id)).join(" · ");
   }
 
   function finishDraft() {
@@ -1214,6 +1258,7 @@
     if (d.kind === "new") {
       if (NR.freeColor(game) !== d.color) return;
       const line = NR.createLine(game, d.chain, d.color);
+      if (!line) return toast(NR.chainBlocked(d.chain) || "This track can't be built.");
       if (!NR.trainsOn(game, line).length) toast(`The ${lineName(line.color)} has no train yet. Tap its color at the bottom to add one.`);
     } else {
       const line = NR.lineById(game, d.lineId);
@@ -1398,6 +1443,14 @@
   });
   document.querySelectorAll('input[name="mode"], input[name="style"]').forEach((el) => el.addEventListener("change", updateBestLine));
 
+  $("lp-tunnel").addEventListener("click", () => {
+    const line = NR.lineById(game, openLineId);
+    if (line && NR.digTunnels(game, line)) {
+      panelSig = "";
+      renderLinePanel();
+      toast(`Tunnels dug: trains on the ${lineName(line.color)} no longer slow down over the passes.`);
+    }
+  });
   $("lp-upgrade").addEventListener("click", () => {
     const line = NR.lineById(game, openLineId);
     if (line && NR.upgradeLine(game, line)) {

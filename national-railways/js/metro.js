@@ -184,13 +184,159 @@
     for (let i = 0; i + 1 < l.stops.length; i++) m += legMiles(key, l.stops[i], l.stops[i + 1]);
     return m;
   };
-  // Price of city track between two stops for a kind of line, in $k.
-  NR.cityTrackPrice = (key, mode, a, b) => legMiles(key, a, b) * NR.CITY_MODES[mode].track;
+
+  // ---------- Real geography in the city: hills and water (js/terrain.js) ----------
+  const B64 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-";
+  const ground = {}; // per city: { data, elev(lon, lat) in meters, water(lon, lat) }
+  function groundOf(key) {
+    if (ground[key]) return ground[key];
+    const d = NR.TERRAIN && NR.TERRAIN.cities[key];
+    if (!d) return null;
+    const shapes = d.water.map((ring) => {
+      const b = [Infinity, Infinity, -Infinity, -Infinity];
+      for (let i = 0; i < ring.length; i += 2) {
+        b[0] = Math.min(b[0], ring[i]);
+        b[1] = Math.min(b[1], ring[i + 1]);
+        b[2] = Math.max(b[2], ring[i]);
+        b[3] = Math.max(b[3], ring[i + 1]);
+      }
+      return { ring, b };
+    });
+    const inRing = (x, y, ring) => {
+      let inside = false;
+      for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) {
+        const xi = ring[i], yi = ring[i + 1], xj = ring[j], yj = ring[j + 1];
+        if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+      }
+      return inside;
+    };
+    const cell = (lon, lat) => {
+      const c = Math.min(d.cols - 1, Math.max(0, Math.floor((lon - d.box[0]) / d.step)));
+      const r = Math.min(d.rows - 1, Math.max(0, Math.floor((d.box[3] - lat) / d.step)));
+      return d.elev[r * d.cols + c];
+    };
+    return (ground[key] = {
+      data: d,
+      elev: (lon, lat) => {
+        const ch = cell(lon, lat);
+        return ch === "~" ? 0 : B64.indexOf(ch) * 12;
+      },
+      // Inside an odd number of outlines = water (islands are outlines inside outlines).
+      water: (lon, lat) => shapes.reduce((n, o) => (lon >= o.b[0] && lon <= o.b[2] && lat >= o.b[1] && lat <= o.b[3] && inRing(lon, lat, o.ring) ? !n : n), false),
+    });
+  }
+  // Does a stretch over water run along a shore (land within 0.4 mi on one side, all along)?
+  function alongShore(gr, a, b) {
+    const k = Math.cos((a.lat * Math.PI) / 180);
+    const dx = (b.lon - a.lon) * k, dy = b.lat - a.lat;
+    const len = Math.hypot(dx, dy) || 1;
+    const landAt = (f, side) => {
+      const lon = a.lon + (b.lon - a.lon) * f, lat = a.lat + (b.lat - a.lat) * f;
+      for (let m = 0.05; m <= 0.4; m += 0.05) {
+        const d = m / 69; // miles to degrees of latitude
+        if (!gr.water(lon + (side * -dy * d) / len / k, lat + (side * dx * d) / len)) return true;
+      }
+      return false;
+    };
+    return [1, -1].some((side) => [0.25, 0.5, 0.75].every((f) => landAt(f, side)));
+  }
+  // What lies between two city stops: { miles, grade, water: [{miles, bridge}], shore, blocked }.
+  // grade = the average climb (up or down) per mile of track, as a fraction (0.05 = 5%).
+  const legCache = new Map();
+  NR.cityLegGeo = function (key, a, b) {
+    const ck = key + ":" + (a < b ? a + "|" + b : b + "|" + a) + ":" + (rt.geoLevel || "gentle");
+    if (legCache.has(ck)) return legCache.get(ck);
+    const A = stopOf(key, a < b ? a : b), B = stopOf(key, a < b ? b : a);
+    const total = miles(A, B);
+    const g = { miles: total, grade: 0, water: [], blocked: null };
+    const gr = groundOf(key);
+    if (!gr) return g;
+    const lv = NR.geoSetting ? NR.geoSetting() : null;
+    const n = Math.max(2, Math.ceil(total / 0.03)); // every 50 meters or so
+    let climb = 0, last = null, run = 0, runStart = 0;
+    const pt = (i) => ({ lon: A.lon + ((B.lon - A.lon) * i) / n, lat: A.lat + ((B.lat - A.lat) * i) / n });
+    const endRun = (i) => {
+      if (!run) return;
+      const mi = (run * total) / n;
+      run = 0;
+      if (mi < 0.04) return; // a creek or a canal: no matter
+      const p0 = pt(runStart), p1 = pt(i);
+      // Water with land close by on the same side all along: the track follows the shore.
+      if (mi > 0.3 && alongShore(gr, p0, p1)) {
+        g.shore = (g.shore || 0) + mi;
+        return;
+      }
+      // A real bridge within a mile of the crossing
+      const real = (NR.TERRAIN.bridges || []).find((x) => Math.min(miles(x, p0), miles(x, p1), miles(x, { lon: (p0.lon + p1.lon) / 2, lat: (p0.lat + p1.lat) / 2 })) < 1);
+      g.water.push({ miles: mi, bridge: real ? real.name : null });
+      if (!real && lv && mi > lv.cityMaxWater && !g.blocked) g.blocked = `${mi.toFixed(1)} miles of open water is too wide to cross here`;
+    };
+    for (let i = 0; i <= n; i++) {
+      const p = pt(i);
+      if (gr.water(p.lon, p.lat)) {
+        if (!run) runStart = i;
+        run++;
+        continue;
+      }
+      endRun(i);
+      const e = gr.elev(p.lon, p.lat);
+      if (last !== null) climb += Math.abs(e - last);
+      last = e;
+    }
+    endRun(n);
+    // Half the ups and downs are climbs whichever way you go.
+    g.grade = total > 0 ? climb / 2 / (total * 1609) : 0;
+    legCache.set(ck, g);
+    return g;
+  };
+  // Price of city track between two stops for a kind of line, in $k: hills cost more
+  // (deeper metro tunnels, steeper tram streets) and water needs a bridge or a tube.
+  NR.cityTrackPrice = (key, mode, a, b) => {
+    const m = NR.CITY_MODES[mode];
+    const base = legMiles(key, a, b) * m.track;
+    const lv = NR.geoSetting ? NR.geoSetting() : null;
+    if (!lv) return base;
+    const g = NR.cityLegGeo(key, a, b);
+    const hill = mode === "metro" ? lv.metroHillCost : mode === "tram" ? lv.tramHillCost : 0;
+    let price = base * (1 + hill * g.grade);
+    if (g.shore) price += g.shore * T.cityDetour * m.track * 0.5; // along the shore: a little longer
+    g.water.forEach((w) => (price += w.miles * T.cityDetour * m.track * ((w.bridge ? lv.cityRealBridgeCost : lv.cityWaterCost) - 1)));
+    return price;
+  };
+  NR.cityLinePrice = (key, l) => {
+    let p = 0;
+    for (let i = 0; i + 1 < l.stops.length; i++) p += NR.cityTrackPrice(key, l.mode, l.stops[i], l.stops[i + 1]);
+    return p;
+  };
+  // How far a vehicle effectively travels between two stops: trams slow down on hills.
+  // Metro runs underground and cable cars are pulled up the hills, so neither slows.
+  NR.cityTravelMiles = (key, mode, a, b) => {
+    const g = NR.cityLegGeo(key, a, b);
+    const lv = NR.geoSetting ? NR.geoSetting() : null;
+    const slow = mode === "tram" && lv ? 1 + lv.tramClimb * g.grade : 1;
+    return Math.max(0.2, g.miles * slow);
+  };
+  // A short description of a leg: ["steep hills", "Coronado Bridge", ...]
+  NR.cityLegNotes = (key, mode, a, b) => {
+    const g = NR.cityLegGeo(key, a, b);
+    const out = [];
+    if (g.grade >= 0.04) out.push(mode === "tram" ? "steep hills (slow)" : mode === "metro" ? "deep tunnel under hills" : "steep hills");
+    else if (g.grade >= 0.02) out.push(mode === "tram" ? "hills" : mode === "metro" ? "tunnel under hills" : "hills");
+    g.water.forEach((w) => out.push(w.bridge ? w.bridge : `${mode === "metro" ? "tube" : "new bridge"} over ${Math.max(0.1, w.miles).toFixed(1)} mi of water`));
+    if (g.shore) out.push("along the shore");
+    return out;
+  };
 
   // Can this kind of line run through these stops? Returns the reason it can't, or null.
   NR.cityModeProblem = function (key, mode, stops) {
     const m = NR.CITY_MODES[mode];
     if (m.onlyIn && m.onlyIn !== key) return `${m.name}s only run in San Francisco`;
+    for (let i = 0; i + 1 < stops.length; i++) {
+      const g = NR.cityLegGeo(key, stops[i], stops[i + 1]);
+      const between = `${stopOf(key, stops[i]).name} and ${stopOf(key, stops[i + 1]).name}`;
+      if (mode === "cable" && g.water.length) return `Cable cars can't cross water (between ${between})`;
+      if (g.blocked) return `No ${m.name.toLowerCase()} between ${between}: ${g.blocked}`;
+    }
     if (mode === "cable") {
       if (stops.some((id) => !stopOf(key, id).cable)) return "Cable cars only run between cable car stops";
       let mi = 0;
@@ -270,7 +416,7 @@
     const c = s.cities[key];
     if (NR.cityFrozen(s, key)) return false;
     const m = NR.CITY_MODES[line.mode];
-    let value = NR.cityLineMiles(key, line) * m.track;
+    let value = NR.cityLinePrice(key, line);
     NR.cityTrainsOn(c, line).forEach((t) => {
       dropRiders(s, key, c, t, line);
       value += m.price;
@@ -287,7 +433,7 @@
   NR.cityInfraValue = function (key, c) {
     return c.lines.reduce((sum, l) => {
       const m = NR.CITY_MODES[l.mode];
-      return sum + NR.cityLineMiles(key, l) * m.track + NR.cityTrainsOn(c, l).length * m.price;
+      return sum + NR.cityLinePrice(key, l) + NR.cityTrainsOn(c, l).length * m.price;
     }, 0);
   };
   // A city's money comes from, and goes back to, the budget of its state.
@@ -448,7 +594,7 @@
       }
       train.moving = true;
       train.t = 0;
-      train.segLen = Math.max(0.2, miles(stopOf(key, line.stops[train.i]), stopOf(key, line.stops[n])));
+      train.segLen = NR.cityTravelMiles(key, line.mode, line.stops[train.i], line.stops[n]); // trams slow on hills
       return;
     }
     train.t += (dt * NR.CITY_MODES[line.mode].speed) / train.segLen;

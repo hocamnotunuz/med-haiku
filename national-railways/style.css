@@ -8,6 +8,8 @@
   --county: #d5e0e5;
   --county-text: #93a6b0;
   --locked: rgba(160, 188, 201, 0.5); /* counties you don't own yet */
+  --river: #6fa6c4; /* rivers; lakes use --sea */
+  --relief: 0.9; /* how strong the mountain shading is */
   /* Cargo: produce crates, shipping containers, trucks */
   --produce: #3d8b2c;
   --container: #b0522c;
@@ -48,6 +50,8 @@
     --coast: #2c4553;
     --county: #1f303b;
     --county-text: #5b7280;
+    --river: #2f5f7a;
+    --relief: 0.6;
     --locked: rgba(2, 8, 12, 0.55);
     --produce: #6cbf4b;
     --container: #e27c4a;
@@ -82,6 +86,8 @@
   --coast: #2c4553;
   --county: #1f303b;
   --county-text: #5b7280;
+  --river: #2f5f7a;
+  --relief: 0.6;
   --locked: rgba(2, 8, 12, 0.55);
   --produce: #6cbf4b;
   --container: #e27c4a;
@@ -571,3 +577,8 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
 .bp-closed { margin: 0; font-size: 0.8rem; color: var(--muted); }
 #budget-panel .guide { margin-top: 2px; }
 #budget-panel .guide summary { cursor: pointer; font-size: 0.8rem; font-weight: 700; }
+
+/* ---------- Geography ---------- */
+.lp-geo { margin: 0; font-size: 0.78rem; color: var(--muted); }
+.settings summary { cursor: pointer; font-weight: 700; }
+.settings .choice { margin-top: 10px; }

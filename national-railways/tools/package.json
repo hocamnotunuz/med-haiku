@@ -1,11 +1,15 @@
 {
   "name": "national-railways-tools",
   "private": true,
-  "description": "Builds map data for National Railways from U.S. Census Bureau county boundaries.",
+  "description": "Builds map and geography data for National Railways from U.S. Census Bureau, AWS Terrain Tiles and Natural Earth data.",
   "scripts": {
-    "build-map": "node build-map.js node_modules CA"
+    "build-map": "node build-map.js node_modules CA NV AZ OR",
+    "build-terrain": "node build-terrain.js node_modules ../.terrain-cache"
   },
   "devDependencies": {
+    "d3-contour": "4.0.2",
+    "pngjs": "7.0.0",
+    "shapefile": "0.6.6",
     "topojson-client": "3.1.0",
     "us-atlas": "3.0.1"
   }

@@ -26,6 +26,8 @@
       county: get("--county"),
       countyText: get("--county-text"),
       locked: get("--locked"),
+      river: get("--river"),
+      relief: parseFloat(get("--relief")) || 0.8,
       panel: get("--panel"),
       cargo: { produce: get("--produce"), containers: get("--container"), trucks: get("--truck") },
       night: get("--night"),
@@ -337,11 +339,97 @@
     if (close) ctx.closePath();
   }
 
+  // ---------- Real geography: shaded mountains, lakes, rivers, passes and bridges ----------
+  // Shaded relief pictures (js/terrain.js says which part of the map each one covers).
+  const reliefImages = {};
+  function reliefImage(info) {
+    if (!reliefImages[info.src]) {
+      const img = new Image();
+      img.src = info.src;
+      reliefImages[info.src] = img;
+    }
+    const img = reliefImages[info.src];
+    return img.complete && img.naturalWidth ? img : null;
+  }
+  // Draw a relief picture stretched over its longitude/latitude box, through `project`.
+  function drawRelief(ctx, info, project, alpha) {
+    const img = reliefImage(info);
+    if (!img) return;
+    const [x0, y0, x1, y1] = info.box;
+    const tl = project(x0, y1), tr = project(x1, y1), bl = project(x0, y0);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.imageSmoothingEnabled = true;
+    ctx.transform((tr[0] - tl[0]) / img.naturalWidth, (tr[1] - tl[1]) / img.naturalWidth, (bl[0] - tl[0]) / img.naturalHeight, (bl[1] - tl[1]) / img.naturalHeight, tl[0], tl[1]);
+    ctx.drawImage(img, 0, 0);
+    ctx.restore();
+  }
+  NR.drawRelief = drawRelief;
+  function drawWaterways(ctx) {
+    const G = NR.TERRAIN;
+    // Rivers
+    ctx.beginPath();
+    G.rivers.forEach((r) => tracePath(ctx, r.line, false));
+    ctx.strokeStyle = colors.river;
+    ctx.lineWidth = Math.min(2.4, 1 + (cam.zoom - 1) * 0.25);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.stroke();
+    // Lakes
+    ctx.beginPath();
+    G.lakes.forEach((l) => tracePath(ctx, l.ring, true));
+    ctx.fillStyle = colors.sea;
+    ctx.fill();
+    ctx.strokeStyle = colors.coast;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  // Passes (a small peak) and real bridges (two bars), with their names once zoomed in.
+  function drawCrossings(ctx) {
+    if (view.zoomScale < 110) return;
+    const G = NR.TERRAIN;
+    const named = view.zoomScale >= 260;
+    ctx.font = `600 9px ${MONO}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    const onScreen = (x, y) => x > -40 && x < view.w + 40 && y > -20 && y < view.h + 20;
+    for (const p of G.passes) {
+      const [x, y] = NR.toScreen(p.lon, p.lat);
+      if (!onScreen(x, y)) continue;
+      ctx.beginPath();
+      ctx.moveTo(x - 5, y + 3);
+      ctx.lineTo(x, y - 3);
+      ctx.lineTo(x + 5, y + 3);
+      ctx.strokeStyle = colors.panel;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.strokeStyle = colors.muted;
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      if (named) halo(ctx, p.name, x + 8, y, colors.muted, colors.land);
+    }
+    for (const b of G.bridges) {
+      const [x, y] = NR.toScreen(b.lon, b.lat);
+      if (!onScreen(x, y)) continue;
+      ctx.fillStyle = colors.panel;
+      ctx.fillRect(x - 5, y - 4, 10, 8);
+      ctx.fillStyle = colors.river;
+      ctx.fillRect(x - 4, y - 3, 8, 1.6);
+      ctx.fillRect(x - 4, y + 1.4, 8, 1.6);
+      if (named) halo(ctx, b.name, x + 8, y, colors.river, colors.land);
+    }
+  }
+
   function drawLand(ctx, s, selected) {
     ctx.beginPath();
     NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
     ctx.fillStyle = colors.land;
     ctx.fill("evenodd");
+    // Shaded mountains, only on land
+    ctx.save();
+    ctx.clip("evenodd");
+    drawRelief(ctx, NR.TERRAIN.relief, NR.toScreen, colors.relief);
+    ctx.restore();
     if (s) {
       // Counties you don't own yet are shaded.
       ctx.beginPath();
@@ -357,6 +445,7 @@
       });
       ctx.fill("evenodd");
     }
+    drawWaterways(ctx);
     // County borders
     ctx.beginPath();
     NR.MAP.borders.forEach((line) => tracePath(ctx, line, false));
@@ -595,6 +684,11 @@
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       halo(ctx, NR.money(draft.cost), pointer.x + 16, pointer.y - 18, colors.ink, colors.land);
+      // What the last stretch crosses: a pass, a tunnel, a bridge...
+      if (draft.note) {
+        ctx.font = `600 10px ${MONO}`;
+        halo(ctx, draft.note, pointer.x + 16, pointer.y - 4, colors.muted, colors.land);
+      }
     }
   }
 
@@ -1111,6 +1205,33 @@
     ctx.strokeStyle = colors.coast;
     ctx.lineWidth = 1.5;
     ctx.stroke();
+    // The city itself in detail: hills (shaded relief) and water (bays, harbors, rivers, lakes).
+    // Outside the detailed area the map is dimmed.
+    const geo = NR.TERRAIN && NR.TERRAIN.cities[key];
+    if (geo) {
+      const [x0, y0, x1, y1] = geo.box;
+      const tl = cityPt(x0, y1), br = cityPt(x1, y0);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(tl[0], tl[1], br[0] - tl[0], br[1] - tl[1]);
+      ctx.clip();
+      ctx.fillStyle = colors.land;
+      ctx.fillRect(tl[0], tl[1], br[0] - tl[0], br[1] - tl[1]);
+      NR.drawRelief(ctx, geo.relief, cityPt, colors.relief);
+      ctx.beginPath();
+      geo.water.forEach((ring) => traceCity(ctx, ring, true));
+      ctx.fillStyle = colors.sea;
+      ctx.fill("evenodd");
+      ctx.strokeStyle = colors.coast;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.rect(0, 0, view.w, view.h);
+      ctx.rect(tl[0], tl[1], br[0] - tl[0], br[1] - tl[1]);
+      ctx.fillStyle = colors.locked;
+      ctx.fill("evenodd");
+    }
     const dark = NR.nightAmount(s);
     if (dark > 0) {
       ctx.globalAlpha = dark;
@@ -1325,6 +1446,7 @@
       return;
     }
     drawFire(ctx, s, ui.now);
+    drawCrossings(ctx);
     drawCountyNames(ctx);
     drawClosedStates(ctx, s);
     drawCountyTags(ctx, s);

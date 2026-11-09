@@ -1,0 +1,617 @@
+// Builds the real geography for National Railways:
+//   js/terrain.js      mountains (a grid worked out from real elevation), lakes, rivers,
+//                      real mountain passes and bridges, and city water and hills
+//   img/relief.png     shaded relief (hillshade) for the state map
+//   img/relief-XX.png  shaded relief for each city map (LA, SF, SD, SAC, SJ)
+//
+// Usage (from the national-railways folder):
+//   cd tools && npm install && cd ..
+//   node tools/build-terrain.js tools/node_modules <cache folder>
+//
+// Downloads (kept in the cache folder, so a second run is quick):
+//   - Elevation: AWS Terrain Tiles ("terrarium" PNG tiles, public data from SRTM, USGS and others)
+//   - Lakes and rivers: Natural Earth (public domain), 1:10m scale
+//   - Coastlines and water for the city maps: U.S. Census Bureau county shapes (1:500,000)
+//     and TIGER area water
+// Needs curl and unzip. The passes and bridges below are written by hand: edit them and run again.
+"use strict";
+const fs = require("fs");
+const path = require("path");
+const vm = require("vm");
+const { execFileSync } = require("child_process");
+
+const [MODS, CACHE] = process.argv.slice(2);
+if (!MODS || !CACHE) {
+  console.error("Usage: node tools/build-terrain.js <node_modules> <cache folder>");
+  process.exit(1);
+}
+const { PNG } = require(path.resolve(MODS, "pngjs"));
+const GAME = path.join(__dirname, "..");
+
+// ---------- Real mountain passes, canyons and gaps ----------
+// Track that crosses mountains near one of these (see TUNING.passRadius in js/game.js)
+// goes over the pass: it costs more and trains slow down on the climb. Anywhere else,
+// mountains need a tunnel. [name, latitude, longitude]
+const PASSES = [
+  // California: Southern California
+  ["Tejon Pass (the Grapevine)", 34.8, -118.88],
+  ["Tehachapi Pass", 35.1, -118.32],
+  ["Cajon Pass", 34.32, -117.45],
+  ["San Gorgonio Pass", 33.93, -116.8],
+  ["Soledad Pass", 34.44, -118.13],
+  ["Newhall Pass", 34.33, -118.52],
+  ["Santa Susana Pass", 34.27, -118.63],
+  ["Sepulveda Pass", 34.12, -118.47],
+  ["Conejo Grade", 34.2, -118.94],
+  ["Santa Ana Canyon", 33.86, -117.7],
+  ["Rainbow Gap (I-15)", 33.41, -117.15],
+  ["Tecate Divide", 32.7, -116.33],
+  ["In-Ko-Pah Gorge", 32.67, -116.11],
+  ["Rim of the World Highway", 34.22, -117.03],
+  ["Afton Canyon", 35.04, -116.38],
+  ["Mountain Pass", 35.47, -115.54],
+  // California: Central Coast and Bay Area
+  ["Gaviota Pass", 34.5, -120.21],
+  ["Cuesta Grade", 35.34, -120.63],
+  ["Cholame Pass", 35.72, -120.29],
+  ["Highway 1 (Big Sur coast)", 36.27, -121.81],
+  ["Pacheco Pass", 37.07, -121.22],
+  ["Hecker Pass", 36.99, -121.69],
+  ["Highway 17 summit", 37.12, -121.97],
+  ["Altamont Pass", 37.73, -121.65],
+  ["Caldecott Tunnel", 37.86, -122.2],
+  // California: Sierra Nevada
+  ["Walker Pass", 35.66, -118.03],
+  ["Highway 168 (Shaver Lake)", 37.05, -119.4],
+  ["Merced River Canyon", 37.66, -119.85],
+  ["Wawona Road", 37.62, -119.68],
+  ["Tioga Pass", 37.91, -119.26],
+  ["Sonora Pass", 38.33, -119.64],
+  ["Monitor Pass", 38.67, -119.62],
+  ["Carson Pass", 38.69, -119.99],
+  ["Echo Summit", 38.81, -120.03],
+  ["Emigrant Gap", 39.3, -120.67],
+  ["Donner Pass", 39.32, -120.33],
+  ["Yuba Pass", 39.62, -120.49],
+  ["Beckwourth Pass", 39.79, -120.11],
+  ["Feather River Canyon", 39.92, -121.3],
+  ["Fredonyer Pass", 40.37, -120.86],
+  ["Sherwin Summit", 37.55, -118.66],
+  ["Conway Summit", 38.09, -119.18],
+  ["Towne Pass", 36.39, -117.29],
+  ["Daylight Pass", 36.77, -116.87],
+  // California: the north
+  ["Sacramento River Canyon", 41.2, -122.27],
+  ["Sacramento River Canyon (Lakehead)", 40.95, -122.38],
+  ["Siskiyou Summit", 42.07, -122.6],
+  ["Buckhorn Summit", 40.67, -122.66],
+  ["Berry Summit", 40.92, -123.76],
+  ["Ridgewood Summit", 39.33, -123.33],
+  ["Eel River Canyon", 40.1, -123.78],
+  ["Smith River Canyon", 41.85, -123.95],
+  // Nevada
+  ["Spooner Summit", 39.1, -119.9],
+  ["Kingsbury Grade", 38.97, -119.88],
+  ["Mount Rose Summit", 39.31, -119.89],
+  ["Geiger Grade", 39.36, -119.7],
+  ["Truckee River Canyon (Verdi)", 39.52, -120.0],
+  ["Truckee River Canyon", 39.55, -119.45],
+  ["Sand Springs Pass", 39.3, -118.36],
+  ["New Pass Summit", 39.58, -117.52],
+  ["Austin Summit", 39.5, -117.09],
+  ["Hickison Summit", 39.44, -116.75],
+  ["Pancake Summit", 39.28, -115.64],
+  ["Robinson Summit", 39.37, -115.04],
+  ["Connors Pass", 39.04, -114.66],
+  ["Great Basin park road", 39.01, -114.12],
+  ["Golconda Summit", 40.96, -117.47],
+  ["Emigrant Pass", 40.66, -116.29],
+  ["Palisade Canyon", 40.62, -116.2],
+  ["Carlin Canyon", 40.72, -116.03],
+  ["Pequop Summit", 41.04, -114.53],
+  ["Oak Springs Summit", 37.63, -114.7],
+  ["Mountain Springs Summit", 36.02, -115.5],
+  ["Kyle Canyon", 36.27, -115.55],
+  ["Black Canyon (Hoover Dam)", 36.01, -114.74],
+  // Arizona
+  ["Sitgreaves Pass", 35.03, -114.38],
+  ["Ash Fork Hill", 35.22, -112.48],
+  ["Yarnell Hill", 34.22, -112.75],
+  ["Black Canyon (I-17)", 34.17, -112.13],
+  ["Mingus Mountain", 34.71, -112.11],
+  ["Mogollon Rim (I-17)", 34.85, -111.7],
+  ["Oak Creek Canyon", 34.95, -111.75],
+  ["Beeline Highway", 33.86, -111.48],
+  ["Mogollon Rim (Highway 260)", 34.3, -110.95],
+  ["Salt River Canyon", 33.8, -110.5],
+  ["Queen Creek Canyon", 33.29, -111.08],
+  ["Picacho Pass", 32.65, -111.4],
+  ["Catalina Highway", 32.36, -110.73],
+  ["Texas Canyon", 32.05, -110.08],
+  ["Telegraph Pass", 32.66, -114.32],
+  ["Navajo Bridge (Marble Canyon)", 36.82, -111.63],
+  // Oregon
+  ["Sexton Summit", 42.6, -123.37],
+  ["Canyon Creek Pass", 42.85, -123.25],
+  ["Pass Creek Canyon", 43.66, -123.2],
+  ["Green Springs Summit", 42.13, -122.48],
+  ["Annie Creek Canyon (Crater Lake)", 42.8, -122.1],
+  ["Willamette Pass", 43.6, -122.04],
+  ["McKenzie Pass", 44.26, -121.81],
+  ["Santiam Pass", 44.42, -121.87],
+  ["Barlow Pass", 45.28, -121.68],
+  ["Columbia River Gorge (west)", 45.56, -122.2],
+  ["Columbia River Gorge (east)", 45.66, -121.5],
+  ["Sunset Highway summit", 45.8, -123.4],
+  ["Wilson River Highway", 45.6, -123.42],
+  ["Van Duzer Corridor", 45.05, -123.75],
+  ["Highway 20 (Coast Range)", 44.62, -123.62],
+  ["Siuslaw River", 44.04, -123.7],
+  ["Umpqua River", 43.65, -123.75],
+  ["Coquille River", 43.1, -123.9],
+  ["Deadman Pass", 45.6, -118.5],
+  ["Ladd Canyon", 45.2, -117.95],
+  ["Minam Grade", 45.62, -117.72],
+  ["Dixie Pass", 44.54, -118.58],
+  ["Quartz Mountain Pass", 42.32, -120.82],
+];
+
+// ---------- Real bridges ----------
+// Water crossed near one of these uses the real bridge (cheaper, and any length).
+// Anywhere else you build a new bridge, if the water is narrow enough.
+const BRIDGES = [
+  ["Golden Gate Bridge", 37.82, -122.48],
+  ["Bay Bridge", 37.8, -122.35],
+  ["San Mateo Bridge", 37.58, -122.2],
+  ["Dumbarton Bridge", 37.5, -122.12],
+  ["Richmond-San Rafael Bridge", 37.93, -122.43],
+  ["Carquinez Bridge", 38.06, -122.23],
+  ["Benicia-Martinez Bridge", 38.04, -122.12],
+  ["Antioch Bridge", 38.02, -121.75],
+  ["Tower Bridge", 38.58, -121.51],
+  ["Pit River Bridge (Shasta Lake)", 40.79, -122.31],
+  ["Vincent Thomas Bridge", 33.75, -118.27],
+  ["Coronado Bridge", 32.69, -117.15],
+  ["Hoover Dam Bridge", 36.01, -114.74],
+  ["Laughlin-Bullhead City Bridge", 35.16, -114.57],
+  ["Topock Bridge (I-40)", 34.72, -114.49],
+  ["Parker Bridge", 34.16, -114.29],
+  ["Blythe-Ehrenberg Bridge (I-10)", 33.6, -114.52],
+  ["Yuma bridges", 32.73, -114.61],
+  ["Navajo Bridge", 36.82, -111.63],
+  ["Steel Bridge (Portland)", 45.53, -122.67],
+  ["Marion Street Bridge (Salem)", 44.94, -123.05],
+];
+
+// Rivers drawn on the map and crossed by bridges (Natural Earth names).
+const RIVERS = [
+  "Colorado", "Columbia", "Sacramento", "San Joaquin", "Klamath", "Willamette", "Gila", "Rogue", "Eel", "Trinity", "Pit",
+  "Feather", "Stanislaus", "Humboldt", "John Day", "Salinas", "Snake", "Deschutes", "American", "Umpqua", "Truckee",
+];
+
+// ---------- Load the game's map and cities ----------
+const ctx = {};
+ctx.window = ctx;
+vm.createContext(ctx);
+for (const f of ["js/map.js", "js/cities.js", "js/game.js", "js/metro.js"]) vm.runInContext(fs.readFileSync(path.join(GAME, f), "utf8"), ctx, { filename: f });
+const NR = ctx.NR;
+
+// ---------- Downloads ----------
+fs.mkdirSync(CACHE, { recursive: true });
+function download(url, file) {
+  if (fs.existsSync(file) && fs.statSync(file).size > 0) return file;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  execFileSync("curl", ["-sS", "-f", "-m", "120", "--retry", "3", "-o", file, url]);
+  return file;
+}
+
+// ---------- Elevation from terrarium tiles ----------
+// A tile is 256 x 256 pixels; elevation in meters = R * 256 + G + B / 256 - 32768.
+function elevation(z) {
+  const tiles = new Map();
+  const n = 2 ** z;
+  function tile(tx, ty) {
+    const key = tx + "/" + ty;
+    if (!tiles.has(key)) {
+      const file = download(`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${tx}/${ty}.png`, path.join(CACHE, "terrarium", String(z), String(tx), ty + ".png"));
+      const png = PNG.sync.read(fs.readFileSync(file));
+      const e = new Float32Array(256 * 256);
+      for (let i = 0; i < e.length; i++) e[i] = png.data[i * 4] * 256 + png.data[i * 4 + 1] + png.data[i * 4 + 2] / 256 - 32768;
+      tiles.set(key, e);
+    }
+    return tiles.get(key);
+  }
+  const pixel = (px, py) => {
+    const tx = Math.floor(px / 256), ty = Math.floor(py / 256);
+    return tile(((tx % n) + n) % n, ty)[(py - ty * 256) * 256 + (px - tx * 256)];
+  };
+  // Elevation at a longitude, latitude (bilinear between pixels).
+  return (lon, lat) => {
+    const r = (lat * Math.PI) / 180;
+    const x = ((lon + 180) / 360) * n * 256 - 0.5;
+    const y = ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n * 256 - 0.5;
+    const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+    return (
+      pixel(x0, y0) * (1 - fx) * (1 - fy) + pixel(x0 + 1, y0) * fx * (1 - fy) + pixel(x0, y0 + 1) * (1 - fx) * fy + pixel(x0 + 1, y0 + 1) * fx * fy
+    );
+  };
+}
+// Steepness in degrees at a point, measured h degrees to each side.
+function slopeAt(elev, lon, lat, h) {
+  const mx = h * 111320 * Math.cos((lat * Math.PI) / 180);
+  const my = h * 110574;
+  const dx = (elev(lon + h, lat) - elev(lon - h, lat)) / (2 * mx);
+  const dy = (elev(lon, lat + h) - elev(lon, lat - h)) / (2 * my);
+  return (Math.atan(Math.hypot(dx, dy)) * 180) / Math.PI;
+}
+// Hillshade from 0 (dark) to 1 (lit), light from the northwest.
+function shadeAt(elev, lon, lat, h, zf) {
+  const mx = h * 111320 * Math.cos((lat * Math.PI) / 180);
+  const my = h * 110574;
+  const dx = ((elev(lon + h, lat) - elev(lon - h, lat)) / (2 * mx)) * zf;
+  const dy = ((elev(lon, lat + h) - elev(lon, lat - h)) / (2 * my)) * zf;
+  const slope = Math.atan(Math.hypot(dx, dy));
+  const aspect = Math.atan2(dy, -dx);
+  const zen = (45 * Math.PI) / 180;
+  const az = ((360 - 315 + 90) * Math.PI) / 180;
+  return Math.max(0, Math.cos(zen) * Math.cos(slope) + Math.sin(zen) * Math.sin(slope) * Math.cos(az - aspect));
+}
+// Shaded relief as a picture: dark where shaded, light where lit, see-through on flat ground.
+// keep(lon, lat) says which pixels matter (others stay see-through, which keeps the file small).
+function reliefPng(file, lon0, lat1, step, w, h, shade, keep) {
+  const png = new PNG({ width: w, height: h });
+  const flat = Math.cos((45 * Math.PI) / 180);
+  for (let j = 0; j < h; j++)
+    for (let i = 0; i < w; i++) {
+      if (keep && !keep(lon0 + (i + 0.5) * step, lat1 - (j + 0.5) * step)) continue;
+      const s = shade(lon0 + (i + 0.5) * step, lat1 - (j + 0.5) * step);
+      const d = s - flat;
+      const k = (j * w + i) * 4;
+      const v = d < 0 ? 0 : 255;
+      png.data[k] = png.data[k + 1] = png.data[k + 2] = v;
+      png.data[k + 3] = Math.max(0, Math.min(255, Math.round((d < 0 ? -d * 330 : d * 210) / 6) * 6)); // fewer levels: smaller file
+    }
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, PNG.sync.write(png, { colorType: 6 }));
+  return fs.statSync(file).size;
+}
+
+// ---------- Shapes ----------
+const round = (v) => Math.round(v * 1000) / 1000;
+// Douglas-Peucker simplification of a list of [lon, lat] points.
+function simplify(pts, tol) {
+  if (pts.length < 3) return pts;
+  const keep = new Uint8Array(pts.length);
+  keep[0] = keep[pts.length - 1] = 1;
+  const stack = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop();
+    let best = -1, far = 0;
+    const [ax, ay] = pts[a], [bx, by] = pts[b];
+    const len = Math.hypot(bx - ax, by - ay);
+    for (let i = a + 1; i < b; i++) {
+      // Distance from the line a-b (or from point a, when a loop starts and ends there).
+      const d = len < 1e-9 ? Math.hypot(pts[i][0] - ax, pts[i][1] - ay) : Math.abs((bx - ax) * (ay - pts[i][1]) - (ax - pts[i][0]) * (by - ay)) / len;
+      if (d > far) (far = d), (best = i);
+    }
+    if (far > tol) {
+      keep[best] = 1;
+      stack.push([a, best], [best, b]);
+    }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+const flat = (pts) => pts.flatMap(([x, y]) => [round(x), round(y)]);
+function inRing(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) {
+    const xi = ring[i], yi = ring[i + 1], xj = ring[j], yj = ring[j + 1];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+const onLand = (lon, lat) => NR.MAP.land.reduce((inside, ring) => (inRing(lon, lat, ring) ? !inside : inside), false);
+
+// ---------- The state map: mountains grid and relief ----------
+let X0 = Infinity, X1 = -Infinity, Y0 = Infinity, Y1 = -Infinity;
+NR.MAP.land.forEach((ring) => {
+  for (let i = 0; i < ring.length; i += 2) {
+    X0 = Math.min(X0, ring[i]);
+    X1 = Math.max(X1, ring[i]);
+    Y0 = Math.min(Y0, ring[i + 1]);
+    Y1 = Math.max(Y1, ring[i + 1]);
+  }
+});
+const STEP = 0.05;
+const box = [Math.floor((X0 - 0.1) / STEP) * STEP, Math.floor((Y0 - 0.1) / STEP) * STEP, Math.ceil((X1 + 0.1) / STEP) * STEP, Math.ceil((Y1 + 0.1) / STEP) * STEP].map(round);
+const cols = Math.round((box[2] - box[0]) / STEP);
+const rows = Math.round((box[3] - box[1]) / STEP);
+console.log(`State grid ${cols} x ${rows} cells of ${STEP}°, box ${box.join(", ")}`);
+const elev8 = elevation(8);
+
+// Each cell: 0 flat, 1 hills, 2 mountains, 3 high mountains, from the average steepness
+// of 16 points inside it (and its height, for the highest ranges). Land outside the four
+// states (Mexico, Utah...) gets 4 + its class, so track near a border isn't taken for sea.
+const SLOPE = { hills: 3.5, mountains: 8, high: 14 };
+const grid = new Uint8Array(cols * rows);
+const landCell = new Uint8Array(cols * rows); // on land, or right next to it
+const counts = [0, 0, 0, 0];
+for (let r = 0; r < rows; r++) {
+  const lat = box[3] - (r + 0.5) * STEP;
+  for (let c = 0; c < cols; c++) {
+    const lon = box[0] + (c + 0.5) * STEP;
+    const ours = onLand(lon, lat); // the middle of the cell is in one of the four states
+    const near = ours || onLand(lon - STEP / 2, lat) || onLand(lon + STEP / 2, lat) || onLand(lon, lat - STEP / 2) || onLand(lon, lat + STEP / 2);
+    if (!ours && elev8(lon, lat) <= 1) continue; // sea
+    if (near) landCell[r * cols + c] = 1;
+    let sum = 0, high = 0;
+    for (let a = 0; a < 4; a++)
+      for (let b = 0; b < 4; b++) {
+        const x = lon + (a - 1.5) * (STEP / 4), y = lat + (b - 1.5) * (STEP / 4);
+        sum += slopeAt(elev8, x, y, 0.006);
+        high = Math.max(high, elev8(x, y));
+      }
+    const slope = sum / 16;
+    let k = slope >= SLOPE.high ? 3 : slope >= SLOPE.mountains ? 2 : slope >= SLOPE.hills ? 1 : 0;
+    if (k === 2 && high > 2800) k = 3;
+    grid[r * cols + c] = ours ? k : 4 + k;
+    if (ours) counts[k]++;
+  }
+}
+console.log(`Cells: flat ${counts[0]}, hills ${counts[1]}, mountains ${counts[2]}, high mountains ${counts[3]}`);
+// Run-length code: a letter per cell kind and a count, e.g. "A12C3".
+const LETTER = "ABCDEFGH";
+function rle(arr) {
+  let out = "";
+  for (let i = 0; i < arr.length; ) {
+    let j = i;
+    while (j < arr.length && arr[j] === arr[i]) j++;
+    out += LETTER[arr[i]] + (j - i > 1 ? j - i : "");
+    i = j;
+  }
+  return out;
+}
+
+// Relief picture for the state map, every 0.02°.
+const RSTEP = 0.02;
+const rw = Math.round((box[2] - box[0]) / RSTEP), rh = Math.round((box[3] - box[1]) / RSTEP);
+const nearLand = (lon, lat) => {
+  const c = Math.floor((lon - box[0]) / STEP), r = Math.floor((box[3] - lat) / STEP);
+  for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (landCell[(r + a) * cols + c + b]) return true;
+  return false;
+};
+const reliefSize = reliefPng(path.join(GAME, "img/relief.png"), box[0], box[3], RSTEP, rw, rh, (lon, lat) => shadeAt(elev8, lon, lat, 0.012, 2.2), nearLand);
+console.log(`img/relief.png ${rw} x ${rh}, ${Math.round(reliefSize / 1024)} KB`);
+
+// A picture of the classes, to check the result by eye (not used by the game).
+{
+  const png = new PNG({ width: cols, height: rows });
+  const colors = [[236, 232, 220], [200, 190, 160], [150, 120, 90], [90, 60, 50]];
+  for (let i = 0; i < grid.length; i++) {
+    const r = Math.floor(i / cols), c = i % cols;
+    const lon = box[0] + (c + 0.5) * STEP, lat = box[3] - (r + 0.5) * STEP;
+    const col = onLand(lon, lat) ? colors[grid[i]] : grid[i] >= 4 ? [180, 180, 180] : [120, 160, 200];
+    png.data.set([...col, 255], i * 4);
+  }
+  PNG && fs.writeFileSync(path.join(CACHE, "classes.png"), PNG.sync.write(png));
+}
+
+// ---------- Lakes and rivers (Natural Earth) ----------
+const NE = (name) => JSON.parse(fs.readFileSync(download(`https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/${name}.geojson`, path.join(CACHE, "ne", name + ".geojson")), "utf8"));
+const inBox = (x, y) => x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3];
+const polys = (g) => (g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : []);
+const lines = (g) => (g.type === "LineString" ? [g.coordinates] : g.type === "MultiLineString" ? g.coordinates : []);
+const lakes = [];
+for (const f of [...NE("ne_10m_lakes").features, ...NE("ne_10m_lakes_north_america").features]) {
+  for (const poly of polys(f.geometry)) {
+    const outer = poly[0];
+    if (!outer.some(([x, y]) => inBox(x, y))) continue;
+    // Keep lakes inside the four states (their middle is on land, once the lake is ignored).
+    const cx = outer.reduce((s, p) => s + p[0], 0) / outer.length, cy = outer.reduce((s, p) => s + p[1], 0) / outer.length;
+    if (!onLand(cx, cy) && !outer.some(([x, y]) => onLand(x, y))) continue;
+    const ring = simplify(outer, 0.004);
+    if (ring.length < 4) continue;
+    const name = f.properties.name || f.properties.NAME || "Lake";
+    if (lakes.some((l) => l.name === name && Math.abs(l.ring[0] - ring[0][0]) < 0.05)) continue; // listed twice
+    lakes.push({ name, ring: flat(ring) });
+  }
+}
+console.log(`Lakes: ${lakes.length} (${lakes.map((l) => l.name).join(", ")})`);
+const rivers = [];
+for (const f of [...NE("ne_10m_rivers_lake_centerlines").features, ...NE("ne_10m_rivers_north_america").features]) {
+  const name = f.properties.name || f.properties.NAME;
+  if (!RIVERS.includes(name) || !/river/i.test(f.properties.featurecla || "")) continue;
+  for (const line of lines(f.geometry)) {
+    // Keep the parts inside the box and over the four states.
+    let part = [];
+    const flush = () => {
+      if (part.length > 1 && part.some(([x, y]) => onLand(x, y))) rivers.push({ name, line: flat(simplify(part, 0.006)) });
+      part = [];
+    };
+    for (const p of line) {
+      if (inBox(p[0], p[1])) part.push(p);
+      else flush();
+    }
+    flush();
+  }
+}
+// The same river can come from both files: keep one copy of each stretch.
+const seen = new Set();
+const riversOut = rivers.filter((r) => {
+  const key = r.name + ":" + r.line.slice(0, 2).join(",");
+  if (seen.has(key)) return false;
+  seen.add(key);
+  return true;
+});
+console.log(`Rivers: ${riversOut.length} stretches (${[...new Set(riversOut.map((r) => r.name))].join(", ")})`);
+
+// Mountain range names (Natural Earth), used only to name a range in messages.
+const RANGE_NAMES = { "SIERRA NEVADA": "the Sierra Nevada", "COAST RANGES": "the Coast Ranges", "CASCADE RANGE": "the Cascade Range", "Klamath Mts.": "the Klamath Mountains", "Mogollon Rim": "the Mogollon Rim" };
+const ranges = [];
+for (const f of NE("ne_10m_geography_regions_polys").features) {
+  const name = RANGE_NAMES[f.properties.name || f.properties.NAME];
+  if (!name) continue;
+  for (const poly of polys(f.geometry)) if (poly[0].some(([x, y]) => inBox(x, y))) ranges.push({ name, ring: flat(simplify(poly[0], 0.02)) });
+}
+console.log(`Ranges: ${ranges.map((r) => r.name).join(", ")}`);
+
+// ---------- Cities: water and hills ----------
+// Every city map gets an elevation grid (one letter per cell, 12 m steps; "~" = water)
+// and water outlines. Water is the ocean around the U.S. Census Bureau's detailed county
+// shapes (1:500,000) that is also at sea level, plus the bays, harbors, lakes and wide
+// rivers of the Census "area water" maps.
+const CSTEP = 0.004; // elevation grid cell, about 400 m
+const FSTEP = 0.001; // water outline detail, about 100 m
+const B64 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-";
+const elev11 = elevation(11);
+const cities = {};
+
+// Fill polygons into a grid of cells (row 0 at the top), even-odd, one row at a time.
+function fillRings(mask, cb, step, cols, rows, rings) {
+  const own = new Uint8Array(cols * rows);
+  for (let r = 0; r < rows; r++) {
+    const lat = cb[3] - (r + 0.5) * step;
+    const xs = [];
+    for (const ring of rings)
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i], [xj, yj] = ring[j];
+        if (yi > lat !== yj > lat) xs.push(xi + ((lat - yi) * (xj - xi)) / (yj - yi));
+      }
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const c0 = Math.max(0, Math.ceil((xs[k] - cb[0]) / step - 0.5));
+      const c1 = Math.min(cols - 1, Math.floor((xs[k + 1] - cb[0]) / step - 0.5));
+      for (let c = c0; c <= c1; c++) own[r * cols + c] = 1;
+    }
+  }
+  for (let i = 0; i < own.length; i++) if (own[i]) mask[i] = 1;
+}
+
+async function buildCities() {
+  const { contours } = await import(path.resolve(MODS, "d3-contour/src/index.js"));
+  const shapefile = require(path.resolve(MODS, "shapefile"));
+  const zip = download("https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_county_500k.zip", path.join(CACHE, "census", "cb_2023_us_county_500k.zip"));
+  const shp = path.join(CACHE, "census", "cb_2023_us_county_500k.shp");
+  if (!fs.existsSync(shp)) execFileSync("unzip", ["-o", "-q", zip, "-d", path.join(CACHE, "census")]);
+  const counties = [];
+  const source = await shapefile.open(shp, shp.replace(/shp$/, "dbf"));
+  for (let r = await source.read(); !r.done; r = await source.read())
+    if (r.value.properties.STATEFP === "06") counties.push({ fips: "06" + r.value.properties.COUNTYFP, geometry: r.value.geometry });
+  // Bays, harbors, lakes and wide rivers inside a county (Census TIGER "area water").
+  const areaWater = {};
+  async function waterOf(fips) {
+    if (areaWater[fips]) return areaWater[fips];
+    const name = `tl_2023_${fips}_areawater`;
+    const z = download(`https://www2.census.gov/geo/tiger/TIGER2023/AREAWATER/${name}.zip`, path.join(CACHE, "areawater", name + ".zip"));
+    const file = path.join(CACHE, "areawater", name + ".shp");
+    if (!fs.existsSync(file)) execFileSync("unzip", ["-o", "-q", z, "-d", path.join(CACHE, "areawater")]);
+    const list = [];
+    const src = await shapefile.open(file, file.replace(/shp$/, "dbf"));
+    for (let r = await src.read(); !r.done; r = await src.read()) if (r.value.properties.AWATER >= 300000) list.push(r.value.geometry); // 0.3 km² and up
+    return (areaWater[fips] = list);
+  }
+
+  for (const [key, metro] of Object.entries(NR.METROS)) {
+    const xs = metro.stops.map((s) => s.lon), ys = metro.stops.map((s) => s.lat);
+    const pad = Math.max(0.03, 0.2 * Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)));
+    const cb = [Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad].map((v) => Math.round(v / CSTEP) * CSTEP).map(round);
+    // Land, from the county shapes that touch the city's box.
+    const fc = Math.round((cb[2] - cb[0]) / FSTEP), fr = Math.round((cb[3] - cb[1]) / FSTEP);
+    const land = new Uint8Array(fc * fr);
+    const near = (poly) => poly[0].some(([x, y]) => x > cb[0] - 0.5 && x < cb[2] + 0.5 && y > cb[1] - 0.5 && y < cb[3] + 0.5);
+    const inside = [];
+    for (const county of counties)
+      for (const poly of polys(county.geometry)) {
+        if (!near(poly)) continue;
+        fillRings(land, cb, FSTEP, fc, fr, poly);
+        if (!inside.includes(county.fips)) inside.push(county.fips);
+      }
+    // Bays, harbors, lakes and rivers inside the counties are water too.
+    const inner = new Uint8Array(fc * fr);
+    for (const fips of inside) for (const g of await waterOf(fips)) for (const poly of polys(g)) if (near(poly)) fillRings(inner, cb, FSTEP, fc, fr, poly);
+    // Water: outside the counties and at sea level (so Mexico, south of San Diego, stays land).
+    const water = new Float64Array(fc * fr);
+    let wet = 0;
+    for (let i = 0; i < land.length; i++) {
+      if (inner[i]) {
+        water[i] = 1;
+        wet++;
+        continue;
+      }
+      if (land[i]) continue;
+      const lon = cb[0] + ((i % fc) + 0.5) * FSTEP, lat = cb[3] - (Math.floor(i / fc) + 0.5) * FSTEP;
+      if (elev11(lon, lat) < 3) (water[i] = 1), wet++;
+    }
+    // Water outlines (and islands in them), leaving out ponds smaller than about 0.2 km².
+    const shapes = [];
+    const area = (ring) => Math.abs(ring.reduce((a, [x, y], i) => a + x * ring[(i + 1) % ring.length][1] - ring[(i + 1) % ring.length][0] * y, 0) / 2);
+    if (wet)
+      for (const poly of contours().size([fc, fr]).thresholds([0.5])(water)[0].coordinates) {
+        if (area(poly[0]) < 20) continue; // in grid cells of 0.001°
+        for (const ring of poly) {
+          if (area(ring) < 20) continue;
+          const pts = simplify(ring.map(([c, r]) => [cb[0] + c * FSTEP, cb[3] - r * FSTEP]), 0.0004);
+          if (pts.length >= 4) shapes.push(flat(pts));
+        }
+      }
+    // Elevation grid; a cell is water if most of it is.
+    const cc = Math.round((cb[2] - cb[0]) / CSTEP), cr = Math.round((cb[3] - cb[1]) / CSTEP);
+    const k = Math.round(CSTEP / FSTEP);
+    let text = "", top = 0, wetCells = 0;
+    for (let r = 0; r < cr; r++)
+      for (let c = 0; c < cc; c++) {
+        let n = 0;
+        for (let a = 0; a < k; a++) for (let b = 0; b < k; b++) n += water[(r * k + a) * fc + c * k + b] || 0;
+        const lon = cb[0] + (c + 0.5) * CSTEP, lat = cb[3] - (r + 0.5) * CSTEP;
+        const e = elev11(lon, lat);
+        top = Math.max(top, e);
+        if (n > (k * k) / 2) {
+          text += "~";
+          wetCells++;
+        } else text += B64[Math.max(0, Math.min(63, Math.round(e / 12)))];
+      }
+    const rw2 = Math.round((cb[2] - cb[0]) / 0.001), rh2 = Math.round((cb[3] - cb[1]) / 0.001);
+    const size = reliefPng(path.join(GAME, `img/relief-${key}.png`), cb[0], cb[3], 0.001, rw2, rh2, (lon, lat) => shadeAt(elev11, lon, lat, 0.0012, 1.6));
+    cities[key] = { box: cb, step: CSTEP, cols: cc, rows: cr, elev: text, water: shapes, relief: { src: `img/relief-${key}.png`, box: [cb[0], cb[3] - rh2 * 0.001, cb[0] + rw2 * 0.001, cb[3]].map(round) } };
+    console.log(`${key}: ${cc} x ${cr} cells, ${wetCells} water cells, ${shapes.length} water shapes, highest ${Math.round(top)} m, relief ${Math.round(size / 1024)} KB`);
+  }
+}
+
+// ---------- Check the passes, and write everything ----------
+buildCities().then(() => {
+  const at = (lon, lat) => {
+    const c = Math.floor((lon - box[0]) / STEP), r = Math.floor((box[3] - lat) / STEP);
+    return c >= 0 && c < cols && r >= 0 && r < rows ? grid[r * cols + c] : 0;
+  };
+  const flatPasses = PASSES.filter(([, lat, lon]) => {
+    let most = 0;
+    for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) most = Math.max(most, at(lon + dx * STEP, lat + dy * STEP));
+    return most < 2;
+  });
+  if (flatPasses.length) console.log(`Passes with no mountains within ~7 mi (harmless): ${flatPasses.map((p) => p[0]).join(", ")}`);
+  const out =
+    "// National Railways: real geography. Generated by tools/build-terrain.js: do not edit by hand.\n" +
+    "// Elevation: AWS Terrain Tiles (SRTM, USGS and others). Lakes and rivers: Natural Earth (public domain).\n" +
+    "// City coastlines: U.S. Census Bureau cartographic boundaries.\n" +
+    "// grid: one letter per cell (A flat, B hills, C mountains, D high mountains; E-H the same for land\n" +
+    "// outside the four states), row by row from the northwest corner, run-length coded (\"C12\" = 12 cells).\n" +
+    "window.NR = window.NR || {};\n" +
+    "NR.TERRAIN = " +
+    JSON.stringify({
+      box,
+      step: STEP,
+      cols,
+      rows,
+      grid: rle(grid),
+      relief: { src: "img/relief.png", box: [box[0], box[3] - rh * RSTEP, box[0] + rw * RSTEP, box[3]].map(round) },
+      passes: PASSES.map(([name, lat, lon]) => ({ name, lat, lon })),
+      bridges: BRIDGES.map(([name, lat, lon]) => ({ name, lat, lon })),
+      lakes,
+      rivers: riversOut,
+      ranges,
+      cities,
+    }) +
+    ";\n";
+  fs.writeFileSync(path.join(GAME, "js/terrain.js"), out);
+  console.log(`Wrote js/terrain.js, ${Math.round(out.length / 1024)} KB`);
+});
