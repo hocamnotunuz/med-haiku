@@ -28,6 +28,7 @@
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  NR.SAVE_VERSION = 3; // bump when saved games from older versions no longer fit
 
   // ---- Train types ----
   // price and upkeep (per week) in $k. speed is compared with a Regular train.
@@ -123,7 +124,7 @@
     }
     return list;
   }
-  const allRegions = () => [...new Set(NR.CITIES.map((c) => c.region))];
+  const allRegions = () => [...new Set(NR.CITIES.map((c) => c.level))];
 
   // ---------- Starting a game ----------
   // mode: "endless" | "timed" | "levels"    style: "type" | "city"
@@ -137,7 +138,7 @@
       stations: [],
       lines: [],
       trains: [],
-      v: 2,
+      v: NR.SAVE_VERSION,
       money: T.startMoney,
       weekIncome: 0,
       lastWeek: null,
@@ -169,7 +170,7 @@
   NR.stationById = (s, id) => s.stations.find((st) => st.id === id);
   NR.lineById = (s, id) => s.lines.find((l) => l.id === id);
   NR.trainsOn = (s, line) => s.trains.filter((t) => t.lineId === line.id);
-  NR.cityPool = (s) => NR.CITIES.filter((c) => s.regions.includes(c.region) && !NR.stationById(s, c.id));
+  NR.cityPool = (s) => NR.CITIES.filter((c) => s.regions.includes(c.level) && !NR.stationById(s, c.id));
 
   function addNextCity(s) {
     const pool = NR.cityPool(s);

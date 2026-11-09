@@ -144,6 +144,7 @@
     store.set("nr-settings", settings);
     game = NR.newGame(settings.mode, settings.style);
     levelSave = NR.save(game);
+    NR.resetCamera();
     queue.length = 0;
     fx.length = 0;
     setPaused(false);
@@ -195,7 +196,7 @@
       $("level-text").textContent =
         `You delivered ${plural(game.delivered, "passenger")} and earned a ${NR.money(T.levelReward)} bonus. ` +
         `Next up: ${nextLv.name}. Reach ${nextLv.goal} passengers in total. These cities will start to appear:`;
-      NR.CITIES.filter((c) => nextLv.regions.includes(c.region)).forEach((c) => {
+      NR.CITIES.filter((c) => nextLv.regions.includes(c.level)).forEach((c) => {
         const li = document.createElement("li");
         li.textContent = c.name;
         list.appendChild(li);
@@ -476,6 +477,7 @@
     const barTop = $("bar").getBoundingClientRect().top - rect.top;
     NR.layout(w, h, dpr, { top, bottom: h - barTop + 10, left: 18, right: 18 });
     $("line-panel").style.bottom = `${h - barTop + 10}px`;
+    $("zoom-controls").style.bottom = `${h - barTop + 12}px`;
     $("toast").style.top = `${top}px`; // messages sit under the score strip, clear of the buttons
   }
 
@@ -528,9 +530,40 @@
     }
   }
 
+  // Fingers (or the mouse) currently on the map, and the gesture they are making.
+  const touches = new Map();
+  let gesture = null; // { kind: "pan", last } or { kind: "pinch", d0, z0, wx, wy }
+
+  function pinchState() {
+    const [a, b] = [...touches.values()];
+    return { d: Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+  }
+  function startPinch() {
+    draft = null;
+    pointer = null;
+    const { d, mx, my } = pinchState();
+    const cam = NR.camera;
+    // Remember which spot of the map is under the fingers, so it stays there.
+    gesture = { kind: "pinch", d0: d, z0: cam.zoom, wx: (mx - cam.x) / cam.zoom, wy: (my - cam.y) / cam.zoom };
+  }
+  function movePinch() {
+    const { d, mx, my } = pinchState();
+    const z = Math.max(1, Math.min(NR.camera.max, (gesture.z0 * d) / gesture.d0));
+    NR.setCamera(z, mx - gesture.wx * z, my - gesture.wy * z);
+  }
+
   canvas.addEventListener("pointerdown", (e) => {
-    if (!game || screen || game.over) return;
+    if (!game || screen) return;
     const p = at(e);
+    touches.set(e.pointerId, p);
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch (err) {
+      /* keep going: the gesture still works without capture */
+    }
+    if (touches.size === 2) return startPinch();
+    if (touches.size > 2) return;
+    if (game.over) return;
     const h = NR.hitHandle(game, p.x, p.y, grab + 4);
     const st = NR.hitStation(game, p.x, p.y, grab + 4);
     if (h && (!st || h.d < st.d)) {
@@ -544,25 +577,67 @@
       }
       draft = { kind: "new", color, grade: "standard", chain: [st.id], cost: 0 };
     } else {
+      // Empty map: drag to move it around.
       closeLinePanel();
+      gesture = { kind: "pan", last: p };
+      canvas.classList.add("is-panning");
       return;
     }
     closeLinePanel();
     pointer = p;
-    canvas.setPointerCapture(e.pointerId);
     e.preventDefault();
   });
   canvas.addEventListener("pointermove", (e) => {
+    if (!touches.has(e.pointerId)) return;
+    const p = at(e);
+    touches.set(e.pointerId, p);
+    if (gesture && gesture.kind === "pinch") {
+      if (touches.size >= 2) movePinch();
+      return;
+    }
+    if (gesture && gesture.kind === "pan") {
+      NR.panBy(p.x - gesture.last.x, p.y - gesture.last.y);
+      gesture.last = p;
+      return;
+    }
     if (!draft) return;
-    pointer = at(e);
+    pointer = p;
     const st = NR.hitStation(game, pointer.x, pointer.y, grab);
     if (st) extendDraft(st.id);
   });
-  canvas.addEventListener("pointerup", finishDraft);
-  canvas.addEventListener("pointercancel", () => {
-    draft = null;
-    pointer = null;
-  });
+  function endPointer(e) {
+    touches.delete(e.pointerId);
+    if (draft) {
+      if (e.type === "pointerup") finishDraft();
+      draft = null;
+      pointer = null;
+    }
+    if (!touches.size) {
+      gesture = null;
+      canvas.classList.remove("is-panning");
+    }
+  }
+  canvas.addEventListener("pointerup", endPointer);
+  canvas.addEventListener("pointercancel", endPointer);
+
+  // Mouse wheel and trackpad pinch zoom around the pointer.
+  canvas.addEventListener(
+    "wheel",
+    (e) => {
+      if (!game || screen) return;
+      e.preventDefault();
+      const p = at(e);
+      NR.zoomAt(p.x, p.y, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
+    },
+    { passive: false }
+  );
+  const zoomBy = (factor) => {
+    const [cx, cy] = NR.viewCenter();
+    NR.zoomAt(cx, cy, factor);
+  };
+  $("btn-zoom-in").addEventListener("click", () => zoomBy(1.5));
+  $("btn-zoom-out").addEventListener("click", () => zoomBy(1 / 1.5));
+  $("btn-zoom-fit").addEventListener("click", () => NR.resetCamera());
 
   // ---------- Buttons ----------
   function setPaused(v) {
@@ -613,6 +688,8 @@
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeLinePanel();
+    if (game && !screen && (e.key === "+" || e.key === "=")) zoomBy(1.5);
+    if (game && !screen && (e.key === "-" || e.key === "_")) zoomBy(1 / 1.5);
     if (e.code === "Space" && game && !screen && e.target === document.body) {
       e.preventDefault();
       setPaused(!paused);
@@ -653,7 +730,7 @@
     if (data && data.game) {
       try {
         game = NR.load(data.game);
-        if (game.v !== 2) throw new Error("Saved game is from an older version");
+        if (game.v !== NR.SAVE_VERSION) throw new Error("Saved game is from an older version");
         levelSave = data.levelSave || NR.save(game);
         if (game.over) return openStart();
         renderLegend();

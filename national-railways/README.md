@@ -2,6 +2,12 @@
 
 A passenger-rail strategy game set in California. Lay track between real cities, run trains, and get passengers where they are going before any station overflows.
 
+## The map
+
+California is divided into its real counties (U.S. Census Bureau borders). Counties with fewer than 50,000 people are merged with small neighbors into regions such as **Del Norte-Siskiyou-Trinity County**, which turns 58 counties into **49 regions**. Every region has one station at its biggest city (Yuba County uses Wheatland, because its larger towns sit across the river from Yuba City).
+
+Pinch or scroll to zoom, drag empty map to move around, or use the + / − buttons.
+
 ## How to play
 
 - **Build a line:** drag from one city to another. Keep dragging to add more stops.
@@ -43,7 +49,22 @@ All the numbers live in `js/game.js` (`TUNING` and `TRAIN_TYPES`).
 | --- | --- |
 | `index.html` | The page: screens, buttons and the map area. |
 | `style.css` | Colors, fonts and layout (light and dark themes). |
-| `js/cities.js` | California's outline, the 29 cities, and the levels. |
+| `js/map-california.js` | California's land, county borders and county regions. Generated: do not edit by hand. |
+| `js/cities.js` | The 49 county stations and the levels. |
+| `tools/build-map.js` | Rebuilds the map file from Census data (see below). |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
 | `js/draw.js` | Draws the map, lines, stations and trains. |
 | `js/ui.js` | Menus, buttons, touch/mouse input and the game loop. |
+
+## Rebuilding the map (or adding a state)
+
+The map file is generated from U.S. Census Bureau county boundaries (the `us-atlas` package):
+
+```
+cd national-railways/tools
+npm install
+cd ..
+node tools/build-map.js tools/node_modules CA
+```
+
+To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code and which small counties to merge), run the script, then list its county stations in `js/cities.js`.

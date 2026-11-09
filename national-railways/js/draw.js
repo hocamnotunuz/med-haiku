@@ -23,6 +23,8 @@
       grid: get("--grid"),
       land: get("--land"),
       coast: get("--coast"),
+      county: get("--county"),
+      countyText: get("--county-text"),
       station: get("--station"),
       ink: get("--ink"),
       muted: get("--muted"),
@@ -35,8 +37,12 @@
 
   // ---------- Fitting California on the screen ----------
   const base = (lon, lat) => [lon * COS, -lat];
-  const OUTLINE = NR.OUTLINE.map(([lon, lat]) => base(lon, lat));
-  const MID = OUTLINE.reduce((m, p) => [m[0] + p[0] / OUTLINE.length, m[1] + p[1] / OUTLINE.length], [0, 0]);
+  const ALL = NR.MAP.land.flatMap((ring) => {
+    const pts = [];
+    for (let i = 0; i < ring.length; i += 2) pts.push(base(ring[i], ring[i + 1]));
+    return pts;
+  });
+  const MID = ALL.reduce((m, p) => [m[0] + p[0] / ALL.length, m[1] + p[1] / ALL.length], [0, 0]);
   const turn = (x, y, c, s) => {
     const dx = x - MID[0];
     const dy = y - MID[1];
@@ -55,7 +61,7 @@
       const c = Math.cos(a);
       const s = Math.sin(a);
       let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-      for (const [x, y] of OUTLINE) {
+      for (const [x, y] of ALL) {
         const [rx, ry] = turn(x, y, c, s);
         x0 = Math.min(x0, rx);
         x1 = Math.max(x1, rx);
@@ -71,16 +77,50 @@
     view.sin = best.s;
     view.ox = box.left + bw / 2 - ((best.x0 + best.x1) / 2) * best.scale;
     view.oy = box.top + bh / 2 - ((best.y0 + best.y1) / 2) * best.scale;
-    view.r = clamp(best.scale * 0.12, 6.5, 11);
-    view.lw = clamp(best.scale * 0.075, 3.5, 6);
-    view.pxPerMile = best.scale / 69;
-    view.big = best.scale >= 60; // room for full city names
+    view.baseR = clamp(best.scale * 0.12, 6.5, 11);
+    view.baseLw = clamp(best.scale * 0.075, 3.5, 6);
+    // Where the whole state sits on screen before zooming.
+    view.map = { x0: view.ox + best.x0 * best.scale, x1: view.ox + best.x1 * best.scale, y0: view.oy + best.y0 * best.scale, y1: view.oy + best.y1 * best.scale };
+    NR.setCamera(cam.zoom, cam.x, cam.y);
   };
+
+  // ---------- Zooming and moving the map ----------
+  // The camera zooms the fitted map by cam.zoom and shifts it by cam.x, cam.y pixels.
+  const cam = (NR.camera = { zoom: 1, x: 0, y: 0, max: 6 });
+  NR.setCamera = function (zoom, x, y) {
+    cam.zoom = clamp(zoom, 1, cam.max);
+    // Keep the state on screen. Its edges may come inside the screen only by a margin
+    // (none at full view, up to 40% of the screen once zoomed in), so cities near the
+    // border can still be brought to the middle.
+    const m = view.map;
+    const b = view.box;
+    const slack = Math.min(1, cam.zoom - 1) * 0.4;
+    const keep = (v, a, c, s) => clamp(v, Math.min(a, c) - s, Math.max(a, c) + s);
+    cam.x = keep(x, view.w - b.right - m.x1 * cam.zoom, b.left - m.x0 * cam.zoom, slack * (view.w - b.left - b.right));
+    cam.y = keep(y, view.h - b.bottom - m.y1 * cam.zoom, b.top - m.y0 * cam.zoom, slack * (view.h - b.top - b.bottom));
+    // Stations and lines grow a little when zoomed in, but much less than the map.
+    const grow = Math.min(1.5, 1 + (cam.zoom - 1) * 0.15);
+    view.r = view.baseR * grow;
+    view.lw = view.baseLw * grow;
+    view.zoomScale = view.scale * cam.zoom;
+    view.pxPerMile = view.zoomScale / 69;
+    view.big = view.zoomScale >= 60; // room for full city names
+    view.showCounties = view.zoomScale >= 100; // room for county names
+  };
+  NR.zoomAt = (sx, sy, factor) => {
+    const z = clamp(cam.zoom * factor, 1, cam.max);
+    const k = z / cam.zoom;
+    NR.setCamera(z, sx - (sx - cam.x) * k, sy - (sy - cam.y) * k);
+  };
+  NR.panBy = (dx, dy) => NR.setCamera(cam.zoom, cam.x + dx, cam.y + dy);
+  NR.resetCamera = () => NR.setCamera(1, 0, 0);
+  // The middle of the map area on screen (used by the zoom buttons).
+  NR.viewCenter = () => [(view.box.left + view.w - view.box.right) / 2, (view.box.top + view.h - view.box.bottom) / 2];
 
   NR.toScreen = function (lon, lat) {
     const [x, y] = base(lon, lat);
     const [rx, ry] = turn(x, y, view.cos, view.sin);
-    return [view.ox + rx * view.scale, view.oy + ry * view.scale];
+    return [cam.x + (view.ox + rx * view.scale) * cam.zoom, cam.y + (view.oy + ry * view.scale) * cam.zoom];
   };
   const updatePositions = () => NR.CITIES.forEach((c) => (pos[c.id] = NR.toScreen(c.lon, c.lat)));
 
@@ -231,20 +271,52 @@
     }
   }
 
-  function drawLand(ctx) {
-    ctx.beginPath();
-    NR.OUTLINE.forEach(([lon, lat], i) => {
-      const p = NR.toScreen(lon, lat);
+  // Adds a flat list of longitude, latitude pairs to the current path.
+  function tracePath(ctx, list, close) {
+    for (let i = 0; i < list.length; i += 2) {
+      const p = NR.toScreen(list[i], list[i + 1]);
       if (i) ctx.lineTo(p[0], p[1]);
       else ctx.moveTo(p[0], p[1]);
-    });
-    ctx.closePath();
+    }
+    if (close) ctx.closePath();
+  }
+
+  function drawLand(ctx) {
+    ctx.beginPath();
+    NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
     ctx.fillStyle = colors.land;
-    ctx.fill();
-    ctx.strokeStyle = colors.coast;
-    ctx.lineWidth = 1.5;
+    ctx.fill("evenodd");
+    // County borders
+    ctx.beginPath();
+    NR.MAP.borders.forEach((line) => tracePath(ctx, line, false));
+    ctx.strokeStyle = colors.county;
+    ctx.lineWidth = 1;
     ctx.lineJoin = "round";
     ctx.stroke();
+    // Coastline and state border
+    ctx.beginPath();
+    NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
+    ctx.strokeStyle = colors.coast;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // County names, once there is room for them.
+  function drawCountyNames(ctx) {
+    if (!view.showCounties) return;
+    ctx.font = `600 9px ${MONO}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "1px";
+    for (const r of NR.MAP.regions) {
+      const p = NR.toScreen(r.label[0], r.label[1]);
+      if (p[0] < -100 || p[0] > view.w + 100 || p[1] < -50 || p[1] > view.h + 50) continue;
+      // Long merged names go on several lines: DEL NORTE- / SISKIYOU- / TRINITY
+      const parts = r.name.replace(/ County$/, "").toUpperCase().split("-");
+      const lines = parts.length > 1 && r.name.length > 18 ? parts.map((s, i) => (i < parts.length - 1 ? s + "-" : s)) : [parts.join("-")];
+      lines.forEach((text, i) => halo(ctx, text, p[0], p[1] + (i - (lines.length - 1) / 2) * 11, colors.countyText, colors.land));
+    }
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
   }
 
   // North arrow and a 100-mile scale bar in the corner of the map.
@@ -273,7 +345,9 @@
     ctx.textBaseline = "middle";
     halo(ctx, "N", cx + nx * 23, cy + ny * 23, colors.ink, colors.sea);
 
-    const len = 100 * view.pxPerMile;
+    // Scale bar: the longest of these distances that fits in about 130 pixels.
+    const miles = [200, 100, 50, 20, 10].find((m) => m * view.pxPerMile <= 130) || 10;
+    const len = miles * view.pxPerMile;
     const x0 = cx + 26;
     const y0 = cy + 9;
     ctx.strokeStyle = colors.ink;
@@ -286,7 +360,7 @@
     ctx.stroke();
     ctx.font = `500 10px ${MONO}`;
     ctx.textAlign = "left";
-    halo(ctx, "100 mi", x0, y0 - 11, colors.muted, colors.sea);
+    halo(ctx, `${miles} mi`, x0, y0 - 11, colors.muted, colors.sea);
   }
 
   function drawLines(ctx, s, segs) {
@@ -572,6 +646,7 @@
       drawPreview(ctx);
       return;
     }
+    drawCountyNames(ctx);
     drawCompass(ctx);
     const segs = segmentOffsets(s);
     drawLines(ctx, s, segs);

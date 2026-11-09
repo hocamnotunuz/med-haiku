@@ -43,6 +43,15 @@
     </div>
   </footer>
 
+  <!-- Zoom: pinch or scroll on the map, drag empty map to move, or use these buttons -->
+  <div id="zoom-controls" class="zoom-controls">
+    <button id="btn-zoom-in" class="icon-btn" type="button" aria-label="Zoom in">+</button>
+    <button id="btn-zoom-out" class="icon-btn" type="button" aria-label="Zoom out">−</button>
+    <button id="btn-zoom-fit" class="icon-btn" type="button" aria-label="Show the whole state">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
   <!-- Options for one line -->
   <div id="line-panel" class="line-panel" role="dialog" aria-labelledby="lp-name" hidden>
     <div class="lp-head">
@@ -91,6 +100,7 @@
       <ul class="howto">
         <li><b>Build:</b> drag from one city to another to lay track. Keep dragging to add stops.</li>
         <li><b>Extend:</b> drag the tab at either end of a line.</li>
+        <li><b>Zoom:</b> pinch or scroll to zoom, drag empty map to move around. Every county has one station.</li>
         <li><b>Manage:</b> tap a line color at the bottom to add trains, upgrade to high-speed track, or delete the line.</li>
         <li><b>Money:</b> track and trains cost money. Passengers pay a fare when they arrive, and trains cost a little to run each week.</li>
       </ul>
@@ -142,6 +152,7 @@
   </section>
 </div>
 
+<script src="js/map-california.js"></script>
 <script src="js/cities.js"></script>
 <script src="js/game.js"></script>
 <script src="js/draw.js"></script>

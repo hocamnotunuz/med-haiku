@@ -5,6 +5,8 @@
   --grid: #c3d6df;
   --land: #fafbf9;
   --coast: #9ab3bf;
+  --county: #d5e0e5;
+  --county-text: #93a6b0;
   --station: #ffffff;
   /* Text and panels */
   --ink: #1a2932;
@@ -37,6 +39,8 @@
     --grid: #162531;
     --land: #15212a;
     --coast: #2c4553;
+    --county: #1f303b;
+    --county-text: #5b7280;
     --station: #0c1720;
     --ink: #e3ecf0;
     --muted: #91a5b1;
@@ -63,6 +67,8 @@
   --grid: #162531;
   --land: #15212a;
   --coast: #2c4553;
+  --county: #1f303b;
+  --county-text: #5b7280;
   --station: #0c1720;
   --ink: #e3ecf0;
   --muted: #91a5b1;
@@ -395,6 +401,18 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   border-radius: 999px;
   font-size: 0.82rem;
 }
+
+/* ---------- Zoom buttons ---------- */
+.zoom-controls {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: 100px;
+  display: grid;
+  gap: 6px;
+  z-index: 4;
+}
+.zoom-controls .icon-btn { font-size: 1.25rem; font-weight: 700; line-height: 1; box-shadow: 0 4px 14px var(--shadow); }
+#map.is-panning { cursor: grabbing; }
 
 /* ---------- Money, trains and the train guide ---------- */
 .res-value.negative { color: var(--danger); }
