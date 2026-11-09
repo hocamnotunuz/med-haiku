@@ -613,3 +613,6 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   }
   .legend:not(.open) { display: none; }
 }
+
+/* ---------- After a game over: back to the results card ---------- */
+.results-btn { position: absolute; left: 50%; top: 96px; transform: translateX(-50%); z-index: 7; box-shadow: 0 8px 28px var(--shadow); }

@@ -199,7 +199,7 @@
     const fresh = Object.values(NR.TRAIN_TYPES).filter((t) => t.unlockWeek === week);
     const news = fresh.map((t) => `New: ${t.name} trains are now available. ${t.about}`);
     if (week === NR.disasterWeek())
-      news.push("From now on, earthquakes and wildfires can damage track. A free Work train is waiting in your depot: put it on a line (tap the line's color) and it repairs damage there.");
+      news.push("From now on, earthquakes and wildfires can damage track. A free Work train is waiting in your depot: it goes to the first damaged line by itself, or put it on a line yourself (tap the line's color).");
     $("week-news").hidden = !news.length;
     $("week-news").textContent = news.join(" ");
     const list = $("upgrade-list");
@@ -330,8 +330,25 @@
     } else {
       actions.append(button("Play again", "btn btn-primary", startGame));
     }
+    if (kind !== "time" && at && !cityStop)
+      actions.append(
+        button("Show on map", "btn", () => {
+          show(null);
+          NR.centerOnStation(at);
+        })
+      );
     actions.append(button("Main menu", "btn", openStart));
     actions.querySelector("button").focus({ preventScroll: true });
+  }
+
+  // A new station outside the view: zoom out (never in) so all your stations fit.
+  // Not while you're drawing a line or looking at a city map; the edge arrow points to it then.
+  function showNewStation(id) {
+    if (cityKey || draft || !NR.pos[id] || NR.onScreen(NR.pos[id][0], NR.pos[id][1], 30)) return;
+    NR.focusOn(
+      game.stations.map((st) => [NR.cityById[st.id].lon, NR.cityById[st.id].lat]),
+      NR.camera.zoom
+    );
   }
 
   function handleEvents(now) {
@@ -341,10 +358,14 @@
       else if (ev.type === "city") {
         fx.push({ kind: "city", at: ev.id, t0: now });
         toast(`${NR.cityById[ev.id].name} joined the map.`);
+        showNewStation(ev.id);
+      } else if (ev.type === "workSent") {
+        toast(`Your Work train went to the ${lineName(ev.color)} to repair the damaged track.`);
       } else if (ev.type === "county") {
         const main = NR.mainStation[ev.id];
         const name = NR.countyById[ev.id].name;
         fx.push({ kind: "city", at: main.id, t0: now });
+        showNewStation(main.id);
         toast(ev.free ? `Goal reached: ${name} unlocked for free! ${main.name} station is open.` : `${name} unlocked. ${main.name} station is open.`);
       } else if (ev.type === "headHired") {
         toast(`Head of transportation hired for ${NR.METROS[ev.key].name} (${NR.money(ev.fee)}). Keep the city running for ${plural(T.headSettleWeeks, "week")} while they settle in.`);
@@ -852,6 +873,7 @@
     $("btn-legend").setAttribute("aria-expanded", String(open));
     layout(); // the top bar changed height
   });
+  $("btn-results").addEventListener("click", () => show("over"));
   $("btn-budgets").addEventListener("click", () => game && (budgetsOpen() ? closeBudgetPanel() : openBudgetPanel()));
   $("bp-close").addEventListener("click", closeBudgetPanel);
 
@@ -1181,6 +1203,7 @@
   // ---------- Every frame ----------
   function updateHud() {
     renderChips();
+    $("btn-results").hidden = !(game && game.over && !screen);
     if (!game) return;
     setText("score", game.delivered);
     setText("cargo", Object.values(game.cargoDelivered).reduce((a, b) => a + b, 0));
@@ -1279,6 +1302,11 @@
     if (all.filter((l) => l.stops.includes(id)).length !== 1) return null;
     const line = ends.find((l) => l.stops[0] === id || l.stops[l.stops.length - 1] === id);
     return line ? { line, atHead: line.stops[0] === id } : null;
+  }
+  // Any line that ends at this station (the shortest one, if several do).
+  function anyLineEnd(lines, id) {
+    const ends = lines.filter((l) => l.stops[0] === id || l.stops[l.stops.length - 1] === id).sort((a, b) => a.stops.length - b.stops.length);
+    return ends.length ? { line: ends[0], atHead: ends[0].stops[0] === id } : null;
   }
   // The first few times, explain how to start a new line instead.
   let extendHints = 0;
@@ -1430,7 +1458,8 @@
       }
       const h = NR.hitCityHandle(c, p.x, p.y, grab + 4);
       const st = NR.hitCityStop(c, p.x, p.y, grab + 4);
-      const end = st && lineEndAt(c.lines.filter((l) => l.mode === cityMode), c.lines, st.id);
+      const sameKind = c.lines.filter((l) => l.mode === cityMode);
+      const end = st && (lineEndAt(sameKind, c.lines, st.id) || (NR.cityFreeColor(c) < 0 && anyLineEnd(sameKind, st.id)));
       if (h && (!st || h.d < st.d)) {
         const line = NR.cityLineById(c, h.lineId);
         draft = { city: cityKey, kind: "extend", lineId: line.id, atHead: h.atHead, color: line.color, mode: line.mode, chain: [h.stationId], cost: 0 };
@@ -1455,9 +1484,19 @@
       e.preventDefault();
       return;
     }
+    // An arrow at the screen edge: go to that station.
+    const mark = NR.offscreenMarks
+      .map((m) => Object.assign({ d: Math.hypot(m.x - p.x, m.y - p.y) }, m))
+      .filter((m) => m.d < 18)
+      .sort((a, b) => a.d - b.d)[0];
+    if (mark) {
+      NR.centerOnStation(mark.id);
+      return;
+    }
     const h = NR.hitHandle(game, p.x, p.y, grab + 4);
     const st = NR.hitStation(game, p.x, p.y, grab + 4);
-    const end = st && lineEndAt(game.lines, game.lines, st.id);
+    // From a line's end extends it. With no color left, so does any line end (even a busy hub).
+    const end = st && (lineEndAt(game.lines, game.lines, st.id) || (NR.freeColor(game) < 0 && anyLineEnd(game.lines, st.id)));
     if (h && (!st || h.d < st.d)) {
       const line = NR.lineById(game, h.lineId);
       draft = { kind: "extend", lineId: line.id, atHead: h.atHead, color: line.color, grade: line.grade, chain: [h.stationId], cost: 0 };

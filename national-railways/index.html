@@ -164,6 +164,7 @@
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <button id="btn-results" class="btn btn-primary results-btn" type="button" hidden>Back to results</button>
 
   <!-- Start screen -->
   <section id="screen-start" class="overlay" aria-labelledby="start-title" hidden>
@@ -194,8 +195,8 @@
         <fieldset class="choice">
           <legend>Difficulty</legend>
           <div class="options">
-            <label class="option"><input type="radio" name="geo" value="gentle" id="geo-gentle"><span class="option-title">Gentle</span><span class="option-text">Passengers increase slowly. Mountains and water cost a little more and slow trains a little; long tunnels and bridges are allowed.</span></label>
-            <label class="option"><input type="radio" name="geo" value="tough" id="geo-tough"><span class="option-title">Tough</span><span class="option-text">Passengers increase faster. Mountains and water are real obstacles: pricey and slow, and some routes need the right pass or bridge.</span></label>
+            <label class="option"><input type="radio" name="geo" value="gentle" id="geo-gentle"><span class="option-title">Gentle</span><span class="option-text">Towns appear slowly and passengers increase slowly. Mountains and water cost a little more and slow trains a little; long tunnels and bridges are allowed.</span></label>
+            <label class="option"><input type="radio" name="geo" value="tough" id="geo-tough"><span class="option-title">Tough</span><span class="option-text">Towns appear and passengers increase faster. Mountains and water are real obstacles: pricey and slow, and some routes need the right pass or bridge.</span></label>
           </div>
         </fieldset>
       </details>
@@ -208,7 +209,7 @@
         <li><b>Grow:</b> you start with 3 counties around Los Angeles. Tap a county with a dashed orange outline to unlock it with money, or deliver passengers next to it to earn it for free. Towns appear inside counties you own.</li>
         <li><b>Cargo:</b> farms send produce, ships bring containers to ports (anchor), and desert and mountain towns send trucks. Cargo waits in a yard left of the station and needs its own train: Freight, Dock train or Truck bypass. Cargo never ends your game, but it pays well.</li>
         <li><b>Day and night:</b> fewer people travel at night, when Night trains run. Tourists (★) head for scenic places, most at weekends. Flights land at airports (✈) with a burst of travelers.</li>
-        <li><b>Earthquakes and wildfires:</b> from week 6 they damage track (red ✕). Trains turn back at the damage. A Work train on that line repairs it (you get one free when they begin); otherwise it mends after a week.</li>
+        <li><b>Earthquakes and wildfires:</b> from week 10 they damage track (red ✕). Trains turn back at the damage. A Work train on that line repairs it (you get one free when they begin, and a Work train waiting in your depot goes to the damage by itself); otherwise it mends after 3 days.</li>
         <li><b>Cities:</b> Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own city maps (M badge). Tap the station and choose Open city map, then build Tram, Metro or (in San Francisco) Cable car lines between neighborhoods. Riders cross town or come to the main station to catch a train, and train passengers ride home. Neighborhoods can overflow too. Each city has its own budget (it opens with $200k from its state, and the state pays when it runs short), and you can hire a head of transportation: after 3 weeks of settling in (you still run the city), they run it safely for 100 weeks, but its lines are frozen and management keeps 90% of its profit.</li>
         <li><b>Goals:</b> tap the clipboard to see contracts (optional jobs with a reward and a deadline) and, in Levels mode, the checklist for the current level.</li>
         <li><b>Zoom:</b> pinch or scroll to zoom, drag empty map to move around.</li>

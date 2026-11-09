@@ -27,7 +27,7 @@
     overflowSeconds: 20, // seconds a station can stay overfull before you lose
     trackDetour: 1.15, // track is a little longer than a straight line
     firstCityAfter: 8, // seconds until the first new city appears
-    cityEvery: [14, 22], // seconds between new cities (random in this range)
+    cityEvery: [14, 22], // seconds between new towns (random in this range; Gentle uses NR.GEO's townEvery)
     levelReward: 150, // $k for finishing a level
     yardRoom: 12, // loads of cargo a station's yard holds (more is turned away)
     cargoEvery: [10, 16], // seconds between loads of produce or trucks at a station
@@ -36,9 +36,9 @@
     flightEvery: [40, 60], // seconds between flights landing at one of your airports
     flightLoad: 5, // travelers off each flight
     touristEvery: [6, 10], // seconds between tourists on weekdays (three times as often at weekends)
-    firstEvent: 350, // seconds before the first earthquake or wildfire (5 weeks: they start in week 6)
+    firstEvent: 630, // seconds before the first earthquake or wildfire (9 weeks: they start in week 10)
     eventEvery: [60, 100], // seconds between earthquakes and wildfires
-    selfRepair: 70, // seconds until damaged track mends by itself (1 week)
+    selfRepair: 30, // seconds until damaged track mends by itself (3 days)
     fireStretches: 2, // stretches of track a wildfire can damage
     newStationGrace: 25, // seconds before a brand-new station's first passengers
     repairTime: 4, // seconds a Work train needs to repair a stretch of track
@@ -433,7 +433,7 @@
   // Price in $k: bigger counties cost more (pop is in thousands of people).
   NR.countyPrice = (id) => Math.round(40 + NR.mainStation[id].pop * 0.05);
   // Free unlock: deliver this many passengers to your stations next to the county.
-  NR.countyGoal = (id) => Math.max(15, Math.min(80, Math.round(15 + NR.mainStation[id].pop / 50)));
+  NR.countyGoal = (id) => Math.max(45, Math.min(240, Math.round(45 + NR.mainStation[id].pop / 17)));
 
   // Where a county stands: { owned } or { ok, price, goal, progress } or { ok: false, reason }.
   NR.countyStatus = function (s, id) {
@@ -790,6 +790,21 @@
       emit("quake", { key: k });
     }
     rt.dirty = true;
+    sendWorkTrain(s);
+  }
+
+  // A Work train waiting in the depot goes by itself to a damaged line that has none.
+  function sendWorkTrain(s) {
+    if (!s.depot.work) return;
+    const damaged = s.lines.filter(
+      (l) => l.stops.some((id, i) => i && s.damage[segKey(l.stops[i - 1], id)]) && !NR.trainsOn(s, l).some((t) => t.type === "work")
+    );
+    for (const line of damaged) {
+      if (NR.addTrain(s, line, "work")) {
+        emit("workSent", { lineId: line.id, color: line.color });
+        return;
+      }
+    }
   }
 
   // ---------- State budgets and heads of transportation ----------
@@ -911,7 +926,8 @@
     s.nextCityIn -= dt;
     if (s.nextCityIn <= 0) {
       addNextCity(s);
-      s.nextCityIn = rand(T.cityEvery[0], T.cityEvery[1]);
+      const every = (NR.geoSetting && NR.geoSetting().townEvery) || T.cityEvery; // Gentle: towns come more slowly
+      s.nextCityIn = rand(every[0], every[1]);
     }
 
     // Rush hour: one big city suddenly gets very busy for a while.

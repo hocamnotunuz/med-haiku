@@ -135,6 +135,15 @@
     NR.setCamera(z, sx - (sx - cam.x) * k, sy - (sy - cam.y) * k);
   };
   NR.panBy = (dx, dy) => NR.setCamera(cam.zoom, cam.x + dx, cam.y + dy);
+  // Move the map so this station is in the middle of the screen.
+  NR.centerOnStation = (id) => {
+    const c = NR.cityById[id];
+    const [sx, sy] = NR.toScreen(c.lon, c.lat);
+    const [vx, vy] = NR.viewCenter();
+    NR.panBy(vx - sx, vy - sy);
+  };
+  // Is this screen point inside the visible map area (between the top and bottom bars)?
+  NR.onScreen = (x, y, margin = 10) => x > view.box.left + margin && x < view.w - view.box.right - margin && y > view.box.top + margin && y < view.h - view.box.bottom - margin;
   NR.resetCamera = () => NR.setCamera(1, 0, 0);
   // Zoom in on these places ([longitude, latitude] pairs) with some room around them.
   NR.focusOn = function (places, maxZoom = 4) {
@@ -1009,6 +1018,51 @@
     drawStationLabels(ctx, labels, s.style === "city");
   }
 
+  // Arrows at the edge of the screen pointing to stations you can't see that need you:
+  // new ones, ones not on any line yet, and crowded ones (red). Tap an arrow to go there.
+  NR.offscreenMarks = [];
+  function drawOffscreen(ctx, s) {
+    NR.offscreenMarks = [];
+    const b = view.box;
+    const x0 = b.left + 18, x1 = view.w - b.right - 18, y0 = b.top + 18, y1 = view.h - b.bottom - 18;
+    if (x1 <= x0 || y1 <= y0) return;
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    for (const st of s.stations) {
+      const [x, y] = pos[st.id];
+      if (x >= x0 - 6 && x <= x1 + 6 && y >= y0 - 6 && y <= y1 + 6) continue; // on screen
+      const fresh = st.born > 0 && s.time - st.born < 20;
+      const lonely = !s.lines.some((l) => l.stops.includes(st.id));
+      if (!(st.crowd > 0 || fresh || lonely)) continue;
+      // Where the line from the middle of the screen to the station leaves the screen
+      const dx = x - cx, dy = y - cy;
+      const t = Math.min(dx ? (dx > 0 ? x1 - cx : x0 - cx) / dx : Infinity, dy ? (dy > 0 ? y1 - cy : y0 - cy) / dy : Infinity);
+      let ax = cx + dx * t, ay = cy + dy * t;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len;
+      // Arrows that would overlap are moved apart along the edge.
+      for (let k = 0; k < 6 && NR.offscreenMarks.some((m) => Math.hypot(m.x - ax, m.y - ay) < 30); k++) {
+        ax = clamp(ax - uy * 30, x0, x1);
+        ay = clamp(ay + ux * 30, y0, y1);
+      }
+      const color = st.crowd > 0 ? colors.danger : colors.accent;
+      ctx.beginPath();
+      ctx.moveTo(ax + ux * 9, ay + uy * 9);
+      ctx.lineTo(ax - ux * 6 - uy * 8, ay - uy * 6 + ux * 8);
+      ctx.lineTo(ax - ux * 6 + uy * 8, ay - uy * 6 - ux * 8);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = colors.panel;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.font = `700 10px ${MONO}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      halo(ctx, st.id, ax - ux * 22, ay - uy * 18, color, colors.land);
+      NR.offscreenMarks.push({ id: st.id, x: ax, y: ay });
+    }
+  }
+
   // Before the first line: a moving dashed arrow from Los Angeles to its nearest neighbor.
   function drawFirstTrackHint(ctx, s, now) {
     const from = s.stations[0] && s.stations[0].id;
@@ -1559,6 +1613,7 @@
     if (ui.draft) drawDraft(ctx, ui.draft, ui.pointer);
     drawStations(ctx, s);
     if (!s.lines.length && !ui.draft) drawFirstTrackHint(ctx, s, ui.now);
+    drawOffscreen(ctx, s);
     drawTrains(ctx, s, segs);
     drawFx(ctx, ui.fx, ui.now);
   };

@@ -14,8 +14,9 @@
     gentle: {
       name: "Gentle",
       about: "Passengers increase slowly. Geography costs a little more and slows trains a little.",
-      growth: 360, // passengers: a state gets this much busier every 360 seconds you run it (+100%)
-      cityGrowth: 600, // the same for city neighborhoods
+      growth: 600, // passengers: a state gets this much busier every 600 seconds you run it (+100%)
+      cityGrowth: 1000, // the same for city neighborhoods
+      townEvery: [25, 40], // seconds between new towns
       hillCost: 1.25, // hills
       hillSpeed: 0.9,
       passCost: 2, // over a real mountain pass
@@ -48,6 +49,7 @@
       about: "Passengers increase faster. Mountains, water and rivers are real obstacles: pricey, slow, and some routes are impossible without the right pass or bridge.",
       growth: 240,
       cityGrowth: 400,
+      townEvery: [14, 22],
       hillCost: 1.5,
       hillSpeed: 0.8,
       passCost: 3,

@@ -29,7 +29,8 @@ The map shows real mountains (shaded relief from elevation data), lakes, rivers,
 
 | | Gentle | Tough |
 | --- | --- | --- |
-| Passengers: twice as many as at the start after | 6 minutes (cities 10) | 4 minutes (cities 6⅔) |
+| New towns appear every | 25–40 seconds | 14–22 seconds |
+| Passengers: twice as many as at the start after | 10 minutes (cities 16⅔) | 4 minutes (cities 6⅔) |
 | Hills: price / train speed | ×1.25 / ×0.9 | ×1.5 / ×0.8 |
 | Over a pass: price / train speed | ×2 / ×0.6 | ×3 / ×0.4 |
 | Tunnel: price / longest | ×4 / 40 mi | ×7 / 15 mi |
@@ -51,7 +52,7 @@ All these numbers live in `js/geography.js` (`NR.GEO`).
 
 - Every game starts with **Los Angeles, Ventura and Riverside** counties.
 - Counties next to yours have a dashed orange outline and a tag like `$85k · 0/33`. Tap one to see its details.
-- **Pay** to unlock it now (bigger counties cost more), or unlock it **for free** by delivering the goal number of passengers to your stations next to it.
+- **Pay** to unlock it now (bigger counties cost more), or unlock it **for free** by delivering the goal number of passengers to your stations next to it: 45 passengers for the smallest counties, up to 240 for the biggest (45 plus 1 for every 17,000 people).
 - When a county is unlocked, its main station opens right away. Its towns then appear over time.
 - In **Levels** mode, finishing a level opens the next part of the state, so its counties can be unlocked.
 - Bridges count as borders: Golden Gate (San Francisco–Marin), Richmond–San Rafael (Contra Costa–Marin) and San Mateo (Alameda–San Mateo).
@@ -63,12 +64,14 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 - **Build a line:** drag from one city to another. Keep dragging to add more stops. Before your first line, an orange arrow shows where to drag.
 - **Extend a line:** drag from its last station (or from the round + tab at its end) to a new city. To start a new line at a station that ends another line, drag from the other city to it instead.
 - **Manage a line:** tap its color at the bottom of the screen to buy trains, send them to the depot, upgrade to high-speed track, or delete the line. Trains you can use on that line are listed first; the others wait under **More trains**, with the reason they can't run yet.
+- **Out of colors?** Dragging from any station that ends a line then extends that line (the shortest one, if several end there), even at a busy hub like Los Angeles.
 - **More line colors:** you start with 3. When all are in use, a **+** chip appears at the bottom: tap it twice to buy another color ($100k, then $150k, $200k and so on, up to 7 lines) from national money (the richest state covers what it can't). The weekly upgrade choice also always includes **New line** while every color is in use.
 - **Money:** track costs $1k per mile (high-speed track $2.5k per mile). Passengers pay a fare when they arrive: more for long trips and fast trains. Every train costs a little to run each week. Who pays is explained under **Budgets** below.
 - **Every week** a new Regular train arrives and you choose one upgrade.
 - **Rush hour:** now and then a big city gets very busy for a few seconds. Commuter trains help.
 - **New stations** (towns that appear, and main stations of counties you unlock) get about 25 seconds before their first passengers, so you have time to connect them. Rush hours and flights leave them alone during that time.
-- **Lose** when a station stays overcrowded too long (red ring fills up). The game-over screen says why: never connected, no train stopping there, damaged track, or not enough trains.
+- **Lose** when a station stays overcrowded too long (red ring fills up). The game-over screen says why: never connected, no train stopping there, damaged track, or not enough trains. **Show on map** takes you to the station; **Back to results** returns to the card.
+- **Stations you can't see:** an arrow at the edge of the screen points to any station off-screen that is new, not yet on a line, or crowded (red). Tap the arrow to go there. When a new station appears outside the view, the map zooms out to show all your stations (not while you are drawing a line).
 - **Counties:** a county's panel also says what connecting its main station would cost, and from where.
 - **Contracts:** tap a "New contract" message to open the list.
 
@@ -102,7 +105,7 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 - **Day and night:** each day runs from 00:00 to 24:00 (10 seconds). The map darkens at night and fewer people travel.
 - **Tourists (★)** leave Metro cities for scenic places, three times as often at weekends. California: Yosemite Valley, South Lake Tahoe, Big Sur, Death Valley, Mount Shasta, Mammoth Lakes, Napa, Three Rivers. Nevada: Boulder City (Hoover Dam), Mount Charleston, Virginia City, Great Basin National Park. Arizona: Grand Canyon Village, Sedona, Page, Monument Valley, Chinle (Canyon de Chelly), Tombstone, Mount Lemmon. Oregon: Multnomah Falls, Mount Hood, Silver Falls, Crater Lake, Cannon Beach, Joseph (Wallowa Lake).
 - **Flights** land at airports (✈) with 5 travelers at a time: LAX, SFO (San Mateo), San Diego, San José, Oakland, Sacramento, Ontario, Fresno, Palm Springs, Las Vegas, Reno, Phoenix, Tucson, Portland, Eugene, Medford and Redmond.
-- **Earthquakes and wildfires** (from week 6) damage track (red ✕): an earthquake one stretch, a wildfire up to two around a mountain county. Trains turn back at the damage. A Work train on that line repairs it in a few seconds (a free one arrives the week they begin); otherwise it mends after a week.
+- **Earthquakes and wildfires** (from week 10) damage track (red ✕): an earthquake one stretch, a wildfire up to two around a mountain county. Trains turn back at the damage. A Work train on that line repairs it in a few seconds (a free one arrives the week they begin, and a Work train waiting in your depot goes to a damaged line by itself); otherwise it mends after 3 days.
 
 ### City maps: trams, metro and cable cars
 
