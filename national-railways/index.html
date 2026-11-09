@@ -135,12 +135,7 @@
     </div>
     <p id="cy-budget" class="cy-budget">$0k</p>
     <p id="cy-week" class="lp-meta"></p>
-    <p class="cy-note">City fares go into this budget. City track, vehicles and running costs are paid from it. Money moves in from (and out to) the state budget, which also covers the city if it runs dry.</p>
-    <div class="lp-actions">
-      <button id="cy-in" class="btn btn-small" type="button">Move $100k in</button>
-      <button id="cy-in5" class="btn btn-small" type="button">Move $500k in</button>
-      <button id="cy-out" class="btn btn-small" type="button">Take $100k out</button>
-    </div>
+    <p id="cy-note" class="cy-note">The city map opened with $200k from the state budget. City fares go into this budget, and city track, vehicles and running costs are paid from it. When it runs short, the state budget pays the rest.</p>
     <p class="lp-section">Head of transportation</p>
     <p id="cy-head" class="cp-goal-text"></p>
     <div id="cy-head-bar" class="cp-bar" hidden><span id="cy-head-fill"></span></div>
@@ -157,7 +152,8 @@
     </div>
     <p class="lp-section">National money</p>
     <p id="bp-national" class="cy-budget">$0k</p>
-    <p class="cy-note">Contract rewards, grants and level bonuses come here. It pays for track and trains that cross a state border, and covers any state whose budget runs short.</p>
+    <p class="cy-note">Fares for trips that cross a state border, contract rewards, grants and level bonuses come here. It pays for track and trains that cross a state border, and covers any state whose budget runs short. If it ends a week below zero, the richest state covers it. Money can't be moved between budgets by hand.</p>
+    <p id="bp-national-week" class="lp-meta"></p>
     <div id="bp-states" class="bp-states"></div>
     <details class="guide">
       <summary>How a state's head of transportation works</summary>
@@ -194,10 +190,10 @@
       <details class="guide settings">
         <summary>Settings</summary>
         <fieldset class="choice">
-          <legend>Geography (mountains, bays, lakes and rivers)</legend>
+          <legend>Difficulty</legend>
           <div class="options">
-            <label class="option"><input type="radio" name="geo" value="gentle" id="geo-gentle"><span class="option-title">Gentle</span><span class="option-text">Geography costs a little more and slows trains a little. Long tunnels and bridges are allowed.</span></label>
-            <label class="option"><input type="radio" name="geo" value="tough" id="geo-tough"><span class="option-title">Tough</span><span class="option-text">Mountains and water are real obstacles: pricey and slow, and some routes need the right pass or bridge.</span></label>
+            <label class="option"><input type="radio" name="geo" value="gentle" id="geo-gentle"><span class="option-title">Gentle</span><span class="option-text">Passengers increase slowly. Mountains and water cost a little more and slow trains a little; long tunnels and bridges are allowed.</span></label>
+            <label class="option"><input type="radio" name="geo" value="tough" id="geo-tough"><span class="option-title">Tough</span><span class="option-text">Passengers increase faster. Mountains and water are real obstacles: pricey and slow, and some routes need the right pass or bridge.</span></label>
           </div>
         </fieldset>
       </details>
@@ -208,14 +204,14 @@
         <li><b>Grow:</b> you start with 3 counties around Los Angeles. Tap a county with a dashed orange outline to unlock it with money, or deliver passengers next to it to earn it for free. Towns appear inside counties you own.</li>
         <li><b>Cargo:</b> farms send produce, ships bring containers to ports (anchor), and desert and mountain towns send trucks. Cargo waits in a yard left of the station and needs its own train: Freight, Dock train or Truck bypass. Cargo never ends your game, but it pays well.</li>
         <li><b>Day and night:</b> fewer people travel at night, when Night trains run. Tourists (★) head for scenic places, most at weekends. Flights land at airports (✈) with a burst of travelers.</li>
-        <li><b>Earthquakes and wildfires:</b> from week 3 they damage track (red ✕). Trains turn back at the damage. A Work train on that line repairs it; otherwise it takes 3 weeks to mend.</li>
-        <li><b>Cities:</b> Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own city maps (M badge). Tap the station and choose Open city map, then build Tram, Metro or (in San Francisco) Cable car lines between neighborhoods. Riders cross town or come to the main station to catch a train, and train passengers ride home. Neighborhoods can overflow too. Each city has its own budget, and you can hire a head of transportation: after 3 weeks of settling in (you still run the city), they run it safely for 100 weeks, but its lines are frozen and management keeps 90% of its profit.</li>
+        <li><b>Earthquakes and wildfires:</b> from week 6 they damage track (red ✕). Trains turn back at the damage. A Work train on that line repairs it (you get one free when they begin); otherwise it mends after a week.</li>
+        <li><b>Cities:</b> Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own city maps (M badge). Tap the station and choose Open city map, then build Tram, Metro or (in San Francisco) Cable car lines between neighborhoods. Riders cross town or come to the main station to catch a train, and train passengers ride home. Neighborhoods can overflow too. Each city has its own budget (it opens with $200k from its state, and the state pays when it runs short), and you can hire a head of transportation: after 3 weeks of settling in (you still run the city), they run it safely for 100 weeks, but its lines are frozen and management keeps 90% of its profit.</li>
         <li><b>Goals:</b> tap the clipboard to see contracts (optional jobs with a reward and a deadline) and, in Levels mode, the checklist for the current level.</li>
         <li><b>Zoom:</b> pinch or scroll to zoom, drag empty map to move around.</li>
         <li><b>Manage:</b> tap a line color at the bottom to add trains, upgrade to high-speed track, or delete the line.</li>
-        <li><b>Geography:</b> the map shows real mountains, lakes and rivers. Track over a mountain pass (like Donner Pass) costs more and trains slow down on the climb; elsewhere mountains need an expensive tunnel, and some are too wide to tunnel. Bays and lakes need a bridge: cheaper at real bridges like the Golden Gate. Rivers need small bridges. Choose Gentle or Tough under Settings.</li>
+        <li><b>Geography:</b> the map shows real mountains, lakes and rivers. Track over a mountain pass (like Donner Pass) costs more and trains slow down on the climb; elsewhere mountains need an expensive tunnel, and some are too wide to tunnel. Bays and lakes need a bridge: cheaper at real bridges like the Golden Gate. Rivers need small bridges. Choose Gentle or Tough difficulty under Settings.</li>
         <li><b>Money:</b> track and trains cost money. Passengers pay a fare when they arrive, and trains cost a little to run each week.</li>
-        <li><b>Budgets and states:</b> every state has its own budget (tap the money at the bottom). Fares go to the state where the trip ends, and the state pays for its own track, trains and counties. National money gets contract rewards and grants, pays for track across state borders, and covers any state that runs short. Once you own all of California, Nevada, Arizona and Oregon open. A state can hire a head of transportation too, just like a city.</li>
+        <li><b>Budgets and states:</b> every state has its own budget (tap the money at the bottom). Fares for trips inside a state go to its budget, and the state pays for its own track, trains and counties. National money gets fares for trips across state borders, contract rewards and grants; it pays for track across state borders and covers any state that runs short. Money can't be moved between budgets by hand. Once you own all of California, Nevada, Arizona and Oregon open. A state can hire a head of transportation too, just like a city.</li>
       </ul>
 
       <details class="guide">

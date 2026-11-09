@@ -25,10 +25,11 @@ The map shows real mountains (shaded relief from elevation data), lakes, rivers,
 - **Rivers** (Sacramento, Colorado, Columbia, Willamette and others) need a small bridge, cheaper where a real one stands.
 - While you drag a line, the label next to the price says what the last stretch crosses. A line's panel lists everything it crosses.
 
-**Gentle** (the default) or **Tough**: choose under **Settings** on the start screen.
+**Difficulty: Gentle** (the default) or **Tough**, chosen under **Settings** on the start screen. It sets how fast passengers increase as well as how hard geography is.
 
 | | Gentle | Tough |
 | --- | --- | --- |
+| Passengers: twice as many as at the start after | 6 minutes (cities 10) | 4 minutes (cities 6⅔) |
 | Hills: price / train speed | ×1.25 / ×0.9 | ×1.5 / ×0.8 |
 | Over a pass: price / train speed | ×2 / ×0.6 | ×3 / ×0.4 |
 | Tunnel: price / longest | ×4 / 40 mi | ×7 / 15 mi |
@@ -65,6 +66,7 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 - **Money:** track costs $1k per mile (high-speed track $2.5k per mile). Passengers pay a fare when they arrive: more for long trips and fast trains. Every train costs a little to run each week. Who pays is explained under **Budgets** below.
 - **Every week** a new Regular train arrives and you choose one upgrade.
 - **Rush hour:** now and then a big city gets very busy for a few seconds. Commuter trains help.
+- **New stations** (towns that appear, and main stations of counties you unlock) get about 25 seconds before their first passengers, so you have time to connect them. Rush hours and flights leave them alone during that time.
 - **Lose** when a station stays overcrowded too long (red ring fills up).
 
 ### Modes
@@ -97,7 +99,7 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 - **Day and night:** each day runs from 00:00 to 24:00 (10 seconds). The map darkens at night and fewer people travel.
 - **Tourists (★)** leave Metro cities for scenic places, three times as often at weekends. California: Yosemite Valley, South Lake Tahoe, Big Sur, Death Valley, Mount Shasta, Mammoth Lakes, Napa, Three Rivers. Nevada: Boulder City (Hoover Dam), Mount Charleston, Virginia City, Great Basin National Park. Arizona: Grand Canyon Village, Sedona, Page, Monument Valley, Chinle (Canyon de Chelly), Tombstone, Mount Lemmon. Oregon: Multnomah Falls, Mount Hood, Silver Falls, Crater Lake, Cannon Beach, Joseph (Wallowa Lake).
 - **Flights** land at airports (✈) with 5 travelers at a time: LAX, SFO (San Mateo), San Diego, San José, Oakland, Sacramento, Ontario, Fresno, Palm Springs, Las Vegas, Reno, Phoenix, Tucson, Portland, Eugene, Medford and Redmond.
-- **Earthquakes and wildfires** (from week 3) damage track (red ✕). Trains turn back at the damage. A Work train on that line repairs it in a few seconds; otherwise it mends after 3 weeks.
+- **Earthquakes and wildfires** (from week 6) damage track (red ✕): an earthquake one stretch, a wildfire up to two around a mountain county. Trains turn back at the damage. A Work train on that line repairs it in a few seconds (a free one arrives the week they begin); otherwise it mends after a week.
 
 ### City maps: trams, metro and cable cars
 
@@ -117,7 +119,7 @@ Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own ci
 
 #### City budget and head of transportation
 
-- **Each city has its own budget.** City fares go into it; city track, vehicles and weekly running costs are paid from it. Move money in or out (from and to the state budget) with **City budget** on the city map. If a city budget runs dry, the state budget covers the rest.
+- **Each city has its own budget.** Opening a city map moves **$200k** from its state's budget into it. City fares go into it; city track, vehicles and weekly running costs are paid from it. When it runs short, the state budget pays the rest (for building as well as running costs). Tap **City budget** on the city map to see it.
 - **Head of transportation:** hire one from the city budget. Fee: the higher of 80% of the city budget or 50% of the city's track and vehicle value.
   1. **Settling in (3 weeks):** the head does nothing yet; you keep the city running (it can still be lost).
   2. **Managed (100 weeks):** the city runs safely (stops never overflow, kept at most half full), its lines are frozen, and management keeps 90% of its profit; 10% goes to the state budget each week. The city doesn't get busier while managed.
@@ -129,12 +131,12 @@ Tap the money at the bottom (**National** and **California**, or **4 states** on
 
 | Money | What comes in | What it pays for |
 | --- | --- | --- |
-| Each state's budget (California starts with $400k) | Fares and cargo fees for trips that end at its stations | Track between two of its own stations, trains on lines entirely inside it, its counties, its head of transportation |
-| National money (starts at $0) | Contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Track that crosses a state border, trains on lines that cross a border, and any state that runs short |
+| Each state's budget (California starts with $400k) | Fares and cargo fees for trips inside the state | Track between two of its own stations, trains on lines entirely inside it, its counties, its head of transportation, $200k for each city map it opens, and its cities when they run short |
+| National money (starts at $0) | Fares and cargo fees for trips that cross a state border, contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Track that crosses a state border, trains on lines that cross a border, and any state that runs short |
 
 - A state spends its own budget first; if that isn't enough, national money pays the rest. If a state budget is empty at the end of a week, national money pays its running costs.
-- Move money with **Move $100k in** (national → state) and **Take $100k out** (state → national).
-- City budgets (trams and metro) take money from, and give it back to, the budget of their state.
+- If national money ends a week below zero, the richest state budget covers it (then the next richest).
+- **Money can't be moved between budgets by hand.** It only moves by these rules.
 - The line panel says who pays for each line, and the county panel says which budget pays to unlock it.
 
 #### A state's head of transportation

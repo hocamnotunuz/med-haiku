@@ -34,14 +34,16 @@
     flightEvery: [40, 60], // seconds between flights landing at one of your airports
     flightLoad: 5, // travelers off each flight
     touristEvery: [6, 10], // seconds between tourists on weekdays (three times as often at weekends)
-    firstEvent: 140, // seconds before the first earthquake or wildfire (2 weeks)
+    firstEvent: 350, // seconds before the first earthquake or wildfire (5 weeks: they start in week 6)
     eventEvery: [60, 100], // seconds between earthquakes and wildfires
-    selfRepair: 210, // seconds until damaged track mends by itself (3 weeks)
+    selfRepair: 70, // seconds until damaged track mends by itself (1 week)
+    fireStretches: 2, // stretches of track a wildfire can damage
+    newStationGrace: 25, // seconds before a brand-new station's first passengers
     repairTime: 4, // seconds a Work train needs to repair a stretch of track
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 11; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 12; // bump when saved games from older versions no longer fit
 
   // ---- Time of day: night runs from 21:00 to 05:00 ----
   NR.hourOf = (s) => ((s.time % T.dayLength) / T.dayLength) * 24;
@@ -249,10 +251,12 @@
   NR.trackPrice = (a, b, grade) => NR.trackMiles(a, b) * (T.trackPrice + (grade === "high" ? T.highSpeedPrice : 0));
 
   // ---------- States and budgets ----------
-  // Each state has its own budget. Fares and cargo fees earned at its stations go in, and it pays
-  // for track, trains and counties inside the state. National money gets contract rewards, grants
-  // and level bonuses, pays for track and trains that cross a state border, and covers any state
-  // that runs short (a state spends its own budget first, then national money).
+  // Each state has its own budget. Fares and cargo fees for trips inside the state go in, and it
+  // pays for track, trains and counties inside the state. National money gets fares for trips
+  // that cross a state border, contract rewards, grants and level bonuses; it pays for track and
+  // trains that cross a border, and covers any state that runs short (a state spends its own
+  // budget first, then national money). If national money ends a week below zero, the richest
+  // state covers it. Money can't be moved between budgets by hand.
   NR.STATE_NAMES = Object.fromEntries(NR.MAP.states.map((x) => [x.code, x.name]));
   NR.HOME_STATE = NR.countyById[NR.START_COUNTIES[0]].state; // every game starts here
   NR.stateOf = (stationId) => NR.countyById[city(stationId).county].state;
@@ -348,6 +352,8 @@
       states: makeStates(), // each state's budget, head of transportation and so on
       levelsBeaten: false,
       weekIncome: 0, // fares and cargo fees this week, all states together
+      nationalIncome: 0, // fares for trips across a state border this week
+      nationalLastWeek: null,
       lastWeek: null,
       depot: Object.fromEntries(Object.keys(NR.TRAIN_TYPES).map((k) => [k, k === "regular" ? T.startTrains : 0])),
       cargoDelivered: Object.fromEntries(Object.keys(NR.CARGO).map((k) => [k, 0])),
@@ -383,8 +389,9 @@
     return s;
   };
 
+  // A station that opens during the game gets a head start before its first passengers.
   function addStation(s, id, atStart) {
-    s.stations.push({ id, waiting: [], cargo: [], crowd: 0, spawnIn: rand(2, 5), cargoIn: rand(4, 10), born: atStart ? -10 : s.time });
+    s.stations.push({ id, waiting: [], cargo: [], crowd: 0, spawnIn: (atStart ? 0 : T.newStationGrace) + rand(2, 5), cargoIn: rand(4, 10), born: atStart ? -10 : s.time });
     rt.dirty = true;
   }
 
@@ -625,12 +632,18 @@
     if (p.tourist) fare *= p.scenic ? 2.4 : 1.2; // tourists pay more, double on a Scenic train
     return fare;
   }
-  // Fares and cargo fees go into the budget of the state where the trip ends.
-  function earn(s, amount, here) {
+  // Fares and cargo fees go into the budget of the state where the trip happened.
+  // A trip from one state to another pays national money instead.
+  function earn(s, amount, here, from) {
+    s.weekIncome += amount;
+    if (from && NR.cityById[from] && NR.stateOf(from) !== NR.stateOf(here)) {
+      s.money += amount;
+      s.nationalIncome += amount;
+      return;
+    }
     const st = s.states[NR.stateOf(here)];
     st.budget += amount;
     st.weekIncome += amount;
-    s.weekIncome += amount;
   }
 
   // A passenger or a load of cargo has arrived: collect the money.
@@ -638,13 +651,13 @@
     goalTick(s, p, here);
     if (p.kind) {
       const fee = NR.CARGO[p.kind].fee;
-      earn(s, fee[0] + miles(city(p.from), city(here)) * fee[1], here);
+      earn(s, fee[0] + miles(city(p.from), city(here)) * fee[1], here, p.from);
       s.cargoDelivered[p.kind]++;
       emit("deliver", { at: here, cargo: p.kind });
       return;
     }
     s.delivered++;
-    earn(s, fareFor(p, here), here);
+    earn(s, fareFor(p, here), here, p.from);
     emit("deliver", { at: here });
     countGoals(s, here);
     if (NR.onStateDelivery) NR.onStateDelivery(s, p, here);
@@ -760,7 +773,7 @@
     const fireCounties = [...new Set(open.flatMap((k) => k.split("|")).filter((id) => city(id).type === "mountain").map((id) => city(id).county))];
     if (fireCounties.length && Math.random() < 0.5) {
       const county = pick(fireCounties);
-      const hit = open.filter((k) => k.split("|").some((id) => city(id).county === county)).slice(0, 3);
+      const hit = open.filter((k) => k.split("|").some((id) => city(id).county === county)).slice(0, T.fireStretches);
       hit.forEach((k) => (s.damage[k] = { since: s.time, cause: "fire" }));
       s.fire = { county, left: 3 * T.dayLength };
       emit("fire", { county, keys: hit });
@@ -811,14 +824,6 @@
     emit("stateHeadHired", { code, fee });
     return true;
   };
-  // Move money between national money and a state budget (positive: into the state).
-  NR.stateTransfer = function (s, code, amount) {
-    const st = s.states[code];
-    const move = amount > 0 ? Math.min(amount, Math.max(0, s.money)) : -Math.min(-amount, Math.max(0, st.budget));
-    s.money -= move;
-    st.budget += move;
-    return move;
-  };
 
   // Every step: each state's clock, and its head of transportation starting or retiring.
   function updateStates(s, dt) {
@@ -866,7 +871,24 @@
         st.budget = 0;
       }
     }
-    if (s.money < 0) emit("nationalShort", { amount: -s.money }); // a reminder to move money in from a state
+    // National money below zero: the richest states cover it.
+    if (s.money < 0) {
+      const paid = [];
+      const rich = Object.keys(s.states)
+        .filter((code) => s.states[code].open && s.states[code].budget > 0)
+        .sort((a, b) => s.states[b].budget - s.states[a].budget);
+      for (const code of rich) {
+        if (s.money >= 0) break;
+        const take = Math.min(-s.money, s.states[code].budget);
+        s.states[code].budget -= take;
+        s.money += take;
+        paid.push({ code, amount: take });
+      }
+      if (paid.length) emit("nationalRefill", { paid });
+      if (s.money < 0) emit("nationalShort", { amount: -s.money });
+    }
+    s.nationalLastWeek = { income: s.nationalIncome, upkeep: s.nationalUpkeep };
+    s.nationalIncome = 0;
   }
 
   // ---------- One step of the game ----------
@@ -890,7 +912,8 @@
     } else {
       s.rushIn -= dt;
       if (s.rushIn <= 0) {
-        const big = s.stations.filter((st) => city(st.id).size >= 4);
+        const settled = (st) => s.time - st.born > T.newStationGrace; // not brand-new stations
+        const big = s.stations.filter((st) => city(st.id).size >= 4 && settled(st));
         if (big.length) {
           const st = big[Math.floor(Math.random() * big.length)];
           s.rush = { at: st.id, left: T.rushLength };
@@ -903,7 +926,8 @@
 
     // Passengers appear. Busy cities make more, and each state gets busier the longer you run it.
     s.stations.forEach((st) => {
-      const pressure = 1 + s.states[NR.stateOf(st.id)].liveTime / 240;
+      // Gentle: busier more slowly than Tough (NR.GEO in js/geography.js)
+      const pressure = 1 + s.states[NR.stateOf(st.id)].liveTime / (NR.geoSetting ? NR.geoSetting().growth : 240);
       st.spawnIn -= dt;
       if (st.spawnIn <= 0) {
         const to = pickDestination(s, st);
@@ -954,7 +978,7 @@
     // Flights land at your airports with a burst of travelers.
     s.flightIn -= dt;
     if (s.flightIn <= 0) {
-      const airports = s.stations.filter((st) => city(st.id).airport);
+      const airports = s.stations.filter((st) => city(st.id).airport && s.time - st.born > T.newStationGrace); // not brand-new stations
       if (airports.length) {
         const st = pick(airports);
         let landed = 0;
@@ -968,7 +992,7 @@
       s.flightIn = rand(T.flightEvery[0], T.flightEvery[1]);
     }
 
-    // Earthquakes and wildfires damage track. It mends by itself after 3 weeks,
+    // Earthquakes and wildfires damage track. It mends by itself after a week,
     // or right away when a Work train reaches it.
     s.eventIn -= dt;
     if (s.eventIn <= 0) {
@@ -1470,9 +1494,16 @@
     },
   };
   NR.upgradeChoices = (s) => shuffle(Object.keys(NR.UPGRADES).filter((k) => NR.UPGRADES[k].ok(s))).slice(0, 2);
-  // Every week a new Regular train arrives in the depot.
+  // The week when earthquakes and wildfires begin (counted from 0, like s.week).
+  NR.disasterWeek = () => Math.round(T.firstEvent / T.weekLength);
+  // Every week a new Regular train arrives in the depot. The week disasters begin,
+  // a free Work train arrives too, so you can repair track straight away.
   NR.weekBonus = (s) => {
     s.depot.regular++;
+    if (s.week === NR.disasterWeek() && !s.workTrainGift) {
+      s.depot.work++;
+      s.workTrainGift = true;
+    }
     NR.assignIdleTrains(s);
   };
 

@@ -17,6 +17,7 @@
     headFeeBudget: 0.8, // fee: 80% of the city budget...
     headFeeInfra: 0.5, // ...but at least 50% of the city's track and vehicle value
     managementShare: 0.9, // while managed, management keeps 90% of the profit (10% comes to you)
+    cityGrant: 200, // $k a city map gets from its state's budget when it opens
   });
 
   // City vehicles. price = $k per vehicle, track = $k per mile, upkeep = $k per week,
@@ -150,13 +151,18 @@
   NR.cityAvailable = (s, key) => !!NR.METROS[key] && s.owned.includes(NR.cityById[key].county);
   NR.cityActive = (s, key) => !!(s.cities && s.cities[key]);
 
+  // Opening a city map moves $200k from its state's budget into the new city budget
+  // (less if the state, with national money's help, can't spare it).
   NR.openCity = function (s, key) {
     if (!NR.cityAvailable(s, key)) return null;
     if (!s.cities[key]) {
+      const code = NR.stateOf(key);
+      const grant = Math.max(0, Math.min(T.cityGrant, NR.spendable(s, code)));
+      NR.pay(s, { [code]: grant });
       s.cities[key] = {
         opened: s.time,
         delivered: 0,
-        budget: 0, // the city's own money ($k): fares come in, track, vehicles and running costs go out
+        budget: grant, // the city's own money ($k): fares come in, track, vehicles and running costs go out
         liveTime: 0, // seconds the city has run without a head in charge (it gets busier over this time)
         weekIncome: 0,
         lastWeek: null,
@@ -166,7 +172,7 @@
         stations: NR.METROS[key].stops.map((x) => ({ id: x.id, waiting: [], crowd: 0, spawnIn: rand(6, 14) })),
       };
       rt.cityRoutes[key] = null;
-      emit("cityOpen", { key });
+      emit("cityOpen", { key, grant });
     }
     return s.cities[key];
   };
@@ -351,13 +357,25 @@
     c.trains.push({ id: s.nextId++, lineId: line.id, i: fromEnd ? line.stops.length - 1 : 0, dir: fromEnd ? -1 : 1, t: 0, moving: false, wait: 0.5, segLen: 1, pax: [] });
   }
 
+  // ---------- Paying for things in a city ----------
+  // A city spends its own budget first; if that runs short, its state's budget pays the rest
+  // (and national money after that, as for any state spending).
+  NR.citySpendable = (s, key) => Math.max(0, s.cities[key].budget) + NR.spendable(s, NR.stateOf(key));
+  NR.cityCanPay = (s, key, price) => NR.citySpendable(s, key) >= price - 1e-6;
+  function cityPay(s, key, price) {
+    const c = s.cities[key];
+    const own = Math.min(price, Math.max(0, c.budget));
+    c.budget -= own;
+    if (price > own) NR.pay(s, { [NR.stateOf(key)]: price - own });
+  }
+
   // A new line comes with its first vehicle. Returns the line, or null if you can't afford it.
   NR.cityCreateLine = function (s, key, stops, color, mode) {
     const c = s.cities[key];
     let price = NR.CITY_MODES[mode].price;
     for (let i = 0; i + 1 < stops.length; i++) price += NR.cityTrackPrice(key, mode, stops[i], stops[i + 1]);
-    if (NR.cityFrozen(s, key) || c.budget < price || NR.cityModeProblem(key, mode, stops)) return null;
-    c.budget -= price;
+    if (NR.cityFrozen(s, key) || !NR.cityCanPay(s, key, price) || NR.cityModeProblem(key, mode, stops)) return null;
+    cityPay(s, key, price);
     const line = { id: s.nextId++, color, mode, stops: stops.slice() };
     c.lines.push(line);
     addVehicle(s, c, line);
@@ -372,8 +390,8 @@
     const all = atHead ? [...added.slice().reverse(), ...line.stops] : [...line.stops, ...added];
     let price = 0;
     for (let i = 0; i + 1 < chain.length; i++) price += NR.cityTrackPrice(key, line.mode, chain[i], chain[i + 1]);
-    if (NR.cityFrozen(s, key) || c.budget < price || NR.cityModeProblem(key, line.mode, all)) return false;
-    c.budget -= price;
+    if (NR.cityFrozen(s, key) || !NR.cityCanPay(s, key, price) || NR.cityModeProblem(key, line.mode, all)) return false;
+    cityPay(s, key, price);
     if (atHead) {
       line.stops.unshift(...added.slice().reverse());
       NR.cityTrainsOn(c, line).forEach((t) => (t.i += added.length));
@@ -385,8 +403,8 @@
   NR.cityAddVehicle = function (s, key, line) {
     const price = NR.CITY_MODES[line.mode].price;
     const c = s.cities[key];
-    if (NR.cityFrozen(s, key) || c.budget < price) return false;
-    c.budget -= price;
+    if (NR.cityFrozen(s, key) || !NR.cityCanPay(s, key, price)) return false;
+    cityPay(s, key, price);
     addVehicle(s, c, line);
     return true;
   };
@@ -436,17 +454,8 @@
       return sum + NR.cityLinePrice(key, l) + NR.cityTrainsOn(c, l).length * m.price;
     }, 0);
   };
-  // A city's money comes from, and goes back to, the budget of its state.
+  // The budget of the state a city is in (it covers the city when the city runs short).
   NR.cityState = (s, key) => s.states[NR.stateOf(key)];
-  // Move money between the state budget and a city budget (positive: into the city).
-  NR.cityTransfer = function (s, key, amount) {
-    const c = s.cities[key];
-    const st = NR.cityState(s, key);
-    const move = amount > 0 ? Math.min(amount, Math.max(0, st.budget)) : -Math.min(-amount, Math.max(0, c.budget));
-    st.budget -= move;
-    c.budget += move;
-    return move;
-  };
   const weeks = (n) => n * T.weekLength;
   // "settling" for the first 3 weeks after hiring, then "managing" for 100 weeks, else null.
   NR.headState = function (s, key) {
@@ -463,8 +472,8 @@
   NR.hireHead = function (s, key) {
     const c = s.cities[key];
     const fee = NR.headFee(s, key);
-    if (!c || c.head || !c.lines.length || c.budget < fee) return false;
-    c.budget -= fee;
+    if (!c || c.head || !c.lines.length || !NR.cityCanPay(s, key, fee)) return false;
+    cityPay(s, key, fee);
     c.head = { hired: s.time, from: s.time + weeks(T.headSettleWeeks), until: s.time + weeks(T.headSettleWeeks + T.headTermWeeks) };
     emit("headHired", { key, fee });
     return true;
@@ -622,7 +631,7 @@
       const managed = NR.cityFrozen(s, key);
       const homes = metro.stops.filter((x) => !x.hub);
       if (!managed) c.liveTime += dt; // the city only gets busier while you run it yourself
-      const pressure = 1 + c.liveTime / 400;
+      const pressure = 1 + c.liveTime / (NR.geoSetting ? NR.geoSetting().cityGrowth : 400); // Gentle: busier more slowly
       // Riders appear in the neighborhoods: most cross town, some head for the main station.
       for (const st of c.stations) {
         if (st.id === hub.id) continue;

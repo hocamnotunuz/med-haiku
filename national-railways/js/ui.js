@@ -189,8 +189,11 @@
       ? `Last week you earned ${NR.money(lw.income)} in fares and paid ${NR.money(lw.upkeep)} to run your trains.`
       : "";
     const fresh = Object.values(NR.TRAIN_TYPES).filter((t) => t.unlockWeek === week);
-    $("week-news").hidden = !fresh.length;
-    $("week-news").textContent = fresh.map((t) => `New: ${t.name} trains are now available. ${t.about}`).join(" ");
+    const news = fresh.map((t) => `New: ${t.name} trains are now available. ${t.about}`);
+    if (week === NR.disasterWeek())
+      news.push("From now on, earthquakes and wildfires can damage track. A free Work train is waiting in your depot: put it on a line (tap the line's color) and it repairs damage there.");
+    $("week-news").hidden = !news.length;
+    $("week-news").textContent = news.join(" ");
     const list = $("upgrade-list");
     list.textContent = "";
     NR.upgradeChoices(game).forEach((key) => {
@@ -325,11 +328,13 @@
       } else if (ev.type === "headRetired") {
         toast(`${NR.METROS[ev.key].name}'s head of transportation has retired. The city is yours to run again.`);
       } else if (ev.type === "cityShortfall") {
-        toast(`${NR.METROS[ev.key].name}'s budget ran dry: ${NR.money(ev.amount)} of running costs came out of the ${NR.STATE_NAMES[NR.stateOf(ev.key)]} budget.`);
+        toast(`${NR.METROS[ev.key].name}'s budget ran dry: the ${NR.STATE_NAMES[NR.stateOf(ev.key)]} budget paid ${NR.money(ev.amount)} of its running costs.`);
       } else if (ev.type === "stateShortfall") {
         toast(`The ${NR.STATE_NAMES[ev.code]} budget ran dry: national money paid ${NR.money(ev.amount)} of its running costs.`);
       } else if (ev.type === "nationalShort") {
-        toast(`National money is ${NR.money(-ev.amount)}. Tap the money at the bottom and take some out of a state budget, or border lines can't get new trains or track.`);
+        toast(`National money is ${NR.money(-ev.amount)} and every state budget is empty too. Border lines can't get new track or trains until fares come in.`);
+      } else if (ev.type === "nationalRefill") {
+        toast(`National money ran short: ${ev.paid.map((p) => `the ${NR.STATE_NAMES[p.code]} budget paid ${NR.money(p.amount)}`).join(", ")}.`);
       } else if (ev.type === "statesOpen") {
         const names = ev.codes.map((code) => NR.STATE_NAMES[code]);
         const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
@@ -341,7 +346,9 @@
       } else if (ev.type === "stateHeadRetired") {
         toast(`${NR.STATE_NAMES[ev.code]}'s head of transportation has retired. The state is yours to run again.`);
       } else if (ev.type === "cityOpen") {
-        toast(`${NR.METROS[ev.key].name} city map is open. Move money into its budget to build, because riders will start to appear in the neighborhoods.`);
+        toast(
+          `${NR.METROS[ev.key].name} city map is open with ${NR.money(ev.grant)} from the ${NR.STATE_NAMES[NR.stateOf(ev.key)]} budget. Build soon: riders will start to appear in the neighborhoods.`
+        );
       } else if (ev.type === "cityCrowd") {
         if (cityKey !== ev.key) toast(`Crowding at ${NR.cityStop(ev.key, ev.at).name} in ${NR.METROS[ev.key].name}! Open the city map to help.`);
       } else if (ev.type === "cityDeliver") {
@@ -571,7 +578,7 @@
     chipSig = "";
     renderCityBar();
     const c = game.cities[key];
-    if (!c.lines.length && c.budget <= 0) openCityPanel(); // a new city starts with an empty budget
+
   }
   function leaveCity() {
     if (!cityKey) return;
@@ -636,10 +643,6 @@
       (lw ? `Last week: fares ${NR.money(lw.income)}, running costs ${NR.money(lw.upkeep)}${lw.toYou ? `, ${NR.money(lw.toYou)} to the state budget` : ""} · ` : "") +
         `${plural(c.delivered, "rider")} so far`
     );
-    const stateMoney = NR.cityState(game, cityKey).budget;
-    $("cy-in").disabled = stateMoney <= 0;
-    $("cy-in5").disabled = stateMoney <= 0;
-    $("cy-out").disabled = c.budget <= 0;
     const hire = $("cy-hire");
     const bar = $("cy-head-bar");
     if (!state) {
@@ -653,7 +656,7 @@
       );
       hire.hidden = false;
       setText("cy-hire", `Hire for ${NR.money(fee)}`);
-      hire.disabled = !c.lines.length || c.budget < fee;
+      hire.disabled = !c.lines.length || !NR.cityCanPay(game, cityKey, fee);
       bar.hidden = true;
     } else {
       const settling = state === "settling";
@@ -669,16 +672,6 @@
       $("cy-head-fill").style.width = `${Math.min(100, (100 * (game.time - a)) / (b - a))}%`;
     }
   }
-  const moveMoney = (amount) => {
-    if (!cityKey) return;
-    const moved = NR.cityTransfer(game, cityKey, amount);
-    const from = NR.STATE_NAMES[NR.stateOf(cityKey)];
-    if (moved) toast(moved > 0 ? `Moved ${NR.money(moved)} from the ${from} budget into the ${NR.METROS[cityKey].name} budget.` : `Took ${NR.money(-moved)} out of the ${NR.METROS[cityKey].name} budget, back to the ${from} budget.`);
-    renderCityPanel();
-  };
-  $("cy-in").addEventListener("click", () => moveMoney(100));
-  $("cy-in5").addEventListener("click", () => moveMoney(500));
-  $("cy-out").addEventListener("click", () => moveMoney(-100));
   $("cy-close").addEventListener("click", closeCityPanel);
   $("btn-city-budget").addEventListener("click", () => (cityPanelOpen() ? closeCityPanel() : openCityPanel()));
   $("cy-hire").addEventListener("click", () => {
@@ -724,15 +717,6 @@
     budget.className = "cy-budget";
     const week = document.createElement("p");
     week.className = "lp-meta";
-    const moves = document.createElement("div");
-    moves.className = "lp-actions";
-    const move = (amount) => {
-      const moved = NR.stateTransfer(game, code, amount);
-      if (moved) toast(moved > 0 ? `Moved ${NR.money(moved)} of national money into the ${NR.STATE_NAMES[code]} budget.` : `Moved ${NR.money(-moved)} from the ${NR.STATE_NAMES[code]} budget to national money.`);
-    };
-    const moveIn = button("Move $100k in", "btn btn-small", () => move(100));
-    const moveOut = button("Take $100k out", "btn btn-small", () => move(-100));
-    moves.append(moveIn, moveOut);
     const head = document.createElement("p");
     head.className = "cp-goal-text";
     const bar = document.createElement("div");
@@ -753,14 +737,16 @@
       NR.hireStateHead(game, code);
     });
     hireRow.append(hire);
-    card.append(row, budget, week, moves, head, bar, hireRow);
-    bpCards[code] = { card, chip, budget, week, moveIn, moveOut, head, bar, fill, hire, hireRow };
+    card.append(row, budget, week, head, bar, hireRow);
+    bpCards[code] = { card, chip, budget, week, head, bar, fill, hire, hireRow };
     return card;
   }
   function renderBudgetPanel() {
     if (!game || !budgetsOpen()) return;
     setText("bp-national", NR.money(game.money));
     $("bp-national").classList.toggle("negative", game.money < 0);
+    const nw = game.nationalLastWeek;
+    setText("bp-national-week", nw ? `Last week: border fares ${NR.money(nw.income)}, border trains ${NR.money(nw.upkeep || 0)}` : "");
     const codes = Object.keys(game.states);
     const open = codes.filter((code) => game.states[code].open);
     const closed = codes.filter((code) => !game.states[code].open);
@@ -795,8 +781,6 @@
       el.week.textContent = lw
         ? `Last week: fares ${NR.money(lw.income)}, running costs ${NR.money(lw.upkeep)}${lw.toNational ? `, ${NR.money(lw.toNational)} to national money` : ""}`
         : "Fares earned at its stations come in here.";
-      el.moveIn.disabled = game.money <= 0;
-      el.moveOut.disabled = st.budget <= 0;
       el.chip.className = `head-chip ${state || ""}`;
       el.chip.textContent = state === "managing" ? `Managed · ${weeksUntil(st.head.until)} wk left` : state === "settling" ? `Head settling in · ${weeksUntil(st.head.from)} wk` : "No head";
       el.bar.hidden = !state;
@@ -872,7 +856,11 @@
     $("cp-buy").hidden = !st.ok;
     const hasCity = !!NR.METROS[main.id];
     $("cp-city").hidden = !(hasCity && st.owned);
-    if (hasCity && st.owned) setText("cp-city", NR.cityActive(game, main.id) ? `Go to the ${NR.METROS[main.id].name} city map` : `Open city map (trams and metro)`);
+    if (hasCity && st.owned)
+      setText(
+        "cp-city",
+        NR.cityActive(game, main.id) ? `Go to the ${NR.METROS[main.id].name} city map` : `Open city map (trams and metro) · ${NR.money(T.cityGrant)} from the ${NR.STATE_NAMES[NR.stateOf(main.id)]} budget`
+      );
     if (st.ok) {
       setText("cp-goal-text", `Free unlock: deliver ${st.goal} passengers to your stations next to this county (${st.progress}/${st.goal}).`);
       $("cp-goal-fill").style.width = `${Math.min(100, (100 * st.progress) / st.goal)}%`;
@@ -911,7 +899,7 @@
     const m = NR.CITY_MODES[line.mode];
     const vehicles = NR.cityTrainsOn(c, line);
     const frozen = NR.cityFrozen(game, cityKey);
-    const sig = JSON.stringify(["city", cityKey, line.stops, vehicles.map((t) => t.id), c.budget >= m.price, game.extraSeats, frozen]);
+    const sig = JSON.stringify(["city", cityKey, line.stops, vehicles.map((t) => t.id), NR.cityCanPay(game, cityKey, m.price), game.extraSeats, frozen]);
     if (sig === panelSig) return;
     panelSig = sig;
     $("lp-dot").style.background = `var(--line-${line.color + 1})`;
@@ -953,14 +941,14 @@
     const add = button("", "buy", () => {
       if (NR.cityAddVehicle(game, cityKey, line)) renderLinePanel();
     });
-    add.disabled = frozen || c.budget < m.price;
+    add.disabled = frozen || !NR.cityCanPay(game, cityKey, m.price);
     add.title = m.about;
     const name = document.createElement("span");
     name.className = "buy-name";
     name.textContent = `Add a ${m.vehicle}`;
     const note = document.createElement("span");
     note.className = "buy-note";
-    note.textContent = frozen ? "Frozen while managed" : `Buy ${NR.money(m.price)} from the city budget`;
+    note.textContent = frozen ? "Frozen while managed" : `Buy ${NR.money(m.price)} (city budget, then state)`;
     add.append(name, note);
     buy.appendChild(add);
     $("lp-upgrade").hidden = true;
@@ -1094,7 +1082,7 @@
     }
     const modeName =
       game.mode === "levels" ? `Level ${game.level + 1}: ${NR.LEVELS[game.level].name}` : game.mode === "timed" ? "Timed challenge" : "Endless";
-    if (!cityKey) setText("mode-label", `${modeName} · ${game.style === "type" ? "Type of place" : "Specific city"}${game.geo === "tough" ? " · Tough geography" : ""}`);
+    if (!cityKey) setText("mode-label", `${modeName} · ${game.style === "type" ? "Type of place" : "Specific city"}${game.geo === "tough" ? " · Tough" : ""}`);
     setText("trains-free", NR.depotCount(game));
     if (cityKey) {
       setText("mode-label", `${NR.METROS[cityKey].name} city map · trams and metro`);
@@ -1193,9 +1181,9 @@
         toast(NR.cityModeProblem(draft.city, draft.mode, [lastId, id]) + ".");
         return;
       }
-      const left = game.cities[draft.city].budget - draft.cost;
+      const left = NR.citySpendable(game, draft.city) - draft.cost;
       if (cost > left) {
-        toast(`Not enough in the city budget: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.money(cost)}, and you have ${NR.money(Math.max(0, left))}.`);
+        toast(`Not enough money: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.money(cost)}, and the city and state budgets have ${NR.money(Math.max(0, left))} left.`);
         return;
       }
     } else {
@@ -1231,8 +1219,8 @@
     draft = null;
     pointer = null;
     if (!game || d.chain.length < 2) return;
-    if (d.city ? game.cities[d.city].budget < d.cost : !NR.canPay(game, NR.chainBill(d.chain, d.grade))) {
-      toast(`Not enough ${d.city ? "in the city budget" : "money"} to build this: it costs ${NR.money(d.cost)}.`);
+    if (d.city ? !NR.cityCanPay(game, d.city, d.cost) : !NR.canPay(game, NR.chainBill(d.chain, d.grade))) {
+      toast(`Not enough money to build this: it costs ${NR.money(d.cost)}.`);
       return;
     }
     if (d.city) {
@@ -1242,8 +1230,8 @@
       if (d.kind === "new") {
         const problem = NR.cityModeProblem(d.city, d.mode, d.chain);
         if (problem) return toast(`${problem}.`);
-        if (c.budget < d.cost + m.price)
-          return toast(`Not enough in the city budget: this ${m.name.toLowerCase()} line costs ${NR.money(d.cost + m.price)} with its first ${m.vehicle}. Tap City budget to move money in.`);
+        if (!NR.cityCanPay(game, d.city, d.cost + m.price))
+          return toast(`Not enough money: this ${m.name.toLowerCase()} line costs ${NR.money(d.cost + m.price)} with its first ${m.vehicle}, more than the city and state budgets have.`);
         if (NR.cityFreeColor(c) === d.color) NR.cityCreateLine(game, d.city, d.chain, d.color, d.mode);
       } else {
         const line = NR.cityLineById(c, d.lineId);

@@ -8,12 +8,14 @@
   const G = NR.TERRAIN;
   const rt = NR.runtime;
 
-  // ---- The two settings ----
+  // ---- The two difficulty settings ----
   // Costs multiply the normal price of track for those miles. Speeds multiply train speed.
   NR.GEO = {
     gentle: {
       name: "Gentle",
-      about: "Geography costs a little more and slows trains a little. Long tunnels and bridges are allowed.",
+      about: "Passengers increase slowly. Geography costs a little more and slows trains a little.",
+      growth: 360, // passengers: a state gets this much busier every 360 seconds you run it (+100%)
+      cityGrowth: 600, // the same for city neighborhoods
       hillCost: 1.25, // hills
       hillSpeed: 0.9,
       passCost: 2, // over a real mountain pass
@@ -43,7 +45,9 @@
     },
     tough: {
       name: "Tough",
-      about: "Mountains, water and rivers are real obstacles: pricey, slow, and some routes are impossible without the right pass or bridge.",
+      about: "Passengers increase faster. Mountains, water and rivers are real obstacles: pricey, slow, and some routes are impossible without the right pass or bridge.",
+      growth: 240,
+      cityGrowth: 400,
       hillCost: 1.5,
       hillSpeed: 0.8,
       passCost: 3,
