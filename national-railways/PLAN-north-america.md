@@ -1,6 +1,6 @@
 # Plan: every US state and Canadian province, at California's standard
 
-**Status:** plan only. Nothing here is built yet. Each step starts only after you say go.
+**Status:** approved. The decisions in section 10 are settled (the recommended choices). Step 0 has started. Each later step still starts only after you say go.
 
 **Goal:** all 50 US states (plus Washington, D.C.) and Canada's 10 provinces playable on one connected map. Each one gets the same depth California has today. Canada's 3 territories are a decision for you (see "Decisions" at the end).
 
@@ -228,14 +228,14 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 
 ---
 
-## 10. Decisions needed from you before starting
+## 10. Decisions (settled)
 
-1. **Canada's territories** (Yukon, Northwest Territories, Nunavut): include them as a few huge regions, or keep them under clouds? *Recommended: include later, after the provinces.*
-2. **Alaska and Hawaii:** Alaska can join by land through Canada. Hawaii is islands only. *Recommended: Alaska opens from Yukon or British Columbia. Hawaii comes last, reached by a ferry or air link.*
-3. **Money across the border:** *Recommended: the US and Canada each have their own national money. Lines crossing the border are paid half and half, and their fares go to both.*
-4. **Starting place:** *Recommended: you choose any state or province; California stays the default.*
-5. **City maps:** *Recommended: Tier 1 list above (about 36 new cities).*
-6. **Order:** *Recommended: Step 0 (own repository), then foundation, then pilot, then one state at a time in the order above.*
+1. **Canada's territories** (Yukon, Northwest Territories, Nunavut): included **later**, after the provinces, as a few huge regions.
+2. **Alaska and Hawaii:** Alaska opens by land from Yukon or British Columbia. Hawaii comes last, reached by a ferry or air link.
+3. **Money across the border:** the US and Canada each have their own national money. Lines crossing the border are paid half and half, and their fares go to both.
+4. **Starting place:** you choose any state or province; California stays the default.
+5. **City maps:** the Tier 1 list in section 6 (36 new cities).
+6. **Order:** Step 0 (own repository), then foundation, then the pilot, then one state at a time in the order in section 6.
 
 ---
 
