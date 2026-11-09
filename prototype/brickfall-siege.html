@@ -77,7 +77,8 @@ button{cursor:pointer}
   .weapon{padding:5px 10px 5px 6px;min-height:46px}
   .weapon .wname{font-size:12px}
   .fire{width:78px;height:78px;font-size:17px}
-  .hint{bottom:calc(env(safe-area-inset-bottom,0px) + 104px);font-size:13px}
+  .weapons{flex-direction:column;align-items:flex-start;gap:6px}
+  .hint{top:calc(env(safe-area-inset-top,0px) + 82px);bottom:auto;font-size:13px}
 }
 
 /* ---------- Overlays ---------- */
@@ -155,6 +156,10 @@ select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--rule
       <button class="weapon" data-w="bomb" aria-pressed="false" id="wBomb">
         <svg viewBox="0 0 32 32"><circle cx="15" cy="18" r="10" fill="#3a2a24" stroke="#de5a2c" stroke-width="1.5"/><path d="M21 10l4-4" stroke="#d6a24a" stroke-width="2.4" stroke-linecap="round"/><circle cx="26" cy="5" r="2.4" fill="#f3b04a"/></svg>
         <span><span class="wname">Bomb</span><span class="wcount" id="cBomb">3</span></span>
+      </button>
+      <button class="weapon" data-w="boulder" aria-pressed="false" id="wBoulder">
+        <svg viewBox="0 0 32 32"><path d="M6 21l3-9 8-5 8 4 2 9-6 6H11z" fill="#8d8579" stroke="#5c574f" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 14l5-3M19 19l3-1" stroke="#b8b0a2" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span><span class="wname">Trebuchet</span><span class="wcount" id="cBoulder">3</span></span>
       </button>
     </div>
     <button class="fire" id="fire" aria-label="Fire">FIRE</button>
@@ -301,6 +306,10 @@ const TINTS = [
 ];
 const BALL = { r: 0.32, mass: 3.0, speed: 42 };
 const BOMB = { r: 0.38, mass: 2.0, speed: 36, radius: 2.6, power: 600 };
+// Trebuchet boulder: heavy, thrown high, hits harder and wider than a cannonball
+const TREB = { r: 0.55, mass: 9.0, punch: 1.4, splash: 1.5, splashK: 0.16 };
+const TREB_COCK = -0.45, TREB_END = 2.3, TREB_SWING = 0.5, TREB_REL = 1.4;   // arm angles (radians) and swing time
+const TREB_REL_T = TREB_SWING * Math.sqrt((TREB_REL - TREB_COCK) / (TREB_END - TREB_COCK)); // moment the sling lets go
 const KDMG = 0.55;  // cannonball energy -> damage
 const KDEB = 0.45;  // falling debris energy -> damage
 
@@ -862,8 +871,9 @@ class RapierPhys {
   }
   createBody(P, Q, shapes, V, W, ccd) {
     const R = this.R;
+    // ccd is only set for projectiles: they fly without air drag so they follow the dotted aim line
     const d = R.RigidBodyDesc.dynamic().setTranslation(P.x, P.y, P.z).setRotation(Q).setLinvel(V.x, V.y, V.z)
-      .setAngvel(W).setLinearDamping(0.03).setAngularDamping(0.3).setCcdEnabled(!!ccd);
+      .setAngvel(W).setLinearDamping(ccd ? 0 : 0.03).setAngularDamping(ccd ? 0.1 : 0.3).setCcdEnabled(!!ccd);
     const b = this.world.createRigidBody(d);
     for (const s of shapes) {
       const cd = s.r ? R.ColliderDesc.ball(s.r) : R.ColliderDesc.cuboid(s.hx, s.hy, s.hz);
@@ -905,7 +915,7 @@ class CannonPhys {
     this.world.addBody(g);
     this.fixed = 0;
   }
-  createBody(P, Q, shapes, V, W) {
+  createBody(P, Q, shapes, V, W, ccd) {
     const C = this.C;
     let m = 0; for (const s of shapes) m += s.mass;
     const b = new C.Body({ mass: m });
@@ -915,7 +925,7 @@ class CannonPhys {
     }
     b.position.set(P.x, P.y, P.z); b.quaternion.set(Q.x, Q.y, Q.z, Q.w);
     b.velocity.set(V.x, V.y, V.z); b.angularVelocity.set(W.x, W.y, W.z);
-    b.linearDamping = 0.03; b.angularDamping = 0.3; b.sleepSpeedLimit = 0.25; b.sleepTimeLimit = 0.5;
+    b.linearDamping = ccd ? 0 : 0.03; b.angularDamping = ccd ? 0.1 : 0.3; b.sleepSpeedLimit = 0.25; b.sleepTimeLimit = 0.5;
     this.world.addBody(b);
     return b;
   }
@@ -1190,6 +1200,48 @@ const cannon = new THREE.Group();
 }
 scene.add(cannon);
 
+// Rough boulder: an icosahedron with its corners pushed in and out
+const rockGeo = new THREE.IcosahedronGeometry(1, 1);
+{
+  const pos = rockGeo.attributes.position;
+  for (let n = 0; n < pos.count; n++) {
+    const x = pos.getX(n), y = pos.getY(n), z = pos.getZ(n);
+    const hsh = Math.sin(Math.round(x * 50) * 12.9898 + Math.round(y * 50) * 78.233 + Math.round(z * 50) * 37.719) * 43758.5453;
+    const f = 0.84 + 0.24 * (hsh - Math.floor(hsh));
+    pos.setXYZ(n, x * f, y * f * 0.9, z * f);
+  }
+  rockGeo.computeVertexNormals();
+}
+const rockMat = new THREE.MeshStandardMaterial({ color: 0x8d8579, roughness: 0.95, flatShading: true });
+
+// Trebuchet: wooden frame, throwing arm with a counterweight, boulder in the sling
+const treb = new THREE.Group();
+const trebState = { pending: false, t0: -99 };
+{
+  const woodM = new THREE.MeshStandardMaterial({ color: 0x6b4a2b, roughness: 0.9 });
+  const darkM = new THREE.MeshStandardMaterial({ color: 0x4a321d, roughness: 0.9 });
+  const ironM = new THREE.MeshStandardMaterial({ color: 0x2c3036, roughness: 0.45, metalness: 0.6 });
+  const ropeM = new THREE.MeshStandardMaterial({ color: 0xb59a6a, roughness: 1 });
+  const box = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); treb.add(o); return o; };
+  for (const sx of [-0.95, 0.95]) {
+    box(0.26, 0.26, 4.2, darkM, sx, 0.13, 0);
+    for (const sz of [1, -1]) { const post = box(0.17, 3.1, 0.17, woodM, sx, 1.62, sz * 0.7); post.rotation.x = -sz * 0.47; }
+  }
+  for (const sz of [-1.6, 1.6]) box(2.16, 0.2, 0.2, darkM, 0, 0.3, sz);
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.3, 12), ironM); axle.rotation.z = Math.PI / 2; axle.position.y = 3.0; treb.add(axle);
+  const arm = new THREE.Group(); arm.position.y = 3.0; treb.add(arm);
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 6.0), woodM); beam.position.z = -1.5; arm.add(beam);
+  const cw = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.0, 0.9), darkM); cw.position.set(0, -0.62, 1.45); arm.add(cw);
+  const band = new THREE.Mesh(new THREE.BoxGeometry(1.14, 0.12, 0.94), ironM); band.position.set(0, -0.3, 1.45); arm.add(band);
+  const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 6), ropeM); rope.position.set(0, -0.25, -4.45); arm.add(rope);
+  const stone = new THREE.Mesh(rockGeo, rockMat); stone.scale.setScalar(TREB.r); stone.position.set(0, -0.55, -4.45); arm.add(stone);
+  arm.rotation.x = TREB_COCK;
+  treb.userData = { arm, stone };
+  treb.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+}
+treb.visible = false;
+scene.add(treb);
+
 // Target marker and trajectory
 const marker = new THREE.Group();
 {
@@ -1229,14 +1281,14 @@ const Sound = {
     if (!settings.sound || !this.ctx) return;
     const c = this.ctx, t = c.currentTime;
     if (kind === 'crumble') { if (t - this.lastCrumble < 0.09) return; this.lastCrumble = t; }
-    const P = { boom: [900, 70, 1.6, 0.9], fire: [2200, 160, 0.45, 0.55], hit: [1400, 240, 0.35, 0.4], crumble: [900, 300, 0.22, 0.12] }[kind];
+    const P = { boom: [900, 70, 1.6, 0.9], fire: [2200, 160, 0.45, 0.55], hit: [1400, 240, 0.35, 0.4], crumble: [900, 300, 0.22, 0.12], treb: [700, 120, 0.7, 0.3] }[kind];
     const src = c.createBufferSource(); src.buffer = this.noise;
     const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(P[0], t); f.frequency.exponentialRampToValueAtTime(P[1], t + P[2]);
     const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(P[3] * vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + P[2]);
     src.connect(f).connect(g).connect(c.destination); src.start(t, Math.random() * 0.5); src.stop(t + P[2] + 0.05);
-    if (kind === 'boom' || kind === 'fire') {
+    if (kind === 'boom' || kind === 'fire' || kind === 'treb') {
       const o = c.createOscillator(), og = c.createGain();
-      o.frequency.setValueAtTime(kind === 'boom' ? 75 : 110, t); o.frequency.exponentialRampToValueAtTime(32, t + 0.5);
+      o.frequency.setValueAtTime(kind === 'boom' ? 75 : kind === 'treb' ? 140 : 110, t); o.frequency.exponentialRampToValueAtTime(32, t + 0.5);
       og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(0.7 * vol, t + 0.01); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
       o.connect(og).connect(c.destination); o.start(t); o.stop(t + 0.6);
     }
@@ -1537,9 +1589,9 @@ function sweepShot(pr) {
       broke++;
       // Splash: shake nearby bricks loose
       const ix = P.x + dx * t, iy = P.y + dy * t, iz = P.z + dz * t;
-      const sr = 1.0 * wScale;
+      const sr = pr.splash;
       hashQuery(ix - sr, iy - sr, iz - sr, ix + sr, iy + sr, iz + sr, tmpList2);
-      const splash = Math.min(E, pr.E0) * 0.1;
+      const splash = Math.min(E, pr.E0) * pr.splashK;
       for (const n2 of tmpList2) if (state[n2] === S_STATIC) damageStatic(n2, splash, ux * 6, uy * 6 + 1, uz * 6);
     } else {
       hp[c] -= E * 0.9; E = 0; stopped = true; structureDirty = true; break;
@@ -1624,6 +1676,13 @@ const prof = { pre: 0, wake: 0, step: 0, post: 0, n: 0 };
 function physicsStep() {
   frame++;
   simTime += FIXED;
+  if (trebState.pending && simTime - trebState.t0 >= TREB_REL_T) {
+    trebState.pending = false;
+    trebLaunch();
+    launchShot('boulder');
+    Sound.play('fire', 0.5);
+    shake = Math.max(shake, 0.12);
+  }
   const tA = performance.now();
   // 1. Cannonballs and bombs look ahead for bricks they will hit this step
   for (const pr of shots) {
@@ -1728,7 +1787,7 @@ function updateStructure() {
 let gameState = 'loading';
 let ammo = { ball: 8, bomb: 3 }, weapon = 'ball', shotsFired = 0, lastShotT = -99, settleT = 0;
 let seed = 1 + Math.floor(Math.random() * 1e6);
-const cam = { theta: 0.55, phi: 0.36, dist: 60, min: 10, max: 200, tx: 0, ty: 4, tz: 0 };
+const cam = { theta: 0.55, phi: 0.36, dist: 60, min: 10, max: 200, tx: 0, ty: 4, tz: 0, want: null };
 let ringR = 30, userTarget = false, shake = 0;
 let wScale = 1; // weapons grow with the castle: bigger castles get a bigger siege cannon
 const target = new THREE.Vector3();
@@ -1739,12 +1798,28 @@ const ndc = new THREE.Vector2();
 
 function startAmmo() {
   const k = settings.sizeIdx;
-  ammo = { ball: 8 + k, bomb: 3 + Math.floor(k / 2) };
+  ammo = { ball: 8 + k, bomb: 3 + Math.floor(k / 2), boulder: 3 + Math.floor(k / 3) };
   weapon = 'ball'; shotsFired = 0;
 }
-function placeCannon() {
+// Where the sling releases the boulder, and the throw needed to land on the target (high arc)
+function trebLaunch() {
+  const s = Math.sqrt(wScale);
+  const bx = Math.sin(cam.theta) * ringR, bz = Math.cos(cam.theta) * ringR;
+  let dx = target.x - bx, dz = target.z - bz;
+  const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+  const fwd = -4.5 * s * Math.cos(TREB_REL), up = 3.0 * s + 4.5 * s * Math.sin(TREB_REL);
+  muzzle.set(bx + dx * fwd, up, bz + dz * fwd);
+  const x = Math.hypot(target.x - muzzle.x, target.z - muzzle.z), y = target.y - muzzle.y;
+  let th = 60 * Math.PI / 180, den = 2 * Math.cos(th) ** 2 * (x * Math.tan(th) - y);
+  if (den < 1) { th = 72 * Math.PI / 180; den = 2 * Math.cos(th) ** 2 * (x * Math.tan(th) - y); }
+  const v = Math.sqrt(GRAV * x * x / Math.max(0.5, den));
+  launchV.set(dx * Math.cos(th) * v, Math.sin(th) * v, dz * Math.cos(th) * v);
+}
+function placeLauncher() {
   const cx = Math.sin(cam.theta) * ringR, cz = Math.cos(cam.theta) * ringR;
   cannon.position.set(cx, 0, cz);
+  treb.position.set(cx, 0, cz);
+  treb.scale.setScalar(Math.sqrt(wScale));
   if (!userTarget) {
     const p = castleInfo.params, Wh = p.W / 2;
     const dx = -Math.sin(cam.theta), dz = -Math.cos(cam.theta);
@@ -1752,6 +1827,12 @@ function placeCannon() {
     target.set(-dx * reach, p.wallRows * H * 0.45, -dz * reach);
   }
   cannon.lookAt(target.x, 0, target.z);
+  treb.lookAt(target.x, 0, target.z);
+  if (weapon === 'boulder' || trebState.pending) trebLaunch();
+  else aimCannon();
+  drawFlightPath();
+}
+function aimCannon() {
   // Solve the launch angle (low arc) for this muzzle and target
   const spd = weapon === 'bomb' ? BOMB.speed : BALL.speed;
   const pivot = cannon.userData.pivot;
@@ -1766,7 +1847,8 @@ function placeCannon() {
     launchV.set(hx2 / x * Math.cos(ang) * spd, Math.sin(ang) * spd, hz2 / x * Math.cos(ang) * spd);
   }
   pivot.rotation.x = -ang;
-  // Dotted flight path
+}
+function drawFlightPath() {
   const arr = trajGeo.attributes.position.array;
   const hdist = Math.hypot(target.x - muzzle.x, target.z - muzzle.z);
   const T = hdist / Math.max(0.1, Math.hypot(launchV.x, launchV.z));
@@ -1794,30 +1876,41 @@ function aimAt(clientX, clientY) {
   target.copy(p); userTarget = true;
   hideHint();
 }
+// Creates the flying projectile from the current muzzle position and launch velocity
+function launchShot(kind) {
+  const cfg = kind === 'bomb' ? BOMB : kind === 'boulder' ? TREB : BALL;
+  const r = cfg.r * Math.sqrt(wScale), mass0 = cfg.mass * Math.pow(wScale, 1.5);
+  const vol = (4 / 3) * Math.PI * r ** 3;
+  const h = phys.createBody({ x: muzzle.x, y: muzzle.y, z: muzzle.z }, IDQ, [{ r, density: mass0 / vol, mass: mass0, friction: 0.6, rest: 0.1 }], { x: launchV.x, y: launchV.y, z: launchV.z }, { x: 0, y: 0, z: 0 }, true);
+  const mesh = new THREE.Mesh(kind === 'boulder' ? rockGeo : ballGeo, kind === 'bomb' ? bombMat : kind === 'boulder' ? rockMat : ballMat);
+  mesh.scale.setScalar(r); mesh.castShadow = true; mesh.position.copy(muzzle);
+  scene.add(mesh);
+  const sp = launchV.length(), E = 0.5 * mass0 * sp * sp * KDMG * (cfg.punch || 1);
+  shots.push({ kind, h, r, mesh, P: { x: muzzle.x, y: muzzle.y, z: muzzle.z }, V: { x: launchV.x, y: launchV.y, z: launchV.z }, E, E0: E, age: 0, slowT: 0, hit: new Set(), dead: false, removed: false, sounded: false,
+    splash: (cfg.splash || 1.0) * wScale, splashK: cfg.splashK || 0.1 });
+}
 function fire() {
-  if (gameState !== 'play') return;
+  if (gameState !== 'play' || trebState.pending) return;
   if (!settings.unlimited && ammo[weapon] <= 0) return;
   Sound.init();
   if (!settings.unlimited) ammo[weapon]--;
   shotsFired++; lastShotT = simTime;
-  placeCannon();
-  const cfg = weapon === 'bomb' ? BOMB : BALL;
-  const r = cfg.r * Math.sqrt(wScale), mass0 = cfg.mass * Math.pow(wScale, 1.5);
-  const vol = (4 / 3) * Math.PI * r ** 3;
-  const h = phys.createBody({ x: muzzle.x, y: muzzle.y, z: muzzle.z }, IDQ, [{ r, density: mass0 / vol, mass: mass0, friction: 0.6, rest: 0.1 }], { x: launchV.x, y: launchV.y, z: launchV.z }, { x: 0, y: 0, z: 0 }, true);
-  const mesh = new THREE.Mesh(ballGeo, weapon === 'bomb' ? bombMat : ballMat);
-  mesh.scale.setScalar(r); mesh.castShadow = true; mesh.position.copy(muzzle);
-  scene.add(mesh);
-  const sp = launchV.length(), E = 0.5 * mass0 * sp * sp * KDMG;
-  shots.push({ kind: weapon, h, r, mesh, P: { x: muzzle.x, y: muzzle.y, z: muzzle.z }, V: { x: launchV.x, y: launchV.y, z: launchV.z }, E, E0: E, age: 0, slowT: 0, hit: new Set(), dead: false, removed: false, sounded: false });
-  Sound.play('fire', 1);
-  puff(muzzle.x, muzzle.y, muzzle.z, 14, 0.6, 2.2);
-  recoil = 1; shake = Math.max(shake, 0.18);
-  if (!settings.unlimited && ammo[weapon] <= 0) {
-    const other = weapon === 'ball' ? 'bomb' : 'ball';
-    if (ammo[other] > 0) setWeapon(other);
+  if (weapon === 'boulder') {
+    // The arm swings first; the boulder leaves the sling a moment later (see physicsStep)
+    trebState.pending = true; trebState.t0 = simTime;
+    Sound.play('treb', 1);
+  } else {
+    placeLauncher();
+    launchShot(weapon);
+    Sound.play('fire', 1);
+    puff(muzzle.x, muzzle.y, muzzle.z, 14, 0.6, 2.2);
+    recoil = 1; shake = Math.max(shake, 0.18);
   }
-  if (!settings.unlimited && ammo.ball <= 0 && ammo.bomb <= 0) { gameState = 'settling'; settleT = 0; }
+  if (!settings.unlimited && ammo[weapon] <= 0) {
+    const next = ['ball', 'bomb', 'boulder'].find((w) => ammo[w] > 0);
+    if (next) setWeapon(next);
+  }
+  if (!settings.unlimited && ammo.ball <= 0 && ammo.bomb <= 0 && ammo.boulder <= 0) { gameState = 'settling'; settleT = 0; }
   updateAmmoUI();
   hideHint();
 }
@@ -1853,7 +1946,7 @@ async function buildCastle() {
   castleHeight = p.keepRows * H + 0.8;
   ringR = castleRadius + 16;
   cam.min = 8; cam.max = ringR * 2.6;
-  cam.dist = ringR + 14; cam.ty = castleHeight * 0.32;
+  cam.dist = ringR + 19; cam.ty = castleHeight * 0.32; cam.want = null;
   dirtMesh.scale.setScalar(castleRadius + 6);
   const sr = castleRadius + 6;
   sun.position.set(-0.55 * sr * 2.2, castleHeight + sr * 1.6, 0.4 * sr * 2.2);
@@ -1863,6 +1956,7 @@ async function buildCastle() {
   scene.fog.near = ringR * 2.2; scene.fog.far = ringR * 9;
   applyQuality();
   frame = 0; simTime = 0; structureDirty = false; lastStructT = -1; userTarget = false;
+  trebState.pending = false; trebState.t0 = -99;
   startAmmo();
   shadowDirty = true;
   updateAmmoUI(); updateMeter();
@@ -1888,17 +1982,33 @@ function showOnly(id) {
   if (!playing) $('stats').hidden = true; else $('stats').hidden = $('btnStats').getAttribute('aria-pressed') !== 'true';
 }
 function hideHint() { $('hint').classList.add('gone'); }
+let hintTimer = 0;
+function flashHint(text) {
+  const el = $('hint');
+  el.textContent = text; el.classList.remove('gone');
+  clearTimeout(hintTimer); hintTimer = setTimeout(() => el.classList.add('gone'), 2800);
+}
 function setWeapon(w) {
+  const changed = weapon !== w;
   weapon = w;
   $('wBall').setAttribute('aria-pressed', String(w === 'ball'));
   $('wBomb').setAttribute('aria-pressed', String(w === 'bomb'));
+  $('wBoulder').setAttribute('aria-pressed', String(w === 'boulder'));
+  if (changed && w === 'boulder' && gameState === 'play') {
+    flashHint('The trebuchet lobs boulders high over the walls');
+    // Step back so the whole trebuchet is in view
+    const need = ringR + 24 * Math.sqrt(wScale);
+    if (cam.dist < need) cam.want = Math.min(need, cam.max);
+  }
 }
 function updateAmmoUI() {
   const inf = settings.unlimited;
   $('cBall').textContent = inf ? '∞' : ammo.ball;
   $('cBomb').textContent = inf ? '∞' : ammo.bomb;
+  $('cBoulder').textContent = inf ? '∞' : ammo.boulder;
   $('wBall').disabled = !inf && ammo.ball <= 0;
   $('wBomb').disabled = !inf && ammo.bomb <= 0;
+  $('wBoulder').disabled = !inf && ammo.boulder <= 0;
   $('fire').disabled = gameState !== 'play' || (!inf && ammo[weapon] <= 0);
 }
 function destroyedPct() { return N ? (1 - standing / N) * 100 : 0; }
@@ -1972,6 +2082,7 @@ $('btnStats').addEventListener('click', () => {
 });
 $('wBall').addEventListener('click', () => setWeapon('ball'));
 $('wBomb').addEventListener('click', () => setWeapon('bomb'));
+$('wBoulder').addEventListener('click', () => setWeapon('boulder'));
 $('fire').addEventListener('click', fire);
 $('startBtn').addEventListener('click', async () => {
   Sound.init();
@@ -1992,6 +2103,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') { e.preventDefault(); fire(); }
   else if (e.key === '1') setWeapon('ball');
   else if (e.key === '2') setWeapon('bomb');
+  else if (e.key === '3') setWeapon('boulder');
   else if (e.key === 'ArrowLeft') cam.theta += 0.06;
   else if (e.key === 'ArrowRight') cam.theta -= 0.06;
   else if (e.key === 'ArrowUp') cam.phi = clamp(cam.phi + 0.04, 0.05, 1.25);
@@ -2017,7 +2129,7 @@ canvas.addEventListener('pointermove', (e) => {
     if (dragMoved) { cam.theta -= dx * 0.0062; cam.phi = clamp(cam.phi + dy * 0.0042, 0.05, 1.25); }
   } else if (pointers.size === 2) {
     const d = pinchDist();
-    if (pinchD > 0 && d > 0) cam.dist = clamp(cam.dist * pinchD / d, cam.min, cam.max);
+    if (pinchD > 0 && d > 0) { cam.dist = clamp(cam.dist * pinchD / d, cam.min, cam.max); cam.want = null; }
     pinchD = d;
   }
 });
@@ -2028,7 +2140,7 @@ const endPointer = (e) => {
 };
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', (e) => { pointers.delete(e.pointerId); pinchD = 0; });
-canvas.addEventListener('wheel', (e) => { e.preventDefault(); cam.dist = clamp(cam.dist * (1 + Math.sign(e.deltaY) * Math.min(0.15, Math.abs(e.deltaY) * 0.0015)), cam.min, cam.max); }, { passive: false });
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); cam.want = null; cam.dist = clamp(cam.dist * (1 + Math.sign(e.deltaY) * Math.min(0.15, Math.abs(e.deltaY) * 0.0015)), cam.min, cam.max); }, { passive: false });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
 /* =====================================================================
@@ -2052,7 +2164,7 @@ function tick(now) {
     }
     if (gameState === 'intro' && !reduceMotion) cam.theta += dt * 0.07;
     if (gameState === 'settling') {
-      let fast = shots.length;
+      let fast = shots.length + (trebState.pending ? 1 : 0);
       for (const b of bodies.values()) if (!phys.sleeping(b.h) && Math.hypot(b.prevV.x, b.prevV.y, b.prevV.z) > 0.8) fast++;
       if (fast === 0 && !structureDirty) settleT += dt; else settleT = 0;
       if (settleT > 1.2 || simTime - lastShotT > 14) showResult();
@@ -2090,16 +2202,31 @@ function render(dt) {
   if (settings.shadows && shadowDirty) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
   // Camera
   const showAim = gameState === 'play' || gameState === 'settling';
-  cannon.visible = gameState !== 'loading';
-  placeCannon();
+  const useTreb = weapon === 'boulder' || trebState.pending;
+  cannon.visible = gameState !== 'loading' && !useTreb;
+  treb.visible = gameState !== 'loading' && useTreb;
+  placeLauncher();
+  // Trebuchet arm: swing on release, then winch back down
+  const ta = simTime - trebState.t0;
+  let armA = TREB_COCK;
+  if (trebState.pending || ta < TREB_SWING) armA = TREB_COCK + (TREB_END - TREB_COCK) * Math.min(1, Math.max(0, ta / TREB_SWING)) ** 2;
+  else if (ta < TREB_SWING + 1.4) { const u = (ta - TREB_SWING) / 1.4; armA = TREB_END + (TREB_COCK - TREB_END) * (u * u * (3 - 2 * u)); }
+  treb.userData.arm.rotation.x = armA;
+  treb.userData.stone.visible = trebState.pending || (ta > TREB_SWING + 1.0 && (settings.unlimited || ammo.boulder > 0));
   marker.visible = showAim; trajLine.visible = showAim && gameState === 'play';
   recoil = Math.max(0, recoil - dt * 3);
   cannon.userData.barrel.position.z = 0.75 - recoil * 0.45;
+  if (cam.want !== null) {
+    cam.dist += (cam.want - cam.dist) * Math.min(1, dt * 3);
+    if (Math.abs(cam.want - cam.dist) < 0.05) cam.want = null;
+  }
   const cp = Math.cos(cam.phi);
   camera.position.set(cam.tx + Math.sin(cam.theta) * cp * cam.dist, cam.ty + Math.sin(cam.phi) * cam.dist, cam.tz + Math.cos(cam.theta) * cp * cam.dist);
   if (shake > 0 && !reduceMotion) { camera.position.x += (Math.random() - 0.5) * shake; camera.position.y += (Math.random() - 0.5) * shake; shake = Math.max(0, shake - dt * 1.4); }
   camera.position.y = Math.max(0.6, camera.position.y);
-  camera.lookAt(cam.tx, cam.ty, cam.tz);
+  // Look a little toward the siege engine so it sits in the lower part of the view, not off-screen
+  const lean = 0.3 * clamp((cam.dist - ringR) / 8, 0, 1);
+  camera.lookAt(cam.tx + Math.sin(cam.theta) * ringR * lean, cam.ty * (1 - lean * 1.5), cam.tz + Math.cos(cam.theta) * ringR * lean);
   sky.position.copy(camera.position);
   // Effects
   updateDust(dt);
@@ -2130,6 +2257,8 @@ window.__bf = {
   fire(w) { if (w) setWeapon(w); fire(); },
   setTheta(t) { cam.theta = t; },
   setSeed(n) { seed = n; },
+  partStanding() { const c = {}; for (let i = 0; i < N; i++) if (state[i] === S_STATIC) { const t = parts[partOf[i]].type; c[t] = (c[t] || 0) + 1; } return c; },
+  shotInfo() { return shots.map((p) => ({ kind: p.kind, x: +p.P.x.toFixed(1), y: +p.P.y.toFixed(1), z: +p.P.z.toFixed(1) })); },
   dbg() { const d = { ...dbg }; for (const k in dbg) dbg[k] = 0; return d; },
   advance(seconds) {
     const n = Math.round(seconds / FIXED);
