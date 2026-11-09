@@ -19,6 +19,16 @@
     triangle: '<path d="M6 1.2 11 10.5H1z"/>',
     diamond: '<path d="M6 .9 11.1 6 6 11.1.9 6z"/>',
     half: '<path d="M.9 9.6a5.1 5.1 0 0 1 10.2 0z"/>',
+    // five-pointed star (tourists)
+    star: (() => {
+      let d = "";
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5;
+        const k = i % 2 ? 2.4 : 5.6;
+        d += `${i ? "L" : "M"}${(6 + Math.cos(a) * k).toFixed(2)} ${(6.4 + Math.sin(a) * k).toFixed(2)}`;
+      }
+      return `<path d="${d}Z"/>`;
+    })(),
   };
 
   // ---------- Saved choices and best scores (kept in this browser only) ----------
@@ -69,7 +79,11 @@
   const lineName = (c) => `${NR.LINE_NAMES[c]} Line`;
   const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
   // "1 county", "10 counties", "3 days"
-  const plural = (n, word) => `${n} ${n === 1 ? word : word.replace(/([^aeiou])y$/, "$1ie") + "s"}`;
+  const plural = (n, word) => {
+    if (n === 1) return `${n} ${word}`;
+    const w = word.replace(/([^aeiou])y$/, "$1ie"); // county -> countie(s)
+    return `${n} ${w}${/(s|x|ch|sh)$/.test(w) ? "es" : "s"}`; // stretch -> stretches
+  };
 
   let toastTimer = 0;
   let lastToast = "";
@@ -294,6 +308,23 @@
         toast(`Contract complete: ${ev.text}. You earned ${NR.rewardText(ev.reward)}.`);
       } else if (ev.type === "contractExpired") {
         toast(`Contract missed: ${ev.text}. Time ran out.`);
+      } else if (ev.type === "flight") {
+        const c = NR.cityById[ev.at];
+        fx.push({ kind: "city", at: ev.at, t0: now });
+        toast(`A flight landed at ${c.airport}: ${plural(ev.landed, "traveler")} waiting at ${c.name}.`);
+      } else if (ev.type === "quake" || ev.type === "fire" || ev.type === "repaired") {
+        const between = (key) => key.split("|").map((id) => NR.cityById[id].name).join(" and ");
+        if (ev.type === "quake") {
+          fx.push({ kind: "city", at: ev.key.split("|")[0], t0: now });
+          toast(`Earthquake! Track between ${between(ev.key)} is damaged. A Work train on that line can repair it.`);
+        } else if (ev.type === "fire") {
+          toast(
+            `Wildfire in ${NR.countyById[ev.county].name}!` +
+              (ev.keys.length ? ` ${plural(ev.keys.length, "stretch")} of track damaged. Send a Work train.` : "")
+          );
+        } else {
+          toast(`Track between ${between(ev.key)} is repaired${ev.byWorkTrain ? " by a Work train" : ""}.`);
+        }
       } else if (ev.type === "ship") {
         const c = NR.cityById[ev.at];
         fx.push({ kind: "city", at: ev.at, t0: now });
@@ -333,6 +364,12 @@
         box.appendChild(item);
       });
     }
+    // Tourists head for any scenic place.
+    const tourist = document.createElement("span");
+    tourist.className = "legend-item";
+    tourist.innerHTML = `<svg viewBox="0 0 12 12" aria-hidden="true">${SHAPES.star}</svg>`;
+    tourist.append("Tourists");
+    box.appendChild(tourist);
     // Cargo key: the colors used in yards and on cargo trains.
     const swatch = { produce: "--produce", containers: "--container", trucks: "--truck" };
     Object.entries(NR.CARGO).forEach(([key, k]) => {
@@ -479,6 +516,14 @@
         [main, ...towns]
           .filter((c) => c.port)
           .map((c) => ` Seaport: ${c.port} (${c.name}).`)
+          .join("") +
+        [main, ...towns]
+          .filter((c) => c.airport)
+          .map((c) => ` Airport: ${c.airport} (${c.name}).`)
+          .join("") +
+        [main, ...towns]
+          .filter((c) => c.scenic)
+          .map((c) => ` Scenic place: ${c.name}.`)
           .join("")
     );
     $("cp-goal").hidden = !st.ok;
@@ -541,7 +586,9 @@
     trains.forEach((t) => {
       const li = document.createElement("li");
       const label = document.createElement("span");
-      label.textContent = `${NR.TRAIN_TYPES[t.type].name} · ${NR.seatsOf(game, t)} ${NR.unitOf(t.type)}`;
+      label.textContent = NR.TRAIN_TYPES[t.type].repairs
+        ? `${NR.TRAIN_TYPES[t.type].name} · repairs track`
+        : `${NR.TRAIN_TYPES[t.type].name} · ${NR.seatsOf(game, t)} ${NR.unitOf(t.type)}`;
       li.append(
         label,
         button("To depot", "btn btn-small", () => {
@@ -585,7 +632,8 @@
     setText("score", game.delivered);
     setText("cargo", Object.values(game.cargoDelivered).reduce((a, b) => a + b, 0));
     const week = Math.min(Math.floor(game.time / T.weekLength), game.mode === "timed" ? T.timedWeeks - 1 : Infinity);
-    setText("clock", `${week + 1} · ${NR.DAY_NAMES[Math.floor(game.time / T.dayLength) % 7]}`);
+    setText("clock-label", `Week ${week + 1}${NR.isNight(game) ? " · night" : ""}`);
+    setText("clock", `${NR.DAY_NAMES[Math.floor(game.time / T.dayLength) % 7]} ${String(Math.floor(NR.hourOf(game))).padStart(2, "0")}:00`);
     if (game.mode === "levels") {
       setText("goal-label", "Goals");
       setText("goal", `${game.levelGoals.filter((g) => g.done).length}/${game.levelGoals.length}`);
@@ -906,7 +954,7 @@
     name.textContent = `${t.name} · ${NR.money(t.price)}`;
     const text = document.createElement("span");
     text.className = "guide-text";
-    text.textContent = `${t.about} ${t.seats} ${NR.unitOf(key)}.${t.unlockWeek ? ` From week ${t.unlockWeek + 1}.` : ""}`;
+    text.textContent = `${t.about}${t.repairs ? "" : ` ${t.seats} ${NR.unitOf(key)}.`}${t.unlockWeek ? ` From week ${t.unlockWeek + 1}.` : ""}`;
     li.append(name, text);
     $("train-guide").appendChild(li);
   });

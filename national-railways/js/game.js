@@ -29,10 +29,35 @@
     cargoEvery: [10, 16], // seconds between loads of produce or trucks at a station
     shipEvery: [35, 55], // seconds between ships docking at one of your ports
     shipLoad: 8, // containers a ship unloads
+    flightEvery: [40, 60], // seconds between flights landing at one of your airports
+    flightLoad: 5, // travelers off each flight
+    touristEvery: [6, 10], // seconds between tourists on weekdays (three times as often at weekends)
+    firstEvent: 140, // seconds before the first earthquake or wildfire (2 weeks)
+    eventEvery: [60, 100], // seconds between earthquakes and wildfires
+    selfRepair: 210, // seconds until damaged track mends by itself (3 weeks)
+    repairTime: 4, // seconds a Work train needs to repair a stretch of track
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 6; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 7; // bump when saved games from older versions no longer fit
+
+  // ---- Time of day: night runs from 21:00 to 05:00 ----
+  NR.hourOf = (s) => ((s.time % T.dayLength) / T.dayLength) * 24;
+  NR.isNight = (s) => {
+    const h = NR.hourOf(s);
+    return h >= 21 || h < 5;
+  };
+  // How dark it is, from 0 (day) to 1 (night), fading at dusk (19-21) and dawn (5-7).
+  NR.nightAmount = (s) => {
+    const h = NR.hourOf(s);
+    if (h >= 21 || h < 5) return 1;
+    if (h >= 19) return (h - 19) / 2;
+    if (h < 7) return 1 - (h - 5) / 2;
+    return 0;
+  };
+  // A stretch of track between two stations, the same whichever way you go.
+  const segKey = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
+  NR.segKey = segKey;
 
   // ---- Train types ----
   // price and upkeep (per week) in $k. speed is compared with a Regular train.
@@ -78,6 +103,43 @@
       needsHighSpeed: true,
       about: "Three times as fast. Stops only at Metro cities. Needs high-speed track.",
     },
+    night: {
+      name: "Night train",
+      price: 160,
+      upkeep: 14,
+      seats: 8,
+      speed: 1.3,
+      fare: 1.8,
+      stops: 2,
+      unlockWeek: 1,
+      nightOnly: true,
+      about: "Sleeper train: runs only at night (21:00 to 05:00), with an extra bonus on trips of 200 miles or more. Skips the smallest towns.",
+    },
+    scenic: {
+      name: "Scenic train",
+      price: 130,
+      upkeep: 10,
+      seats: 10,
+      speed: 0.7,
+      fare: 1,
+      stops: "all",
+      unlockWeek: 0,
+      touristsOnly: true,
+      about: "Glass-roofed train for tourists only. Tourists pay double on it.",
+    },
+    airport: {
+      name: "Airport express",
+      price: 150,
+      upkeep: 12,
+      seats: 10,
+      speed: 1.6,
+      fare: 1.5,
+      stops: "all",
+      unlockWeek: 0,
+      quick: true,
+      needsAirport: true,
+      about: "Fast, quick-boarding train for air travelers and everyone else. Needs an airport on its line.",
+    },
     // Cargo trains carry one kind of cargo each (no passengers). seats = loads they hold.
     freight: {
       name: "Freight",
@@ -116,6 +178,19 @@
       carries: ["trucks"],
       about: "Carries trucks on flat cars from Desert and Mountain towns to Metro cities, taking them off the highway.",
     },
+    work: {
+      name: "Work train",
+      price: 90,
+      upkeep: 6,
+      seats: 0,
+      speed: 0.9,
+      fare: 1,
+      stops: "all",
+      unlockWeek: 0,
+      carries: [],
+      repairs: true,
+      about: "Carries nothing. Repairs track on its line that earthquakes or wildfires damaged.",
+    },
   };
 
   // ---- Cargo ----
@@ -132,7 +207,11 @@
     return /train$/i.test(name) ? name : `${name} train`;
   };
   // What a train type holds: "seats" for passengers, or its cargo's unit.
-  NR.unitOf = (key) => (NR.TRAIN_TYPES[key].carries ? NR.CARGO[NR.TRAIN_TYPES[key].carries[0]].unit : "seats");
+  NR.unitOf = (key) => {
+    const t = NR.TRAIN_TYPES[key];
+    if (t.repairs) return "repair crew";
+    return t.carries ? NR.CARGO[t.carries[0]].unit : "seats";
+  };
 
   // Money is counted in thousands of dollars: 400 means $400k.
   NR.money = (k) => {
@@ -210,6 +289,11 @@
       depot: Object.fromEntries(Object.keys(NR.TRAIN_TYPES).map((k) => [k, k === "regular" ? T.startTrains : 0])),
       cargoDelivered: Object.fromEntries(Object.keys(NR.CARGO).map((k) => [k, 0])),
       shipIn: rand(15, 25), // the first ship comes early
+      flightIn: 30,
+      touristIn: rand(5, 10),
+      eventIn: T.firstEvent,
+      damage: {}, // stretches of track closed by an earthquake or wildfire: { "A|B": { since, cause } }
+      fire: null, // a wildfire burning: { county, left }
       linesUnlocked: T.startLines,
       extraSeats: 0,
       speed: T.trainSpeed,
@@ -319,6 +403,7 @@
   // ---------- Where passengers want to go ----------
   // Does stopping at this station finish the trip of a passenger heading for `to`?
   function arrives(s, stationId, to) {
+    if (to === "@scenic") return !!city(stationId).scenic; // tourists: any scenic place
     return s.style === "type" ? city(stationId).type === to : stationId === to;
   }
   NR.arrives = arrives;
@@ -356,6 +441,7 @@
       s.lines.forEach((l) => {
         if (!useLine(l)) return;
         for (let i = 0; i + 1 < l.stops.length; i++) {
+          if (s.damage[segKey(l.stops[i], l.stops[i + 1])]) continue; // damaged track can't be used
           next[l.stops[i]].push(l.stops[i + 1]);
           next[l.stops[i + 1]].push(l.stops[i]);
         }
@@ -385,6 +471,7 @@
     rt.routes = {};
     const people = graph((l) => !kindsOn[l.id] || kindsOn[l.id].includes("passengers"));
     const goals = s.style === "type" ? [...new Set(s.stations.map((st) => city(st.id).type))] : s.stations.map((st) => st.id);
+    goals.push("@scenic");
     goals.forEach((goal) => (rt.routes[goal] = distances(people, (id) => arrives(s, id, goal))));
     Object.keys(NR.CARGO).forEach((kind) => {
       const freight = graph((l) => (kindsOn[l.id] || []).includes(kind));
@@ -444,6 +531,8 @@
     const trip = p.from ? miles(city(p.from), city(here)) : 50;
     let fare = (2 + trip * 0.02) * (p.premium || 1);
     if (p.commuter && trip < 120) fare *= 1.3; // commuters pay a bonus on short trips
+    if (p.sleeper && trip >= 200) fare *= 1.5; // a night in a sleeper on a long trip
+    if (p.tourist) fare *= p.scenic ? 2.4 : 1.2; // tourists pay more, double on a Scenic train
     return fare;
   }
   function earn(s, amount) {
@@ -494,9 +583,12 @@
       list.filter((p) => {
         if (train.pax.length >= seats || !closer(p)) return true;
         if (type.carries ? !type.carries.includes(p.kind) : p.kind) return true; // not this train's load
+        if (type.touristsOnly && !p.tourist) return true; // Scenic trains take tourists only
         if (!type.carries) {
           p.premium = Math.max(p.premium || 1, type.fare);
           if (train.type === "commuter") p.commuter = true;
+          if (train.type === "night") p.sleeper = true;
+          if (train.type === "scenic") p.scenic = true;
         }
         train.pax.push(p);
         moved++;
@@ -513,7 +605,34 @@
     if (!train.moving) {
       train.wait -= dt;
       if (train.wait > 0) return;
-      const { n, dir } = nextStop(line, train);
+      const type = typeOf(train);
+      if (type.nightOnly && !NR.isNight(s)) return; // sleeper trains wait for nightfall
+      let { n, dir } = nextStop(line, train);
+      const here = line.stops[train.i];
+      const key = segKey(here, line.stops[n]);
+      if (s.damage[key]) {
+        if (type.repairs) {
+          // Work train: stop and repair, then carry on.
+          if (train.repairing !== key) {
+            train.repairing = key;
+            train.wait = T.repairTime;
+            return;
+          }
+          delete s.damage[key];
+          train.repairing = null;
+          rt.dirty = true;
+          emit("repaired", { key, byWorkTrain: true });
+        } else {
+          // Other trains turn back at the damage, or wait if they are boxed in.
+          const back = train.i - dir;
+          if (back < 0 || back >= line.stops.length || s.damage[segKey(here, line.stops[back])]) {
+            train.wait = 0.5;
+            return;
+          }
+          dir = -dir;
+          n = back;
+        }
+      }
       train.dir = dir;
       train.moving = true;
       train.t = 0;
@@ -527,6 +646,34 @@
       train.moving = false;
       train.wait = serveStation(s, train, line);
     }
+  }
+
+  // ---------- California events ----------
+  // Every stretch of track on the map (each counted once).
+  function allSegments(s) {
+    const keys = new Set();
+    s.lines.forEach((l) => {
+      for (let i = 0; i + 1 < l.stops.length; i++) keys.add(segKey(l.stops[i], l.stops[i + 1]));
+    });
+    return [...keys];
+  }
+  // A wildfire in a county with mountain track, or an earthquake somewhere on the network.
+  function californiaEvent(s) {
+    const open = allSegments(s).filter((k) => !s.damage[k]);
+    if (open.length < 2) return; // not much track yet: nothing happens
+    const fireCounties = [...new Set(open.flatMap((k) => k.split("|")).filter((id) => city(id).type === "mountain").map((id) => city(id).county))];
+    if (fireCounties.length && Math.random() < 0.5) {
+      const county = pick(fireCounties);
+      const hit = open.filter((k) => k.split("|").some((id) => city(id).county === county)).slice(0, 3);
+      hit.forEach((k) => (s.damage[k] = { since: s.time, cause: "fire" }));
+      s.fire = { county, left: 3 * T.dayLength };
+      emit("fire", { county, keys: hit });
+    } else {
+      const k = pick(open);
+      s.damage[k] = { since: s.time, cause: "quake" };
+      emit("quake", { key: k });
+    }
+    rt.dirty = true;
   }
 
   // ---------- One step of the game ----------
@@ -568,7 +715,8 @@
         const to = pickDestination(s, st);
         if (to) st.waiting.push({ id: s.nextId++, to, from: st.id });
         const rushBoost = s.rush && s.rush.at === st.id ? 3 : 1;
-        st.spawnIn = (11 / (0.6 + 0.25 * city(st.id).size) / pressure / rushBoost) * rand(0.7, 1.3);
+        const nightCalm = NR.isNight(s) ? 0.6 : 1; // fewer people travel at night
+        st.spawnIn = (11 / (0.6 + 0.25 * city(st.id).size) / pressure / rushBoost / nightCalm) * rand(0.7, 1.3);
       }
     });
 
@@ -592,6 +740,56 @@
         emit("ship", { at: st.id, landed: addCargo(s, st, "containers", T.shipLoad) });
       }
       s.shipIn = rand(T.shipEvery[0], T.shipEvery[1]);
+    }
+
+    // Tourists leave Metro cities for scenic places, three times as often at weekends.
+    if (s.stations.some((st) => city(st.id).scenic)) {
+      s.touristIn -= dt;
+      if (s.touristIn <= 0) {
+        const metros = s.stations.filter((st) => city(st.id).type === "metro" && !city(st.id).scenic);
+        if (metros.length) {
+          const st = pick(metros);
+          st.waiting.push({ id: s.nextId++, to: "@scenic", from: st.id, tourist: true });
+        }
+        const weekend = Math.floor(s.time / T.dayLength) % 7 >= 5;
+        s.touristIn = rand(T.touristEvery[0], T.touristEvery[1]) / (weekend ? 3 : 1);
+      }
+    }
+
+    // Flights land at your airports with a burst of travelers.
+    s.flightIn -= dt;
+    if (s.flightIn <= 0) {
+      const airports = s.stations.filter((st) => city(st.id).airport);
+      if (airports.length) {
+        const st = pick(airports);
+        let landed = 0;
+        for (; landed < T.flightLoad; landed++) {
+          const to = pickDestination(s, st);
+          if (!to) break;
+          st.waiting.push({ id: s.nextId++, to, from: st.id, air: true });
+        }
+        if (landed) emit("flight", { at: st.id, landed });
+      }
+      s.flightIn = rand(T.flightEvery[0], T.flightEvery[1]);
+    }
+
+    // Earthquakes and wildfires damage track. It mends by itself after 3 weeks,
+    // or right away when a Work train reaches it.
+    s.eventIn -= dt;
+    if (s.eventIn <= 0) {
+      californiaEvent(s);
+      s.eventIn = rand(T.eventEvery[0], T.eventEvery[1]);
+    }
+    for (const [key, d] of Object.entries(s.damage)) {
+      if (s.time - d.since > T.selfRepair) {
+        delete s.damage[key];
+        rt.dirty = true;
+        emit("repaired", { key, byWorkTrain: false });
+      }
+    }
+    if (s.fire) {
+      s.fire.left -= dt;
+      if (s.fire.left <= 0) s.fire = null;
     }
 
     if (rt.dirty) rebuildRoutes(s);
@@ -695,6 +893,7 @@
     if (s.week < t.unlockWeek) return { ok: false, reason: `Unlocks in week ${t.unlockWeek + 1}` };
     if (t.needsHighSpeed && line.grade !== "high") return { ok: false, reason: "Needs high-speed track" };
     if (t.needsPort && !line.stops.some((id) => city(id).port)) return { ok: false, reason: "Needs a port on the line" };
+    if (t.needsAirport && !line.stops.some((id) => city(id).airport)) return { ok: false, reason: "Needs an airport on the line" };
     if (t.maxLineMiles && NR.lineMiles(line) > t.maxLineMiles) return { ok: false, reason: `Only on lines up to ${t.maxLineMiles} mi` };
     if (line.stops.filter((id) => serves(type, id)).length < 2) return { ok: false, reason: "Needs 2 cities it stops at" };
     if (s.depot[type] > 0) return { ok: true, fromDepot: true };
@@ -820,6 +1019,8 @@
         return `Deliver ${g.target} passengers in total`;
       case "passengers":
         return `Deliver ${g.target} passengers`;
+      case "tourists":
+        return `Bring ${g.target} tourists to scenic places`;
       case "route":
         return `Deliver ${g.target} passengers from ${name(g.a)} to ${name(g.b)}`;
       case "cargo":
@@ -850,6 +1051,7 @@
     for (const g of [...s.contracts, ...s.levelGoals]) {
       if (g.done) continue;
       if (g.kind === "passengers" && !p.kind) g.progress++;
+      else if (g.kind === "tourists" && p.tourist) g.progress++;
       else if (g.kind === "route" && !p.kind && p.from === g.a && here === g.b) g.progress++;
       else if (g.kind === "cargo" && p.kind === g.cargo && (!g.from || p.from === g.from) && (!g.to || here === g.to)) g.progress++;
     }
@@ -929,6 +1131,11 @@
         NR.MAP.regions.filter((r) => NR.countyStatus(s, r.id).ok).length < 2 ? null : { kind: "counties", target: s.owned.length + 2, days: 14, money: 120 },
     },
     { weight: 1, make: () => ({ kind: "noCrowding", target: 3 * T.dayLength, days: 7, money: 90 }) },
+    {
+      weight: 1,
+      make: (s) =>
+        s.stations.some((st) => city(st.id).scenic) ? { kind: "tourists", target: roll(6, 10), days: 14, money: 130, train: starterTrain(s, "scenic") } : null,
+    },
   ];
 
   function offerContract(s) {

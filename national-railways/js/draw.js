@@ -28,6 +28,8 @@
       locked: get("--locked"),
       panel: get("--panel"),
       cargo: { produce: get("--produce"), containers: get("--container"), trucks: get("--truck") },
+      night: get("--night"),
+      work: get("--work"),
       station: get("--station"),
       ink: get("--ink"),
       muted: get("--muted"),
@@ -177,6 +179,15 @@
     } else if (shape === "half") {
       const k = r * 1.15; // a sun setting over the sea
       ctx.arc(x, y + k * 0.4, k, Math.PI, 0);
+      ctx.closePath();
+    } else if (shape === "star") {
+      // five-pointed star: tourists and scenic places
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5;
+        const k = i % 2 ? r * 0.55 : r * 1.25;
+        if (i) ctx.lineTo(x + Math.cos(a) * k, y + Math.sin(a) * k);
+        else ctx.moveTo(x + Math.cos(a) * k, y + Math.sin(a) * k);
+      }
       ctx.closePath();
     }
   };
@@ -532,7 +543,8 @@
       for (let i = 0; i < show; i++) {
         const px = left + pr + (i % 4) * gap;
         const py = y - r * 0.55 + Math.floor(i / 4) * gap;
-        NR.shapePath(ctx, NR.PLACE_TYPES[st.waiting[i].to].shape, px, py, pr);
+        const p = st.waiting[i];
+        NR.shapePath(ctx, p.tourist ? "star" : NR.PLACE_TYPES[p.to].shape, px, py, pr);
         ctx.fillStyle = over ? colors.danger : colors.ink;
         ctx.fill();
       }
@@ -555,7 +567,7 @@
         ctx.fillStyle = over ? colors.danger : colors.ink;
         ctx.fill();
         ctx.fillStyle = colors.station;
-        ctx.fillText(st.waiting[i].to, tx + tw / 2, ty + th / 2 + 0.5);
+        ctx.fillText(st.waiting[i].tourist ? "★" : st.waiting[i].to, tx + tw / 2, ty + th / 2 + 0.5);
       }
       if (n > show) {
         ctx.textAlign = "left";
@@ -614,6 +626,77 @@
     ctx.restore();
   }
 
+  // A small plane seen from above, pointing up: stations with an airport.
+  function drawPlane(ctx, x, y, k) {
+    ctx.save();
+    ctx.fillStyle = colors.ink;
+    ctx.beginPath();
+    ctx.moveTo(x, y - k * 1.2); // nose
+    ctx.lineTo(x + k * 0.22, y - k * 0.3);
+    ctx.lineTo(x + k * 1.1, y + k * 0.15); // right wing
+    ctx.lineTo(x + k * 1.1, y + k * 0.4);
+    ctx.lineTo(x + k * 0.22, y + k * 0.2);
+    ctx.lineTo(x + k * 0.18, y + k * 0.8);
+    ctx.lineTo(x + k * 0.5, y + k * 1.05); // tail
+    ctx.lineTo(x - k * 0.5, y + k * 1.05);
+    ctx.lineTo(x - k * 0.18, y + k * 0.8);
+    ctx.lineTo(x - k * 0.22, y + k * 0.2);
+    ctx.lineTo(x - k * 1.1, y + k * 0.4); // left wing
+    ctx.lineTo(x - k * 1.1, y + k * 0.15);
+    ctx.lineTo(x - k * 0.22, y - k * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Track damaged by an earthquake or wildfire: a red dashed line with a cross in the middle.
+  function drawDamage(ctx, s) {
+    for (const key of Object.keys(s.damage)) {
+      const [a, b] = key.split("|");
+      const pa = pos[a];
+      const pb = pos[b];
+      if (!pa || !pb) continue;
+      ctx.save();
+      ctx.strokeStyle = colors.danger;
+      ctx.lineWidth = Math.max(2, view.lw * 0.7);
+      ctx.setLineDash([view.lw, view.lw * 1.2]);
+      ctx.beginPath();
+      ctx.moveTo(pa[0], pa[1]);
+      ctx.lineTo(pb[0], pb[1]);
+      ctx.stroke();
+      const mx = (pa[0] + pb[0]) / 2;
+      const my = (pa[1] + pb[1]) / 2;
+      const k = 6;
+      ctx.setLineDash([]);
+      ctx.lineCap = "round";
+      ctx.strokeStyle = colors.station;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(mx - k, my - k);
+      ctx.lineTo(mx + k, my + k);
+      ctx.moveTo(mx + k, my - k);
+      ctx.lineTo(mx - k, my + k);
+      ctx.stroke();
+      ctx.strokeStyle = colors.danger;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // A wildfire: the county glows.
+  function drawFire(ctx, s, now) {
+    if (!s.fire) return;
+    const r = NR.countyById[s.fire.county];
+    ctx.save();
+    ctx.globalAlpha = 0.18 + 0.1 * Math.sin(now / 250);
+    ctx.fillStyle = colors.danger;
+    ctx.beginPath();
+    r.rings.forEach((ring) => tracePath(ctx, ring, true));
+    ctx.fill("evenodd");
+    ctx.restore();
+  }
+
   function drawStations(ctx, s) {
     for (const st of s.stations) {
       const c = NR.cityById[st.id];
@@ -664,7 +747,22 @@
 
       drawWaiting(ctx, s, st, x, y, r);
       drawYard(ctx, st, x, y, r);
-      if (c.port) drawAnchor(ctx, x + r + 4, y - r - 4, Math.max(4, r * 0.55));
+      // Small markers above the station: anchor (port), plane (airport), star (scenic place)
+      const k = Math.max(4, r * 0.55);
+      let mx = x + r + 4;
+      if (c.port) {
+        drawAnchor(ctx, mx, y - r - 4, k);
+        mx += k * 2.6;
+      }
+      if (c.airport) {
+        drawPlane(ctx, mx, y - r - 4, k);
+        mx += k * 2.6;
+      }
+      if (c.scenic) {
+        NR.shapePath(ctx, "star", mx, y - r - 4, k * 0.9);
+        ctx.fillStyle = colors.accent;
+        ctx.fill();
+      }
     }
   }
 
@@ -698,7 +796,7 @@
       const b = l.stops[tr.moving ? tr.i + tr.dir : NR.nextStop(l, tr).n];
       if (!a || !b) continue;
       const seats = NR.seatsOf(s, tr);
-      const nose = tr.type === "bullet" ? H * 1.6 : tr.type === "highspeed" ? H : 0;
+      const nose = tr.type === "bullet" ? H * 1.6 : tr.type === "highspeed" ? H : tr.type === "airport" ? H * 0.6 : 0;
       const body = view.r * (1.9 + 0.12 * seats);
       const L = body + nose;
       const dx = (body - H * 0.6) / Math.ceil(seats / 2);
@@ -709,13 +807,34 @@
       ctx.translate(x1 + (x2 - x1) * e, y1 + (y2 - y1) * e);
       ctx.rotate(Math.atan2(y2 - y1, x2 - x1));
       trainPath(ctx, tr.type, L, H, nose);
-      ctx.fillStyle = NR.lineColor(l.color);
+      ctx.fillStyle = tr.type === "work" ? colors.work : NR.lineColor(l.color);
       ctx.fill();
+      ctx.save();
+      ctx.clip();
+      if (tr.type === "night") {
+        ctx.fillStyle = colors.ink; // sleeper: a dark roof
+        ctx.globalAlpha = 0.45;
+        ctx.fillRect(-L / 2, -H / 2, L, H * 0.42);
+      } else if (tr.type === "scenic") {
+        ctx.fillStyle = colors.station; // scenic: a glass roof
+        ctx.globalAlpha = 0.6;
+        ctx.fillRect(-L / 2, -H / 2, L, H * 0.4);
+      } else if (tr.type === "work") {
+        ctx.strokeStyle = colors.ink; // work train: warning stripes
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let x = -L / 2; x < L / 2 + H; x += H * 0.9) {
+          ctx.moveTo(x, H / 2);
+          ctx.lineTo(x + H * 0.6, -H / 2);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
       ctx.lineWidth = 1.5;
-      ctx.strokeStyle = colors.station;
+      ctx.strokeStyle = tr.type === "work" ? colors.ink : colors.station;
       ctx.stroke();
-      const isCargo = !!NR.TRAIN_TYPES[tr.type].carries;
-      const cars = isCargo ? 4 : tr.type === "commuter" ? 3 : tr.type === "regional" ? 2 : 1;
+      const isCargo = (NR.TRAIN_TYPES[tr.type].carries || []).length > 0;
+      const cars = isCargo ? 4 : tr.type === "commuter" ? 3 : tr.type === "regional" || tr.type === "night" ? 2 : 1;
       if (cars > 1) {
         ctx.beginPath();
         for (let c = 1; c < cars; c++) {
@@ -791,11 +910,21 @@
       drawPreview(ctx);
       return;
     }
+    drawFire(ctx, s, ui.now);
     drawCountyNames(ctx);
     drawCountyTags(ctx, s);
     drawCompass(ctx);
+    // Night: the map darkens, while lines and stations stay bright like city lights.
+    const dark = NR.nightAmount(s);
+    if (dark > 0) {
+      ctx.globalAlpha = dark;
+      ctx.fillStyle = colors.night;
+      ctx.fillRect(0, 0, view.w, view.h);
+      ctx.globalAlpha = 1;
+    }
     const segs = segmentOffsets(s);
     drawLines(ctx, s, segs);
+    drawDamage(ctx, s);
     drawHandles(ctx, s, ui.draft);
     if (ui.draft) drawDraft(ctx, ui.draft, ui.pointer);
     drawStations(ctx, s);

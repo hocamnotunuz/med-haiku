@@ -47,6 +47,17 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 | Freight | $100k | 10 crates | 0.8× | every city | Produce only. |
 | Dock train | $120k | 16 containers | 0.7× | every city | Containers only. Needs a port on its line. |
 | Truck bypass | $140k | 6 trucks | 1.1× | every city | Trucks only. From week 2. |
+| Night train | $160k | 8 | 1.3× | size 2 and up | Runs only at night (21:00–05:00). Extra bonus on trips of 200+ miles. From week 2. |
+| Scenic train | $130k | 10 | 0.7× | every city | Tourists only; they pay double on it. |
+| Airport express | $150k | 10 | 1.6× | every city | Quick boarding. Needs an airport on its line. |
+| Work train | $90k | – | 0.9× | every city | Carries nothing. Repairs damaged track on its line. |
+
+### Day, night and events
+
+- **Day and night:** each day runs from 00:00 to 24:00 (10 seconds). The map darkens at night and fewer people travel.
+- **Tourists (★)** leave Metro cities for scenic places (Yosemite Valley, South Lake Tahoe, Big Sur, Death Valley, Mount Shasta, Mammoth Lakes, Napa, Three Rivers), three times as often at weekends.
+- **Flights** land at airports (✈) with 5 travelers at a time: LAX, SFO (San Mateo), San Diego, San José, Oakland, Sacramento, Ontario, Fresno and Palm Springs.
+- **Earthquakes and wildfires** (from week 3) damage track (red ✕). Trains turn back at the damage. A Work train on that line repairs it in a few seconds; otherwise it mends after 3 weeks.
 
 ### Cargo
 
