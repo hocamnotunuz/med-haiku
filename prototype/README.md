@@ -8,6 +8,9 @@ This folder holds the single-file prototype that is published as a claude.ai art
 - One procedurally built castle: four corner towers, curtain walls with a gate and iron portcullis,
   a central keep with wooden floors and iron ring beams, and wooden houses in the courtyard.
 - Castle sizes from 1,500 to 40,000 bricks, in three materials (wood, stone, metal).
+- Two castle styles with the same layout and size: **Bricks** (0.8 x 0.4 x 0.4 m) or **Giant stone
+  blocks** (1.6 x 0.8 x 0.8 m sandstone, inspired by the Giza pyramids, about 7x fewer pieces).
+  Damage scales with piece size, so both styles take a similar number of shots.
 - Three weapons with limited ammo: cannonball (fast, flat), bomb (explodes) and a trebuchet that
   lobs heavy boulders in a high arc over the walls. A "% destroyed" meter with stars at 20 / 40 / 60 %.
 - Touch controls: tap to aim, drag to walk around, pinch to zoom. Mouse and keyboard also work.

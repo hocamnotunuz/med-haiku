@@ -96,6 +96,10 @@ button{cursor:pointer}
 .field label{display:flex;justify-content:space-between;gap:10px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
 .field output{color:var(--vellum);font-weight:700;letter-spacing:.02em;text-transform:none;font-size:15px;font-variant-numeric:tabular-nums}
 input[type=range]{width:100%;accent-color:var(--brass);height:28px;margin:0}
+.field-label{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg-btn{min-height:44px;border:1px solid var(--rule);border-radius:10px;background:transparent;font-weight:600;font-size:15px;padding:6px 8px}
+.seg-btn[aria-checked="true"]{border-color:var(--brass);background:rgba(214,162,74,.16);color:var(--brass)}
 .scale{display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}
 .primary{width:100%;min-height:52px;border:0;border-radius:12px;background:var(--ember);color:#fff7ea;font-weight:700;font-size:18px;letter-spacing:.08em;text-transform:uppercase}
 .primary:active{filter:brightness(.92)}
@@ -192,12 +196,19 @@ select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--rule
 <section class="overlay" id="intro" hidden>
   <div class="card">
     <h1>Brickfall Siege</h1>
-    <p class="lede">Every brick is simulated. Knock out what holds the castle up and it falls under its own weight.</p>
+    <p class="lede">Every piece is simulated. Knock out what holds the castle up and it falls under its own weight.</p>
     <ul class="howto">
       <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>Tap the castle to aim</li>
       <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2M21 12a9 9 0 0 1-15.5 6.2"/><path d="M18.5 2v4h-4M5.5 22v-4h4"/></svg>Drag to walk around it</li>
       <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9L3 3M3 3v5M3 3h5M15 15l6 6M21 21v-5M21 21h-5"/></svg>Pinch or scroll to zoom</li>
     </ul>
+    <div class="field">
+      <span class="field-label" id="styleLbl">Castle style</span>
+      <div class="seg" role="radiogroup" aria-labelledby="styleLbl">
+        <button class="seg-btn" role="radio" aria-checked="true" data-style="brick" id="styleBrick">Bricks</button>
+        <button class="seg-btn" role="radio" aria-checked="false" data-style="stone" id="styleStone">Giant stone blocks</button>
+      </div>
+    </div>
     <div class="field">
       <label for="sizeIntro">Castle size <output id="sizeIntroOut" for="sizeIntro">5,000 bricks</output></label>
       <input type="range" id="sizeIntro" min="0" max="7" step="1" value="2">
@@ -216,7 +227,7 @@ select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--rule
     <div class="result-stats">
       <div><b id="rPct">0%</b><span>Destroyed</span></div>
       <div><b id="rShots">0</b><span>Shots</span></div>
-      <div><b id="rBricks">0</b><span>Bricks down</span></div>
+      <div><b id="rBricks">0</b><span id="rBricksLbl">Bricks down</span></div>
     </div>
     <div class="btn-row">
       <button class="primary" id="againBtn">New castle</button>
@@ -235,6 +246,13 @@ select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--rule
   <div class="field">
     <label for="bodiesSet">Most moving pieces at once <output id="bodiesSetOut" for="bodiesSet">700</output></label>
     <input type="range" id="bodiesSet" min="200" max="3000" step="100" value="700">
+  </div>
+  <div class="field">
+    <label for="styleSet">Castle style</label>
+    <select id="styleSet">
+      <option value="brick">Bricks</option>
+      <option value="stone">Giant stone blocks (like Giza)</option>
+    </select>
   </div>
   <div class="field">
     <label for="engineSet">Physics engine</label>
@@ -259,7 +277,7 @@ select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--rule
     <button class="primary" id="rebuildBtn">Build new castle</button>
     <button class="secondary" id="closeSettings">Close</button>
   </div>
-  <p class="fine">Size and engine changes take effect when you build a new castle.</p>
+  <p class="fine">Style, size and engine changes take effect when you build a new castle.</p>
 </aside>
 
 <script>
@@ -300,9 +318,11 @@ const SIZES = [1500, 3000, 5000, 8000, 12000, 20000, 30000, 40000];
 const SIZE_NAMES = ['Small', 'Modest', 'Medium', 'Sturdy', 'Large', 'Grand', 'Huge', 'Colossal'];
 const STAR_AT = [20, 40, 60];
 const T_STONE = 0, T_FOUND = 1, T_TOWER = 2, T_KEEP = 3, T_WOOD = 4, T_WOODDARK = 5, T_METAL = 6, T_ROOF = 7;
+const T_SAND = 8, T_SANDF = 9, T_SANDT = 10, T_SANDK = 11; // warm sandstone for the giant-block castle
 const TINTS = [
   [0.56, 0.54, 0.50, 0.07], [0.42, 0.40, 0.37, 0.05], [0.52, 0.50, 0.47, 0.07], [0.69, 0.63, 0.52, 0.06],
   [0.53, 0.36, 0.21, 0.10], [0.37, 0.25, 0.16, 0.08], [0.34, 0.37, 0.42, 0.05], [0.52, 0.25, 0.18, 0.09],
+  [0.79, 0.69, 0.51, 0.07], [0.66, 0.57, 0.42, 0.05], [0.76, 0.66, 0.48, 0.07], [0.84, 0.74, 0.55, 0.06],
 ];
 const BALL = { r: 0.32, mass: 3.0, speed: 42 };
 const BOMB = { r: 0.38, mass: 2.0, speed: 36, radius: 2.6, power: 600 };
@@ -320,7 +340,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
    Settings (remembered on this device only)
    ===================================================================== */
 const settings = {
-  sizeIdx: 2, shadows: true, quality: isTouch ? 'balanced' : 'sharp', engine: 'auto',
+  sizeIdx: 2, style: 'brick', shadows: true, quality: isTouch ? 'balanced' : 'sharp', engine: 'auto',
   unlimited: false, sound: true, maxBodies: isTouch ? 400 : 900,
 };
 try {
@@ -395,27 +415,34 @@ function castleParams(s) {
   const keepRows = wallRows + Math.max(6, Math.round(10 + 3.2 * s));
   return { W: Wb * L, wallRows, T: Tb * L, towerRows, K: Kb * L, keepRows };
 }
-function genCastle(s, seed) {
+// k is the block scale: 1 = bricks (0.8 x 0.4 x 0.4 m), 2 = giant stone blocks (1.6 x 0.8 x 0.8 m) in sandstone.
+// The castle keeps the same size and shape; walls are one giant block thick instead of two bricks.
+const SAND = { [T_STONE]: T_SAND, [T_FOUND]: T_SANDF, [T_TOWER]: T_SANDT, [T_KEEP]: T_SANDK };
+function genCastle(s, seed, k = 1) {
+  const L = 0.8 * k, H = 0.4 * k, D = 0.4 * k;       // piece size for this castle
+  const WY = k === 1 ? 2 : 1;                          // pieces across a wall: walls stay 0.8 m thick
+  const rowsOf = (n) => Math.max(2, Math.round(n / k));
+  const lintelM = k === 1 ? WOOD : STONE;               // giant-block castles use stone lintels
   const rnd = mulberry32(seed);
   const out = [], parts = [];
   let curPart = 0;
   const newPart = (type) => { parts.push({ type }); curPart = parts.length - 1; };
   const add = (x0, y0, z0, x1, y1, z1, m, tint) => {
     if (x1 - x0 < 0.08 || y1 - y0 < 0.08 || z1 - z0 < 0.08) return;
-    out.push([x0, y0, z0, x1, y1, z1, m, tint, curPart]);
+    out.push([x0, y0, z0, x1, y1, z1, m, k === 1 ? tint : (SAND[tint] ?? tint), curPart]);
   };
   // A wall runs along axis 0 (x) or 1 (z); u is the running direction, t the thickness direction.
   function wall(o) {
-    const axis = o.axis, u0 = o.u0, u1 = o.u1, t0 = o.t0, wy = o.wy ?? 2, y0 = o.y0 ?? 0, rows = o.rows;
+    const axis = o.axis, u0 = o.u0, u1 = o.u1, t0 = o.t0, wy = o.wy ?? WY, y0 = o.y0 ?? 0, rows = o.rows;
     const open = o.open ?? [], tint = o.tint ?? T_STONE, found = o.found ?? 1, ring = o.ring ?? null;
-    const bl = o.bl ?? L, bm = o.mat ?? STONE;
-    const emit = (a, b, y, h, t, m, tn) => (axis === 0 ? add(a, y, t, b, y + h, t + D, m, tn) : add(t, y, a, t + D, y + h, b, m, tn));
+    const bl = o.bl ?? L, bm = o.mat ?? STONE, bh = o.h ?? H, bd = o.d ?? D, fl = o.fl ?? 1.2 * k;
+    const emit = (a, b, y, h, t, m, tn) => (axis === 0 ? add(a, y, t, b, y + h, t + bd, m, tn) : add(t, y, a, t + bd, y + h, b, m, tn));
     for (let r = 0; r < rows; r++) {
-      const y = y0 + r * H, isF = r < found, len = isF ? 1.2 : bl;
+      const y = y0 + r * bh, isF = r < found, len = isF ? fl : bl;
       const m = ring && ring(r) ? METAL : bm;
       const tn = isF ? T_FOUND : (m === METAL ? T_METAL : tint);
       for (let w = 0; w < wy; w++) {
-        const t = t0 + w * D;
+        const t = t0 + w * bd;
         let segs = [];
         const off = ((r + w) & 1) * len * 0.5;
         for (let a = u0 - off; a < u1 - 1e-6; a += len) {
@@ -427,69 +454,73 @@ function genCastle(s, seed) {
           else if (op.lm !== undefined && r === op.r1) {
             const la = Math.max(u0, op.a - len * 0.5), lb = Math.min(u1, op.b + len * 0.5);
             segs = subtract(segs, la, lb);
-            emit(la, lb, y, H, t, op.lm, op.lm === METAL ? T_METAL : T_WOODDARK);
+            emit(la, lb, y, bh, t, op.lm, op.lm === METAL ? T_METAL : op.lm === WOOD ? T_WOODDARK : tint);
           }
         }
-        for (const [a, b] of segs) if (b - a >= 0.14) emit(a, b, y, H, t, m, tn);
+        for (const [a, b] of segs) if (b - a >= 0.14) emit(a, b, y, bh, t, m, tn);
       }
     }
     if (o.merlons) {
-      const y = y0 + rows * H, t = t0 + (o.outer ?? 0) * D;
+      const y = y0 + rows * bh, t = t0 + (o.outer ?? 0) * bd, mh = Math.max(1, Math.round(0.8 / bh));
       for (let a = u0; a < u1 - 0.3; a += 2 * L) {
         const b = Math.min(a + L, u1);
-        emit(a, b, y, H, t, bm, tint);
-        emit(a, b, y + H, H, t, bm, tint);
+        for (let q = 0; q < mh; q++) emit(a, b, y + q * bh, bh, t, bm, tint);
       }
     }
   }
+  // Window and floor spacing are given in brick rows and converted to this castle's rows
   function tower(cx, cz, side, rows, o = {}) {
-    const wy = 2, th = wy * D, h = side / 2, tint = o.tint ?? T_TOWER;
-    const ws = o.winStart ?? 5, we = o.winEvery ?? 6;
-    const wins = (c) => { const res = []; for (let r = ws; r < rows - 3; r += we) res.push({ a: c - L * 0.5, b: c + L * 0.5, r0: r, r1: r + 2, lm: WOOD }); return res; };
-    const door = o.door ? [{ a: cx - L, b: cx + L, r0: 0, r1: 5, lm: WOOD }] : [];
+    const wy = WY, th = wy * D, h = side / 2, tint = o.tint ?? T_TOWER;
+    const ws = Math.max(1, Math.round((o.winStart ?? 5) / k)), we = Math.max(2, Math.round((o.winEvery ?? 6) / k));
+    const wh = Math.max(1, Math.round(2 / k)), top = Math.ceil(3 / k);
+    const wins = (c) => { const res = []; for (let r = ws; r < rows - top; r += we) res.push({ a: c - L * 0.5, b: c + L * 0.5, r0: r, r1: r + wh, lm: lintelM }); return res; };
+    const door = o.door ? [{ a: cx - 0.8, b: cx + 0.8, r0: 0, r1: Math.round(5 / k), lm: lintelM }] : [];
     wall({ axis: 0, u0: cx - h, u1: cx + h, t0: cz - h, rows, open: wins(cx), tint, ring: o.ring, merlons: true, outer: 0 });
     wall({ axis: 0, u0: cx - h, u1: cx + h, t0: cz + h - th, rows, open: wins(cx).concat(door), tint, ring: o.ring, merlons: true, outer: wy - 1 });
     wall({ axis: 1, u0: cz - h + th, u1: cz + h - th, t0: cx - h, rows, open: wins(cz), tint, ring: o.ring, merlons: true, outer: 0 });
     wall({ axis: 1, u0: cz - h + th, u1: cz + h - th, t0: cx + h - th, rows, open: wins(cz), tint, ring: o.ring, merlons: true, outer: wy - 1 });
-    const fe = o.floorEvery ?? 7;
+    const fe = Math.max(2, Math.round((o.floorEvery ?? 7) / k));
     for (let r = fe; r < rows - 1; r += fe) {
       const y = r * H, x0 = cx - h + th, x1 = cx + h - th, z1 = cz + h - th;
       for (let z = cz - h + th; z < z1 - 1e-6; z += 0.5) add(x0, y, z, x1, y + 0.2, Math.min(z + 0.5, z1), WOOD, T_WOOD);
     }
   }
+  // Wooden houses always use brick-sized logs
   function house(cx, cz, wx, wz, rows) {
     newPart('house');
+    const hd = 0.4;
     const x0 = cx - wx / 2, x1 = cx + wx / 2, z0 = cz - wz / 2, z1 = cz + wz / 2;
     const door = [{ a: cx - 0.5, b: cx + 0.5, r0: 0, r1: 4, lm: WOOD }];
-    const base = { wy: 1, rows, mat: WOOD, tint: T_WOOD, found: 0, bl: 1.2 };
+    const base = { wy: 1, rows, mat: WOOD, tint: T_WOOD, found: 0, bl: 1.2, h: 0.4, d: hd };
     wall({ ...base, axis: 0, u0: x0, u1: x1, t0: z0 });
-    wall({ ...base, axis: 0, u0: x0, u1: x1, t0: z1 - D, open: door });
-    wall({ ...base, axis: 1, u0: z0 + D, u1: z1 - D, t0: x0 });
-    wall({ ...base, axis: 1, u0: z0 + D, u1: z1 - D, t0: x1 - D });
-    const y = rows * H;
+    wall({ ...base, axis: 0, u0: x0, u1: x1, t0: z1 - hd, open: door });
+    wall({ ...base, axis: 1, u0: z0 + hd, u1: z1 - hd, t0: x0 });
+    wall({ ...base, axis: 1, u0: z0 + hd, u1: z1 - hd, t0: x1 - hd });
+    const y = rows * 0.4;
     for (let z = z0; z < z1 - 1e-6; z += 0.5) add(x0, y, z, x1, y + 0.16, Math.min(z + 0.5, z1), WOOD, T_ROOF);
   }
 
   const p = castleParams(s);
   const Wh = p.W / 2, Th = p.T / 2;
+  const wallRows = rowsOf(p.wallRows), towerRows = rowsOf(p.towerRows), keepRows = rowsOf(p.keepRows);
   // Corner towers
-  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { newPart('tower'); tower(sx * Wh, sz * Wh, p.T, p.towerRows, { winStart: 4 + Math.floor(rnd() * 3) }); }
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { newPart('tower'); tower(sx * Wh, sz * Wh, p.T, towerRows, { winStart: 4 + Math.floor(rnd() * 3) }); }
   // Curtain walls, with a gate in the front (+z) wall
-  const gateRows = Math.min(p.wallRows - 3, Math.round(p.wallRows * 0.55));
-  const gate = [{ a: -1.2, b: 1.2, r0: 0, r1: gateRows, lm: METAL }];
+  const gateRows = Math.min(wallRows - Math.ceil(3 / k), Math.round(wallRows * 0.55));
+  const gate = [{ a: -1.2, b: 1.2, r0: 0, r1: gateRows, lm: k === 1 ? METAL : STONE }];
   newPart('wall');
-  wall({ axis: 0, u0: -Wh + Th, u1: Wh - Th, t0: Wh - 0.4, rows: p.wallRows, open: gate, merlons: true, outer: 1 });
+  wall({ axis: 0, u0: -Wh + Th, u1: Wh - Th, t0: Wh - 0.4, rows: wallRows, open: gate, merlons: true, outer: WY - 1 });
   // Iron portcullis bars in the gate
   for (let x = -1.05; x <= 1.05 + 1e-6; x += 0.42) add(x - 0.06, 0, Wh - 0.06, x + 0.06, gateRows * H, Wh + 0.06, METAL, T_METAL);
   newPart('wall');
-  wall({ axis: 0, u0: -Wh + Th, u1: Wh - Th, t0: -Wh - 0.4, rows: p.wallRows, merlons: true, outer: 0 });
+  wall({ axis: 0, u0: -Wh + Th, u1: Wh - Th, t0: -Wh - 0.4, rows: wallRows, merlons: true, outer: 0 });
   newPart('wall');
-  wall({ axis: 1, u0: -Wh + Th, u1: Wh - Th, t0: -Wh - 0.4, rows: p.wallRows, merlons: true, outer: 0 });
+  wall({ axis: 1, u0: -Wh + Th, u1: Wh - Th, t0: -Wh - 0.4, rows: wallRows, merlons: true, outer: 0 });
   newPart('wall');
-  wall({ axis: 1, u0: -Wh + Th, u1: Wh - Th, t0: Wh - 0.4, rows: p.wallRows, merlons: true, outer: 1 });
-  // Central keep with wooden floors and iron ring beams
+  wall({ axis: 1, u0: -Wh + Th, u1: Wh - Th, t0: Wh - 0.4, rows: wallRows, merlons: true, outer: WY - 1 });
+  // Central keep with wooden floors (and iron ring beams in the brick castle)
   newPart('keep');
-  tower(0, 0, p.K, p.keepRows, { tint: T_KEEP, ring: (r) => r > 0 && r % 9 === 8, floorEvery: 8, door: true, winStart: 7, winEvery: 5 });
+  tower(0, 0, p.K, keepRows, { tint: T_KEEP, ring: k === 1 ? (r) => r > 0 && r % 9 === 8 : null, floorEvery: 8, door: true, winStart: 7, winEvery: 5 });
   // Wooden houses in the courtyard when there is room
   const gap = (Wh - 0.4) - p.K / 2;
   if (gap > 4.2) {
@@ -500,7 +531,7 @@ function genCastle(s, seed) {
     house(off, -(hw / 2 + 0.5), hd, hw, 6);
     if (gap > 6.5) { house(-off, hw / 2 + 0.5, hd, hw, 6); house(off, hw / 2 + 0.5, hd, hw, 6); }
   }
-  return { list: out, params: p, parts };
+  return { list: out, params: p, parts, k };
 }
 function dedupe(list) {
   const cs = 1.0, grid = new Map(), kept = [];
@@ -525,15 +556,20 @@ function dedupe(list) {
   }
   return kept;
 }
-function makeCastle(target, seed) {
+// The size slider picks a brick count; a giant-block castle is built at exactly the same size and shape.
+function makeCastle(target, seed, k = 1) {
   let lo = -1.2, hi = 16;
   for (let it = 0; it < 16; it++) {
     const mid = (lo + hi) / 2;
-    if (genCastle(mid, seed).list.length < target) lo = mid; else hi = mid;
+    if (genCastle(mid, seed, 1).list.length < target) lo = mid; else hi = mid;
   }
-  const a = genCastle(lo, seed), b = genCastle(hi, seed);
+  const a = genCastle(lo, seed, 1), b = genCastle(hi, seed, 1);
   a.list = dedupe(a.list); b.list = dedupe(b.list);
-  return Math.abs(a.list.length - target) <= Math.abs(b.list.length - target) ? a : b;
+  const best = Math.abs(a.list.length - target) <= Math.abs(b.list.length - target) ? [a, lo] : [b, hi];
+  if (k === 1) return best[0];
+  const c = genCastle(best[1], seed, k);
+  c.list = dedupe(c.list);
+  return c;
 }
 
 /* =====================================================================
@@ -541,7 +577,7 @@ function makeCastle(target, seed) {
    ===================================================================== */
 let N = 0, standing = 0;
 let px, py, pz, hx, hy, hz, mat, mass, hp, hpMax, state, anch, colR, colG, colB, rsx, rsy, rsz;
-let wx, wy, wz, qx, qy, qz, qw, ax, ay, az, lx, ly, lz, bodyOf, stSlot, dynSlot, proxyFrame, inPList, qMark, tag, clus, partOf;
+let wx, wy, wz, qx, qy, qz, qw, ax, ay, az, lx, ly, lz, bodyOf, stSlot, dynSlot, proxyFrame, inPList, qMark, tag, clus, partOf, dscale;
 let parts = [];
 let proxyH = [];
 // Bonds between touching bricks
@@ -557,7 +593,7 @@ function allocBricks(list, seed) {
   state = U(N); anch = U(N); colR = F(N); colG = F(N); colB = F(N); rsx = F(N); rsy = F(N); rsz = F(N);
   wx = F(N); wy = F(N); wz = F(N); qx = F(N); qy = F(N); qz = F(N); qw = F(N); ax = F(N); ay = F(N); az = F(N);
   lx = F(N); ly = F(N); lz = F(N); bodyOf = I(N).fill(-1); stSlot = I(N); dynSlot = I(N).fill(-1);
-  proxyFrame = I(N); inPList = U(N); qMark = I(N); tag = I(N); clus = I(N); partOf = I(N);
+  proxyFrame = I(N); inPList = U(N); qMark = I(N); tag = I(N); clus = I(N); partOf = I(N); dscale = F(N);
   proxyH = new Array(N).fill(null);
   dist = I(N); order = I(N); loadArr = F(N); visited = U(N);
   const rnd = mulberry32(seed ^ 0x9e3779b9);
@@ -570,6 +606,7 @@ function allocBricks(list, seed) {
     const vol = (x1 - x0) * (y1 - y0) * (z1 - z0);
     mass[i] = MATS[m].density * vol;
     hpMax[i] = hp[i] = MATS[m].hp * Math.max(0.35, vol / 0.128);
+    dscale[i] = Math.max(1, vol / 0.128); // blasts break the same amount of wall whatever the piece size
     anch[i] = y0 < 0.01 ? 1 : 0;
     state[i] = S_STATIC;
     wx[i] = px[i]; wy[i] = py[i]; wz[i] = pz[i]; qx[i] = 0; qy[i] = 0; qz[i] = 0; qw[i] = 1;
@@ -647,7 +684,7 @@ function breakAllBonds(i) {
 const buckets = [];
 const dbg = { shear: 0, comp: 0, tens: 0, crushed: 0, detached: 0, passes: 0, topples: 0 };
 // How many bricks sideways each material can reach out with nothing underneath it.
-const REACH = [5, 3, 8];
+let REACH = [5, 3, 8]; // sideways reach in pieces; giant blocks reach 1 block (1.6 m), bricks 3 (2.4 m)
 let rowKey = null, sortCount = null, sorted = null, maxKey = 0;
 function prepareStructure() {
   let maxRow = 0;
@@ -1582,7 +1619,7 @@ function sweepShot(pr) {
     if (pr.hit.has(c)) continue;
     pr.hit.add(c);
     if (state[c] === S_RUBBLE) { reactivateRubble(c, V.x * 0.45, V.y * 0.45 + 1, V.z * 0.45); E -= 15; continue; }
-    const before = hp[c];
+    const before = hp[c], Ein = E;
     if (E >= before) {
       E -= before; hp[c] = 0;
       detachBrick(c, V.x * 0.5 + (Math.random() - 0.5) * 3, V.y * 0.5 + Math.random() * 2, V.z * 0.5 + (Math.random() - 0.5) * 3);
@@ -1591,8 +1628,8 @@ function sweepShot(pr) {
       const ix = P.x + dx * t, iy = P.y + dy * t, iz = P.z + dz * t;
       const sr = pr.splash;
       hashQuery(ix - sr, iy - sr, iz - sr, ix + sr, iy + sr, iz + sr, tmpList2);
-      const splash = Math.min(E, pr.E0) * pr.splashK;
-      for (const n2 of tmpList2) if (state[n2] === S_STATIC) damageStatic(n2, splash, ux * 6, uy * 6 + 1, uz * 6);
+      const splash = Math.min(Ein, pr.E0) * pr.splashK; // splash comes from the energy at impact
+      for (const n2 of tmpList2) if (state[n2] === S_STATIC) damageStatic(n2, splash * dscale[n2], ux * 6, uy * 6 + 1, uz * 6);
     } else {
       hp[c] -= E * 0.9; E = 0; stopped = true; structureDirty = true; break;
     }
@@ -1618,12 +1655,12 @@ function explode(pr, x, y, z) {
     const cx = state[c] === S_STATIC ? px[c] : wx[c], cy = state[c] === S_STATIC ? py[c] : wy[c], cz = state[c] === S_STATIC ? pz[c] : wz[c];
     let ddx = cx - x, ddy = cy - y, ddz = cz - z;
     const d = Math.hypot(ddx, ddy, ddz);
-    const dd = Math.max(0, d - 0.25);
+    const dd = Math.max(0, d - Math.max(0.25, Math.min(ax[c], ay[c], az[c])));
     if (dd >= R) continue;
     const f = 1 - dd / R;
     if (d > 1e-4) { ddx /= d; ddy /= d; ddz /= d; } else { ddx = 0; ddy = 1; ddz = 0; }
     const sp = 15 * f;
-    damageStatic(c, B * Math.pow(f, 1.5), ddx * sp, ddy * sp + 4 * f, ddz * sp);
+    damageStatic(c, B * Math.pow(f, 1.5) * dscale[c], ddx * sp, ddy * sp + 4 * f, ddz * sp);
   }
   for (const b of bodies.values()) {
     const ddx = b.P.x - x, ddy = b.P.y - y, ddz = b.P.z - z, d = Math.hypot(ddx, ddy, ddz);
@@ -1930,7 +1967,10 @@ async function buildCastle() {
   shots = []; bodies.clear(); proxyList = []; hash = new Map(); wakeQ.length = 0; dynShapes = 0;
   phys.reset();
   const t0 = performance.now();
-  castleInfo = makeCastle(SIZES[settings.sizeIdx], seed);
+  const stoneStyle = settings.style === 'stone';
+  REACH = stoneStyle ? [5, 1, 8] : [5, 3, 8];
+  castleInfo = makeCastle(SIZES[settings.sizeIdx], seed, stoneStyle ? 2 : 1);
+  builtStyle = settings.style;
   allocBricks(castleInfo.list, seed);
   buildBonds(seed);
   prepareStructure();
@@ -1960,8 +2000,9 @@ async function buildCastle() {
   startAmmo();
   shadowDirty = true;
   updateAmmoUI(); updateMeter();
-  $('brickCount').textContent = fmt(N) + ' bricks';
-  $('castleName').textContent = SIZE_NAMES[settings.sizeIdx] + ' castle · ' + fmt(M) + ' joints';
+  $('brickCount').textContent = fmt(N) + (stoneStyle ? ' stone blocks' : ' bricks');
+  $('castleName').textContent = SIZE_NAMES[settings.sizeIdx] + (stoneStyle ? ' stone castle · ' : ' castle · ') + fmt(M) + ' joints';
+  $('rBricksLbl').textContent = stoneStyle ? 'Blocks down' : 'Bricks down';
   $('sEngine').textContent = phys.name;
   $('engineNote').innerHTML = 'Physics engine: <b>' + phys.name + '</b>.' + (engineNote ? ' ' + engineNote : '') + ' Castle built in ' + Math.round(performance.now() - t0) + ' ms.';
   if (check.broke || check.detached.length) console.warn('Castle self-check found weak joints', check.broke, check.detached.length);
@@ -2057,15 +2098,25 @@ window.addEventListener('resize', resize);
 
 function syncSettingsUI() {
   for (const id of ['sizeIntro', 'sizeSet']) { $(id).value = settings.sizeIdx; }
-  const label = fmt(SIZES[settings.sizeIdx]) + ' bricks · ' + SIZE_NAMES[settings.sizeIdx];
+  const label = settings.style === 'stone' ? SIZE_NAMES[settings.sizeIdx] + ' · giant blocks' : fmt(SIZES[settings.sizeIdx]) + ' bricks · ' + SIZE_NAMES[settings.sizeIdx];
   $('sizeIntroOut').textContent = label; $('sizeSetOut').textContent = label;
+  $('styleBrick').setAttribute('aria-checked', String(settings.style !== 'stone'));
+  $('styleStone').setAttribute('aria-checked', String(settings.style === 'stone'));
+  $('styleSet').value = settings.style;
   $('bodiesSet').value = settings.maxBodies; $('bodiesSetOut').textContent = fmt(settings.maxBodies);
   $('engineSet').value = settings.engine; $('qualitySet').value = settings.quality;
   $('shadowSet').checked = settings.shadows; $('unlimitedSet').checked = settings.unlimited; $('soundSet').checked = settings.sound;
 }
 $('sizeIntro').addEventListener('input', (e) => { settings.sizeIdx = +e.target.value; syncSettingsUI(); saveSettings(); });
-$('sizeIntro').addEventListener('change', () => { if (castleInfo && SIZES[settings.sizeIdx] !== builtTarget) { builtTarget = SIZES[settings.sizeIdx]; buildCastle(); } });
-let builtTarget = null;
+$('sizeIntro').addEventListener('change', () => { if (castleInfo && (SIZES[settings.sizeIdx] !== builtTarget || settings.style !== builtStyle)) { builtTarget = SIZES[settings.sizeIdx]; buildCastle(); } });
+let builtTarget = null, builtStyle = null;
+for (const id of ['styleBrick', 'styleStone']) {
+  $(id).addEventListener('click', () => {
+    settings.style = $(id).dataset.style; syncSettingsUI(); saveSettings();
+    if (castleInfo && settings.style !== builtStyle) { builtTarget = SIZES[settings.sizeIdx]; buildCastle(); }
+  });
+}
+$('styleSet').addEventListener('change', (e) => { settings.style = e.target.value; saveSettings(); syncSettingsUI(); });
 $('sizeSet').addEventListener('input', (e) => { settings.sizeIdx = +e.target.value; syncSettingsUI(); saveSettings(); });
 $('bodiesSet').addEventListener('input', (e) => { settings.maxBodies = +e.target.value; syncSettingsUI(); saveSettings(); });
 $('engineSet').addEventListener('change', (e) => { settings.engine = e.target.value; saveSettings(); });
@@ -2086,7 +2137,7 @@ $('wBoulder').addEventListener('click', () => setWeapon('boulder'));
 $('fire').addEventListener('click', fire);
 $('startBtn').addEventListener('click', async () => {
   Sound.init();
-  if (SIZES[settings.sizeIdx] !== builtTarget) { builtTarget = SIZES[settings.sizeIdx]; await buildCastle(); }
+  if (SIZES[settings.sizeIdx] !== builtTarget || settings.style !== builtStyle) { builtTarget = SIZES[settings.sizeIdx]; await buildCastle(); }
   startPlay();
 });
 $('againBtn').addEventListener('click', async () => { seed = 1 + Math.floor(Math.random() * 1e6); builtTarget = SIZES[settings.sizeIdx]; await buildCastle(); startPlay(); });
@@ -2266,7 +2317,7 @@ window.__bf = {
     return this.stats();
   },
   start() { startPlay(); },
-  async rebuild(idx) { settings.sizeIdx = idx; builtTarget = SIZES[idx]; await buildCastle(); },
+  async rebuild(idx, style) { settings.sizeIdx = idx; if (style) settings.style = style; builtTarget = SIZES[idx]; await buildCastle(); },
 };
 
 /* =====================================================================
