@@ -74,6 +74,14 @@ Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own ci
 - A city keeps running once opened. A neighborhood that stays overcrowded ends the game, like a station; you get a warning if you are away.
 - Up to 5 lines per city. Sell vehicles or delete lines to get half the price back.
 
+#### City budget and head of transportation
+
+- **Each city has its own budget.** City fares go into it; city track, vehicles and weekly running costs are paid from it. Move money in or out with **City budget** on the city map. If a city budget runs dry, your main money covers the rest.
+- **Head of transportation:** hire one from the city budget. Fee: the higher of 80% of the city budget or 50% of the city's track and vehicle value.
+  1. **Settling in (3 weeks):** the head does nothing yet; you keep the city running (it can still be lost).
+  2. **Managed (100 weeks):** the city runs safely (stops never overflow, kept at most half full), its lines are frozen, and management keeps 90% of its profit; 10% comes to your main money each week. The city doesn't get busier while managed.
+  3. **Retired:** the city is yours again (live, can grow, can be lost). You can hire a new head.
+
 ### Cargo
 
 Cargo shares the map with passengers. It waits in a **yard** to the left of each station (up to 12 loads; extra loads are turned away) and never ends your game, but it pays well.

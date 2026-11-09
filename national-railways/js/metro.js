@@ -12,6 +12,11 @@
     cityDetour: 1.1, // city track is a little longer than a straight line
     feedShare: 0.5, // share of train passengers arriving at the main station who ride the metro home
     outboundShare: 0.3, // share of neighborhood riders heading to the main station to catch a train
+    headSettleWeeks: 3, // a new head of transportation settles in for 3 weeks (you still run the city)
+    headTermWeeks: 100, // then runs the city safely for 100 weeks
+    headFeeBudget: 0.8, // fee: 80% of the city budget...
+    headFeeInfra: 0.5, // ...but at least 50% of the city's track and vehicle value
+    managementShare: 0.9, // while managed, management keeps 90% of the city's profit (10% comes to you)
   });
 
   // City vehicles. price = $k per vehicle, track = $k per mile, upkeep = $k per week,
@@ -151,6 +156,11 @@
       s.cities[key] = {
         opened: s.time,
         delivered: 0,
+        budget: 0, // the city's own money ($k): fares come in, track, vehicles and running costs go out
+        liveTime: 0, // seconds the city has run without a head in charge (it gets busier over this time)
+        weekIncome: 0,
+        lastWeek: null,
+        head: null, // head of transportation: { from, until } (global game time)
         lines: [],
         trains: [],
         stations: NR.METROS[key].stops.map((x) => ({ id: x.id, waiting: [], crowd: 0, spawnIn: rand(6, 14) })),
@@ -200,8 +210,8 @@
     const c = s.cities[key];
     let price = NR.CITY_MODES[mode].price;
     for (let i = 0; i + 1 < stops.length; i++) price += NR.cityTrackPrice(key, mode, stops[i], stops[i + 1]);
-    if (s.money < price || NR.cityModeProblem(key, mode, stops)) return null;
-    s.money -= price;
+    if (NR.cityFrozen(s, key) || c.budget < price || NR.cityModeProblem(key, mode, stops)) return null;
+    c.budget -= price;
     const line = { id: s.nextId++, color, mode, stops: stops.slice() };
     c.lines.push(line);
     addVehicle(s, c, line);
@@ -216,8 +226,8 @@
     const all = atHead ? [...added.slice().reverse(), ...line.stops] : [...line.stops, ...added];
     let price = 0;
     for (let i = 0; i + 1 < chain.length; i++) price += NR.cityTrackPrice(key, line.mode, chain[i], chain[i + 1]);
-    if (s.money < price || NR.cityModeProblem(key, line.mode, all)) return false;
-    s.money -= price;
+    if (NR.cityFrozen(s, key) || c.budget < price || NR.cityModeProblem(key, line.mode, all)) return false;
+    c.budget -= price;
     if (atHead) {
       line.stops.unshift(...added.slice().reverse());
       NR.cityTrainsOn(c, line).forEach((t) => (t.i += added.length));
@@ -228,9 +238,10 @@
 
   NR.cityAddVehicle = function (s, key, line) {
     const price = NR.CITY_MODES[line.mode].price;
-    if (s.money < price) return false;
-    s.money -= price;
-    addVehicle(s, s.cities[key], line);
+    const c = s.cities[key];
+    if (NR.cityFrozen(s, key) || c.budget < price) return false;
+    c.budget -= price;
+    addVehicle(s, c, line);
     return true;
   };
 
@@ -246,17 +257,18 @@
   NR.cityRemoveVehicle = function (s, key, trainId) {
     const c = s.cities[key];
     const train = c.trains.find((t) => t.id === trainId);
-    if (!train) return false;
+    if (!train || NR.cityFrozen(s, key)) return false;
     const line = NR.cityLineById(c, train.lineId);
     dropRiders(s, key, c, train, line);
     c.trains = c.trains.filter((t) => t !== train);
-    s.money += NR.CITY_MODES[line.mode].price * T.refundShare;
+    c.budget += NR.CITY_MODES[line.mode].price * T.refundShare;
     return true;
   };
 
   // Delete a line: you get back half of what its track and vehicles cost.
   NR.cityDeleteLine = function (s, key, line) {
     const c = s.cities[key];
+    if (NR.cityFrozen(s, key)) return false;
     const m = NR.CITY_MODES[line.mode];
     let value = NR.cityLineMiles(key, line) * m.track;
     NR.cityTrainsOn(c, line).forEach((t) => {
@@ -265,8 +277,72 @@
     });
     c.trains = c.trains.filter((t) => t.lineId !== line.id);
     c.lines = c.lines.filter((l) => l !== line);
-    s.money += value * T.refundShare;
+    c.budget += value * T.refundShare;
     rt.cityRoutes[key] = null;
+    return true;
+  };
+
+  // ---------- City budget and the head of transportation ----------
+  // What the city's track and vehicles cost to build, in $k.
+  NR.cityInfraValue = function (key, c) {
+    return c.lines.reduce((sum, l) => {
+      const m = NR.CITY_MODES[l.mode];
+      return sum + NR.cityLineMiles(key, l) * m.track + NR.cityTrainsOn(c, l).length * m.price;
+    }, 0);
+  };
+  // Move money between your main money and a city budget (positive: into the city).
+  NR.cityTransfer = function (s, key, amount) {
+    const c = s.cities[key];
+    const move = amount > 0 ? Math.min(amount, Math.max(0, s.money)) : -Math.min(-amount, Math.max(0, c.budget));
+    s.money -= move;
+    c.budget += move;
+    return move;
+  };
+  const weeks = (n) => n * T.weekLength;
+  // "settling" for the first 3 weeks after hiring, then "managing" for 100 weeks, else null.
+  NR.headState = function (s, key) {
+    const h = s.cities[key] && s.cities[key].head;
+    if (!h) return null;
+    return s.time < h.from ? "settling" : "managing";
+  };
+  // While managed, nothing can overflow and the lines can't change.
+  NR.cityFrozen = (s, key) => NR.headState(s, key) === "managing";
+  NR.headFee = (s, key) => {
+    const c = s.cities[key];
+    return Math.round(Math.max(T.headFeeBudget * c.budget, T.headFeeInfra * NR.cityInfraValue(key, c)));
+  };
+  NR.hireHead = function (s, key) {
+    const c = s.cities[key];
+    const fee = NR.headFee(s, key);
+    if (!c || c.head || !c.lines.length || c.budget < fee) return false;
+    c.budget -= fee;
+    c.head = { hired: s.time, from: s.time + weeks(T.headSettleWeeks), until: s.time + weeks(T.headSettleWeeks + T.headTermWeeks) };
+    emit("headHired", { key, fee });
+    return true;
+  };
+
+  // Once a week: each city pays its running costs from its budget. While managed, management
+  // keeps 90% of the profit and 10% comes to your main money. If a city budget runs dry,
+  // your main money covers the rest.
+  NR.cityWeek = function (s) {
+    for (const [key, c] of Object.entries(s.cities || {})) {
+      const upkeep = c.trains.reduce((n, t) => n + NR.CITY_MODES[NR.cityLineById(c, t.lineId).mode].upkeep, 0);
+      const profit = c.weekIncome - upkeep;
+      c.budget -= upkeep;
+      let toYou = 0;
+      if (NR.cityFrozen(s, key) && profit > 0) {
+        c.budget -= profit; // the profit leaves the city: 90% to management, 10% to you
+        toYou = profit * (1 - T.managementShare);
+        s.money += toYou;
+      }
+      c.lastWeek = { income: c.weekIncome, upkeep, profit, toYou };
+      c.weekIncome = 0;
+      if (c.budget < 0) {
+        s.money += c.budget;
+        emit("cityShortfall", { key, amount: -c.budget });
+        c.budget = 0;
+      }
+    }
   };
 
   NR.cityUpkeep = (s) =>
@@ -308,8 +384,8 @@
 
   function deliverRider(s, key, c, p, here, mode) {
     const fare = (1.2 + miles(stopOf(key, p.from), stopOf(key, here)) * 0.08) * NR.CITY_MODES[mode].fare;
-    s.money += fare;
-    s.weekIncome += fare;
+    c.budget += fare; // city fares go into the city budget
+    c.weekIncome += fare;
     c.delivered++;
     emit("cityDeliver", { key, at: here });
     // A rider who came to the main station to catch a train joins the trains across California.
@@ -386,8 +462,18 @@
     for (const [key, c] of Object.entries(s.cities || {})) {
       const metro = NR.METROS[key];
       const hub = hubOf(key);
+      if (c.head && !c.head.started && s.time >= c.head.from) {
+        c.head.started = true;
+        emit("headTakesOver", { key });
+      }
+      if (c.head && s.time >= c.head.until) {
+        c.head = null; // the term is over: the city is yours again
+        emit("headRetired", { key });
+      }
+      const managed = NR.cityFrozen(s, key);
       const homes = metro.stops.filter((x) => !x.hub);
-      const pressure = 1 + (s.time - c.opened) / 400;
+      if (!managed) c.liveTime += dt; // the city only gets busier while you run it yourself
+      const pressure = 1 + c.liveTime / 400;
       // Riders appear in the neighborhoods: most cross town, some head for the main station.
       for (const st of c.stations) {
         if (st.id === hub.id) continue;
@@ -400,7 +486,15 @@
       }
       for (const train of c.trains) moveVehicle(s, key, c, train, dt);
       // Crowding: a stop that stays too full for too long ends the game, just like a station.
+      // While the head of transportation runs the city, stops are kept at most half full
+      // (extra riders take the bus), so the city is in good shape when it comes back to you.
       for (const st of c.stations) {
+        if (managed) {
+          const calm = Math.floor(T.cityRoom / 2);
+          if (st.waiting.length > calm) st.waiting.length = calm;
+          st.crowd = 0;
+          continue;
+        }
         if (st.waiting.length > T.cityRoom) st.crowd = Math.min(1, st.crowd + dt / T.cityOverflowSeconds);
         else st.crowd = Math.max(0, st.crowd - dt / (T.cityOverflowSeconds * 1.5));
         if (st.crowd >= 1) {

@@ -24,6 +24,8 @@
           <button type="button" class="mode-btn" data-mode="metro" aria-pressed="false">Metro</button>
           <button type="button" class="mode-btn" data-mode="cable" aria-pressed="false">Cable car</button>
         </div>
+        <button id="btn-city-budget" class="btn btn-small" type="button">City budget</button>
+        <span id="city-head" class="head-chip">No head of transportation</span>
         <span id="city-hint" class="city-hint"></span>
       </div>
     </div>
@@ -43,7 +45,7 @@
         <div id="res-depot" class="res"><span class="res-label">In depot</span><span id="trains-free" class="res-value">3</span></div>
         <div class="res"><span class="res-label">Money</span><span id="money" class="res-value">$400k</span></div>
         <div id="res-counties" class="res"><span class="res-label">Counties</span><span id="counties" class="res-value">3/49</span></div>
-        <div id="res-riders" class="res" hidden><span class="res-label">City riders</span><span id="city-riders" class="res-value">0</span></div>
+        <div id="res-city" class="res" hidden><span class="res-label">City budget</span><span id="city-budget" class="res-value">$0k</span></div>
       </div>
       <div class="controls">
         <button id="btn-contracts" class="icon-btn contracts-btn" type="button" aria-label="Goals and contracts">
@@ -120,6 +122,28 @@
     <p class="ct-note">New contracts are offered every so often, up to 3 at a time. Finish one before its time runs out to earn the reward.</p>
   </div>
 
+  <!-- A city's own budget and its head of transportation -->
+  <div id="city-panel" class="line-panel" role="dialog" aria-labelledby="cy-title" hidden>
+    <div class="lp-head">
+      <span id="cy-title" class="lp-name">City budget</span>
+      <button id="cy-close" class="lp-close" type="button" aria-label="Close city budget">×</button>
+    </div>
+    <p id="cy-budget" class="cy-budget">$0k</p>
+    <p id="cy-week" class="lp-meta"></p>
+    <p class="cy-note">City fares go into this budget. City track, vehicles and running costs are paid from it. If it runs dry, your main money covers the rest.</p>
+    <div class="lp-actions">
+      <button id="cy-in" class="btn btn-small" type="button">Move $100k in</button>
+      <button id="cy-in5" class="btn btn-small" type="button">Move $500k in</button>
+      <button id="cy-out" class="btn btn-small" type="button">Take $100k out</button>
+    </div>
+    <p class="lp-section">Head of transportation</p>
+    <p id="cy-head" class="cp-goal-text"></p>
+    <div id="cy-head-bar" class="cp-bar" hidden><span id="cy-head-fill"></span></div>
+    <div class="lp-actions">
+      <button id="cy-hire" class="btn btn-small btn-primary" type="button">Hire</button>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <!-- Start screen -->
@@ -153,7 +177,7 @@
         <li><b>Cargo:</b> farms send produce, ships bring containers to ports (anchor), and desert and mountain towns send trucks. Cargo waits in a yard left of the station and needs its own train: Freight, Dock train or Truck bypass. Cargo never ends your game, but it pays well.</li>
         <li><b>Day and night:</b> fewer people travel at night, when Night trains run. Tourists (★) head for scenic places, most at weekends. Flights land at airports (✈) with a burst of travelers.</li>
         <li><b>Earthquakes and wildfires:</b> from week 3 they damage track (red ✕). Trains turn back at the damage. A Work train on that line repairs it; otherwise it takes 3 weeks to mend.</li>
-        <li><b>Cities:</b> Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own city maps (M badge). Tap the station and choose Open city map, then build Tram, Metro or (in San Francisco) Cable car lines between neighborhoods. Riders cross town or come to the main station to catch a train, and train passengers ride home. Neighborhoods can overflow too.</li>
+        <li><b>Cities:</b> Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own city maps (M badge). Tap the station and choose Open city map, then build Tram, Metro or (in San Francisco) Cable car lines between neighborhoods. Riders cross town or come to the main station to catch a train, and train passengers ride home. Neighborhoods can overflow too. Each city has its own budget, and you can hire a head of transportation: after 3 weeks of settling in (you still run the city), they run it safely for 100 weeks, but its lines are frozen and management keeps 90% of its profit.</li>
         <li><b>Goals:</b> tap the clipboard to see contracts (optional jobs with a reward and a deadline) and, in Levels mode, the checklist for the current level.</li>
         <li><b>Zoom:</b> pinch or scroll to zoom, drag empty map to move around.</li>
         <li><b>Manage:</b> tap a line color at the bottom to add trains, upgrade to high-speed track, or delete the line.</li>

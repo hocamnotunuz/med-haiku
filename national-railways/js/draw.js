@@ -632,8 +632,9 @@
   function drawMetroBadge(ctx, s, key, x, y) {
     const c = s.cities[key];
     const crowded = c && c.stations.some((st) => st.crowd > 0);
+    const managed = c && NR.cityFrozen(s, key);
     roundRect(ctx, x - 7, y - 7, 14, 14, 3);
-    ctx.fillStyle = crowded ? colors.danger : c ? colors.accent : colors.panel;
+    ctx.fillStyle = crowded ? colors.danger : managed ? colors.ink : c ? colors.accent : colors.panel;
     ctx.fill();
     ctx.lineWidth = 1.2;
     ctx.strokeStyle = c ? colors.panel : colors.ink;
@@ -641,7 +642,7 @@
     ctx.font = `800 9px ${DISPLAY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = c ? colors.accentInk : colors.ink;
+    ctx.fillStyle = managed ? colors.panel : c ? colors.accentInk : colors.ink;
     ctx.fillText("M", x, y + 0.5);
   }
 

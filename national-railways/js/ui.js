@@ -120,6 +120,7 @@
       closeLinePanel();
       closeCountyPanel();
       closeContracts();
+      closeCityPanel();
       draft = null;
       const first = $("screen-" + name).querySelector("button:not([hidden])");
       if (first) first.focus({ preventScroll: true });
@@ -312,8 +313,16 @@
         const name = NR.countyById[ev.id].name;
         fx.push({ kind: "city", at: main.id, t0: now });
         toast(ev.free ? `Goal reached: ${name} unlocked for free! ${main.name} station is open.` : `${name} unlocked. ${main.name} station is open.`);
+      } else if (ev.type === "headHired") {
+        toast(`Head of transportation hired for ${NR.METROS[ev.key].name} (${NR.money(ev.fee)}). Keep the city running for ${plural(T.headSettleWeeks, "week")} while they settle in.`);
+      } else if (ev.type === "headTakesOver") {
+        toast(`The head of transportation now runs ${NR.METROS[ev.key].name} safely for ${T.headTermWeeks} weeks. Its lines are frozen.`);
+      } else if (ev.type === "headRetired") {
+        toast(`${NR.METROS[ev.key].name}'s head of transportation has retired. The city is yours to run again.`);
+      } else if (ev.type === "cityShortfall") {
+        toast(`${NR.METROS[ev.key].name}'s budget ran dry: ${NR.money(ev.amount)} of running costs came out of your main money.`);
       } else if (ev.type === "cityOpen") {
-        toast(`${NR.METROS[ev.key].name} city map is open. Riders will start to appear in the neighborhoods.`);
+        toast(`${NR.METROS[ev.key].name} city map is open. Move money into its budget to build, because riders will start to appear in the neighborhoods.`);
       } else if (ev.type === "cityCrowd") {
         if (cityKey !== ev.key) toast(`Crowding at ${NR.cityStop(ev.key, ev.at).name} in ${NR.METROS[ev.key].name}! Open the city map to help.`);
       } else if (ev.type === "cityDeliver") {
@@ -459,6 +468,7 @@
   function openContracts() {
     closeLinePanel();
     closeCountyPanel();
+    if (typeof closeCityPanel === "function") closeCityPanel();
     ctSig = "";
     $("contracts-panel").hidden = false;
     renderContracts();
@@ -540,10 +550,13 @@
     if (NR.CITY_MODES[cityMode].onlyIn && NR.CITY_MODES[cityMode].onlyIn !== key) cityMode = "tram";
     chipSig = "";
     renderCityBar();
+    const c = game.cities[key];
+    if (!c.lines.length && c.budget <= 0) openCityPanel(); // a new city starts with an empty budget
   }
   function leaveCity() {
     if (!cityKey) return;
     closeLinePanel();
+    closeCityPanel();
     draft = null;
     cityKey = null;
     chipSig = "";
@@ -557,7 +570,7 @@
     $("legend").hidden = inCity;
     $("res-depot").hidden = inCity;
     $("res-counties").hidden = inCity;
-    $("res-riders").hidden = !inCity;
+    $("res-city").hidden = !inCity;
     if (!inCity) return;
     document.querySelectorAll(".mode-btn").forEach((b) => {
       const m = NR.CITY_MODES[b.dataset.mode];
@@ -575,6 +588,79 @@
     })
   );
   $("btn-back").addEventListener("click", leaveCity);
+
+  // ---------- City budget and head of transportation panel ----------
+  const cityPanelOpen = () => !$("city-panel").hidden;
+  function openCityPanel() {
+    closeLinePanel();
+    closeCountyPanel();
+    closeContracts();
+    $("city-panel").hidden = false;
+    renderCityPanel();
+  }
+  function closeCityPanel() {
+    $("city-panel").hidden = true;
+  }
+  const weeksUntil = (t) => Math.max(0, Math.ceil((t - game.time) / T.weekLength));
+  function renderCityPanel() {
+    if (!cityKey || !game || !cityPanelOpen()) return;
+    const c = game.cities[cityKey];
+    const metro = NR.METROS[cityKey];
+    const state = NR.headState(game, cityKey);
+    const lw = c.lastWeek;
+    setText("cy-title", `${metro.name} budget`);
+    setText("cy-budget", NR.money(c.budget));
+    setText(
+      "cy-week",
+      (lw ? `Last week: fares ${NR.money(lw.income)}, running costs ${NR.money(lw.upkeep)}${lw.toYou ? `, ${NR.money(lw.toYou)} to you` : ""} · ` : "") +
+        `${plural(c.delivered, "rider")} so far`
+    );
+    $("cy-in").disabled = game.money <= 0;
+    $("cy-in5").disabled = game.money <= 0;
+    $("cy-out").disabled = c.budget <= 0;
+    const hire = $("cy-hire");
+    const bar = $("cy-head-bar");
+    if (!state) {
+      const fee = NR.headFee(game, cityKey);
+      setText(
+        "cy-head",
+        `Hire a head of transportation to run ${metro.name} for you. For the first ${T.headSettleWeeks} weeks they settle in and you still keep the city running. ` +
+          `Then they run it safely for ${T.headTermWeeks} weeks: nothing can overflow, but its lines can't change and management keeps ${Math.round(T.managementShare * 100)}% of the city's profit (the rest comes to you). ` +
+          `Fee: the higher of ${Math.round(T.headFeeBudget * 100)}% of the city budget or ${Math.round(T.headFeeInfra * 100)}% of its track and vehicles.` +
+          (c.lines.length ? "" : " Build a line first.")
+      );
+      hire.hidden = false;
+      setText("cy-hire", `Hire for ${NR.money(fee)}`);
+      hire.disabled = !c.lines.length || c.budget < fee;
+      bar.hidden = true;
+    } else {
+      const settling = state === "settling";
+      setText(
+        "cy-head",
+        settling
+          ? `Settling in: ${plural(weeksUntil(c.head.from), "week")} left. Keep ${metro.name} running until they take over.`
+          : `Running ${metro.name} safely: ${plural(weeksUntil(c.head.until), "week")} left. Lines are frozen, and you get ${Math.round((1 - T.managementShare) * 100)}% of the city's profit each week.`
+      );
+      hire.hidden = true;
+      bar.hidden = false;
+      const [a, b] = settling ? [c.head.hired, c.head.from] : [c.head.from, c.head.until];
+      $("cy-head-fill").style.width = `${Math.min(100, (100 * (game.time - a)) / (b - a))}%`;
+    }
+  }
+  const moveMoney = (amount) => {
+    if (!cityKey) return;
+    const moved = NR.cityTransfer(game, cityKey, amount);
+    if (moved) toast(moved > 0 ? `Moved ${NR.money(moved)} into the ${NR.METROS[cityKey].name} budget.` : `Took ${NR.money(-moved)} out of the ${NR.METROS[cityKey].name} budget.`);
+    renderCityPanel();
+  };
+  $("cy-in").addEventListener("click", () => moveMoney(100));
+  $("cy-in5").addEventListener("click", () => moveMoney(500));
+  $("cy-out").addEventListener("click", () => moveMoney(-100));
+  $("cy-close").addEventListener("click", closeCityPanel);
+  $("btn-city-budget").addEventListener("click", () => (cityPanelOpen() ? closeCityPanel() : openCityPanel()));
+  $("cy-hire").addEventListener("click", () => {
+    if (cityKey && NR.hireHead(game, cityKey)) renderCityPanel();
+  });
   $("cp-city").addEventListener("click", () => {
     const main = openCountyId && NR.mainStation[openCountyId];
     if (main) enterCity(main.id);
@@ -584,6 +670,7 @@
   function openCountyPanel(id) {
     closeLinePanel();
     closeContracts();
+    closeCityPanel();
     openCountyId = id;
     renderCountyPanel();
     $("county-panel").hidden = false;
@@ -638,6 +725,7 @@
   function openLinePanel(id) {
     closeCountyPanel();
     closeContracts();
+    closeCityPanel();
     openLineId = id;
     panelSig = "";
     $("lp-delete").dataset.armed = "";
@@ -659,7 +747,8 @@
     if (!line) return closeLinePanel();
     const m = NR.CITY_MODES[line.mode];
     const vehicles = NR.cityTrainsOn(c, line);
-    const sig = JSON.stringify(["city", cityKey, line.stops, vehicles.map((t) => t.id), game.money >= m.price, game.extraSeats]);
+    const frozen = NR.cityFrozen(game, cityKey);
+    const sig = JSON.stringify(["city", cityKey, line.stops, vehicles.map((t) => t.id), c.budget >= m.price, game.extraSeats, frozen]);
     if (sig === panelSig) return;
     panelSig = sig;
     $("lp-dot").style.background = `var(--line-${line.color + 1})`;
@@ -679,6 +768,7 @@
           renderLinePanel();
         })
       );
+      li.lastChild.disabled = frozen;
       list.appendChild(li);
     });
     if (!vehicles.length) {
@@ -692,17 +782,18 @@
     const add = button("", "buy", () => {
       if (NR.cityAddVehicle(game, cityKey, line)) renderLinePanel();
     });
-    add.disabled = game.money < m.price;
+    add.disabled = frozen || c.budget < m.price;
     add.title = m.about;
     const name = document.createElement("span");
     name.className = "buy-name";
     name.textContent = `Add a ${m.vehicle}`;
     const note = document.createElement("span");
     note.className = "buy-note";
-    note.textContent = `Buy ${NR.money(m.price)}`;
+    note.textContent = frozen ? "Frozen while managed" : `Buy ${NR.money(m.price)} from the city budget`;
     add.append(name, note);
     buy.appendChild(add);
     $("lp-upgrade").hidden = true;
+    $("lp-delete").disabled = frozen;
     if (!$("lp-delete").dataset.armed) {
       const value = NR.cityLineMiles(cityKey, line) * m.track + vehicles.length * m.price;
       $("lp-delete").textContent = `Delete line (get back ${NR.money(value * T.refundShare)})`;
@@ -711,6 +802,7 @@
 
   function renderLinePanel() {
     if (cityKey) return renderCityLinePanel();
+    $("lp-delete").disabled = false;
     const line = game && NR.lineById(game, openLineId);
     if (!line) return closeLinePanel();
     const trains = NR.trainsOn(game, line);
@@ -807,7 +899,16 @@
     setText("trains-free", NR.depotCount(game));
     if (cityKey) {
       setText("mode-label", `${NR.METROS[cityKey].name} city map · trams and metro`);
-      setText("city-riders", game.cities[cityKey].delivered);
+      const c = game.cities[cityKey];
+      setText("city-budget", NR.money(c.budget));
+      const head = NR.headState(game, cityKey);
+      const chip = $("city-head");
+      chip.className = `head-chip ${head || ""}`;
+      setText(
+        "city-head",
+        head === "managing" ? `Managed · ${weeksUntil(c.head.until)} wk left` : head === "settling" ? `Head settling in · ${weeksUntil(c.head.from)} wk` : "No head of transportation"
+      );
+      renderCityPanel();
     }
     setText("counties", `${game.owned.length}/${NR.MAP.regions.length}`);
     if (openCountyId) renderCountyPanel();
@@ -877,9 +978,11 @@
     if (chain.includes(id)) return;
     if (draft.kind === "extend" && draftLine().stops.includes(id)) return;
     const cost = draftPrice(lastId, id);
-    const left = game.money - draft.cost;
+    const left = (draft.city ? game.cities[draft.city].budget : game.money) - draft.cost;
     if (cost > left) {
-      toast(`Not enough money: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.money(cost)}, and you have ${NR.money(Math.max(0, left))}.`);
+      toast(
+        `Not enough ${draft.city ? "in the city budget" : "money"}: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.money(cost)}, and you have ${NR.money(Math.max(0, left))}.`
+      );
       return;
     }
     chain.push(id);
@@ -892,8 +995,8 @@
     draft = null;
     pointer = null;
     if (!game || d.chain.length < 2) return;
-    if (game.money < d.cost) {
-      toast(`Not enough money to build this: it costs ${NR.money(d.cost)}.`);
+    if ((d.city ? game.cities[d.city].budget : game.money) < d.cost) {
+      toast(`Not enough ${d.city ? "in the city budget" : "money"} to build this: it costs ${NR.money(d.cost)}.`);
       return;
     }
     if (d.city) {
@@ -903,7 +1006,8 @@
       if (d.kind === "new") {
         const problem = NR.cityModeProblem(d.city, d.mode, d.chain);
         if (problem) return toast(`${problem}.`);
-        if (game.money < d.cost + m.price) return toast(`Not enough money: this ${m.name.toLowerCase()} line costs ${NR.money(d.cost + m.price)} with its first ${m.vehicle}.`);
+        if (c.budget < d.cost + m.price)
+          return toast(`Not enough in the city budget: this ${m.name.toLowerCase()} line costs ${NR.money(d.cost + m.price)} with its first ${m.vehicle}. Tap City budget to move money in.`);
         if (NR.cityFreeColor(c) === d.color) NR.cityCreateLine(game, d.city, d.chain, d.color, d.mode);
       } else {
         const line = NR.cityLineById(c, d.lineId);
@@ -964,6 +1068,10 @@
     if (cityKey) {
       // City map: drag from a neighborhood to build, or drag a line's end tab to extend it
       const c = game.cities[cityKey];
+      if (NR.cityFrozen(game, cityKey)) {
+        toast(`The head of transportation runs ${NR.METROS[cityKey].name}: its lines can't change for ${plural(weeksUntil(c.head.until), "more week")}.`);
+        return;
+      }
       const h = NR.hitCityHandle(c, p.x, p.y, grab + 4);
       const st = NR.hitCityStop(c, p.x, p.y, grab + 4);
       if (h && (!st || h.d < st.d)) {

@@ -39,7 +39,7 @@
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 8; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 9; // bump when saved games from older versions no longer fit
 
   // ---- Time of day: night runs from 21:00 to 05:00 ----
   NR.hourOf = (s) => ((s.time % T.dayLength) / T.dayLength) * 24;
@@ -826,7 +826,8 @@
     if (week > s.week) {
       s.week = week;
       // Pay the running costs of every train on the map.
-      const upkeep = s.trains.reduce((sum, t) => sum + typeOf(t).upkeep, 0) + (NR.cityUpkeep ? NR.cityUpkeep(s) : 0);
+      const upkeep = s.trains.reduce((sum, t) => sum + typeOf(t).upkeep, 0);
+      if (NR.cityWeek) NR.cityWeek(s); // each city pays its own running costs from its budget
       s.money -= upkeep;
       s.lastWeek = { income: s.weekIncome, upkeep };
       s.weekIncome = 0;
