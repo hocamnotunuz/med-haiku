@@ -8,11 +8,13 @@
   const T = (NR.TUNING = {
     dayLength: 10, // real seconds per in-game day
     timedWeeks: 4, // how many weeks the Timed challenge lasts
-    startMoney: 400, // money at the start, in thousands of dollars ($k)
+    startMoney: 400, // California's budget at the start, in thousands of dollars ($k)
+    nationalStart: 0, // national money at the start ($k)
+    newStateBudget: 200, // budget a state gets when it opens ($k)
     trackPrice: 1, // $k per mile of standard track
     highSpeedPrice: 1.5, // extra $k per mile for high-speed track
     refundShare: 0.5, // share of the track cost you get back when you delete a line
-    grant: 150, // $k from a state grant
+    grant: 150, // $k of national money from a federal grant
     startLines: 3, // line colors available at the start
     maxLines: 7,
     startTrains: 3, // Regular trains in the depot at the start
@@ -39,7 +41,7 @@
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 9; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 10; // bump when saved games from older versions no longer fit
 
   // ---- Time of day: night runs from 21:00 to 05:00 ----
   NR.hourOf = (s) => ((s.time % T.dayLength) / T.dayLength) * 24;
@@ -245,6 +247,53 @@
   // Price of laying track between two cities, in $k.
   NR.trackPrice = (a, b, grade) => NR.trackMiles(a, b) * (T.trackPrice + (grade === "high" ? T.highSpeedPrice : 0));
 
+  // ---------- States and budgets ----------
+  // Each state has its own budget. Fares and cargo fees earned at its stations go in, and it pays
+  // for track, trains and counties inside the state. National money gets contract rewards, grants
+  // and level bonuses, pays for track and trains that cross a state border, and covers any state
+  // that runs short (a state spends its own budget first, then national money).
+  NR.STATE_NAMES = Object.fromEntries(NR.MAP.states.map((x) => [x.code, x.name]));
+  NR.HOME_STATE = NR.countyById[NR.START_COUNTIES[0]].state; // every game starts here
+  NR.stateOf = (stationId) => NR.countyById[city(stationId).county].state;
+  // Who pays for the track between two stations: their state, or national money across a border.
+  NR.segmentPayer = (a, b) => (NR.stateOf(a) === NR.stateOf(b) ? NR.stateOf(a) : "national");
+  // Who pays for a line's trains: its state if the whole line is in one state, otherwise national money.
+  NR.linePayer = (l) => {
+    const first = NR.stateOf(l.stops[0]);
+    return l.stops.every((id) => NR.stateOf(id) === first) ? first : "national";
+  };
+  NR.payerName = (p) => (p === "national" ? "national money" : `the ${NR.STATE_NAMES[p]} budget`);
+  // A bill is { CA: 30, national: 12 }: who pays how much ($k).
+  NR.addToBill = (bill, payer, amount) => {
+    bill[payer] = (bill[payer] || 0) + amount;
+    return bill;
+  };
+  // National money a bill needs: its own share, plus whatever the states can't cover themselves.
+  NR.nationalNeed = (s, bill) =>
+    Object.entries(bill).reduce((n, [p, amount]) => n + (p === "national" ? amount : Math.max(0, amount - Math.max(0, s.states[p].budget))), 0);
+  NR.canPay = (s, bill) => NR.nationalNeed(s, bill) <= Math.max(0, s.money) + 1e-6;
+  NR.pay = (s, bill) => {
+    for (const [p, amount] of Object.entries(bill)) {
+      if (p === "national") {
+        s.money -= amount;
+        continue;
+      }
+      const st = s.states[p];
+      const own = Math.min(amount, Math.max(0, st.budget));
+      st.budget -= own;
+      s.money -= amount - own; // national money covers the rest
+    }
+  };
+  // Money paid back goes to whoever paid.
+  NR.refund = (s, bill) => {
+    for (const [p, amount] of Object.entries(bill)) {
+      if (p === "national") s.money += amount;
+      else s.states[p].budget += amount;
+    }
+  };
+  // What a payer can spend right now: national money, plus the state's own budget.
+  NR.spendable = (s, payer) => Math.max(0, s.money) + (payer === "national" ? 0 : Math.max(0, s.states[payer].budget));
+
   // Data that is worked out from the game state instead of being saved.
   const rt = (NR.runtime = { routes: {}, dirty: true, events: [] });
   const emit = (type, data) => rt.events.push(Object.assign({ type }, data));
@@ -268,7 +317,16 @@
     }
     return list;
   }
-  const allAreas = () => [...new Set(NR.CITIES.map((c) => c.level))];
+  const allAreas = () => [...new Set(NR.CITIES.map((c) => c.level).filter(Boolean))];
+  function makeStates() {
+    const states = {};
+    NR.MAP.states.forEach(({ code }) => {
+      const home = code === NR.HOME_STATE;
+      // liveTime: seconds the state has run without a head in charge (it gets busier over this time)
+      states[code] = { open: home, budget: home ? T.startMoney : 0, liveTime: 0, weekIncome: 0, lastWeek: null, head: null };
+    });
+    return states;
+  }
 
   // ---------- Starting a game ----------
   // mode: "endless" | "timed" | "levels"    style: "type" | "city"
@@ -283,8 +341,10 @@
       lines: [],
       trains: [],
       v: NR.SAVE_VERSION,
-      money: T.startMoney,
-      weekIncome: 0,
+      money: T.nationalStart, // national money
+      states: makeStates(), // each state's budget, head of transportation and so on
+      levelsBeaten: false,
+      weekIncome: 0, // fares and cargo fees this week, all states together
       lastWeek: null,
       depot: Object.fromEntries(Object.keys(NR.TRAIN_TYPES).map((k) => [k, k === "regular" ? T.startTrains : 0])),
       cargoDelivered: Object.fromEntries(Object.keys(NR.CARGO).map((k) => [k, 0])),
@@ -338,8 +398,9 @@
   NR.stationById = (s, id) => s.stations.find((st) => st.id === id);
   NR.lineById = (s, id) => s.lines.find((l) => l.id === id);
   NR.trainsOn = (s, line) => s.trains.filter((t) => t.lineId === line.id);
-  // Towns that can still appear: inside counties you own, not on the map yet.
-  NR.townPool = (s) => NR.TOWNS.filter((t) => s.owned.includes(t.county) && !NR.stationById(s, t.id));
+  // Towns that can still appear: inside counties you own, not on the map yet
+  // (and not in a state a head of transportation is managing).
+  NR.townPool = (s) => NR.TOWNS.filter((t) => s.owned.includes(t.county) && !NR.stationById(s, t.id) && !NR.stateFrozen(s, NR.stateOf(t.id)));
 
   function addNextCity(s) {
     const pool = NR.townPool(s);
@@ -364,12 +425,15 @@
   // Where a county stands: { owned } or { ok, price, goal, progress } or { ok: false, reason }.
   NR.countyStatus = function (s, id) {
     if (s.owned.includes(id)) return { owned: true };
-    if (!s.areas.includes(countyArea(id))) {
+    const code = NR.countyById[id].state;
+    if (!s.states[code].open) return { ok: false, reason: `Opens once you own all of ${NR.STATE_NAMES[NR.HOME_STATE]}` };
+    if (NR.stateFrozen(s, code)) return { ok: false, reason: `Frozen while ${NR.STATE_NAMES[code]} is managed` };
+    if (countyArea(id) && !s.areas.includes(countyArea(id))) {
       const lv = NR.LEVELS.findIndex((l) => l.areas.includes(countyArea(id)));
       return { ok: false, reason: `Opens in level ${lv + 1}` };
     }
     if (!NR.countyById[id].neighbors.some((n) => s.owned.includes(n))) return { ok: false, reason: "Own a neighboring county first" };
-    return { ok: true, price: NR.countyPrice(id), goal: NR.countyGoal(id), progress: s.goalProgress[id] || 0 };
+    return { ok: true, price: NR.countyPrice(id), goal: NR.countyGoal(id), progress: s.goalProgress[id] || 0, payer: code };
   };
 
   function ownCounty(s, id, atStart) {
@@ -384,13 +448,28 @@
     const st = NR.countyStatus(s, id);
     if (!st.ok) return false;
     if (!free) {
-      if (s.money < st.price) return false;
-      s.money -= st.price;
+      const bill = { [st.payer]: st.price }; // a county is paid for from its state's budget
+      if (!NR.canPay(s, bill)) return false;
+      NR.pay(s, bill);
     }
     ownCounty(s, id, false);
     emit("county", { id, free: !!free });
+    openMoreStates(s);
     return true;
   };
+
+  // The neighboring states open once you own every county of the home state (or beat every level).
+  function openMoreStates(s) {
+    const home = NR.HOME_STATE;
+    const ownAll = NR.MAP.regions.every((r) => r.state !== home || s.owned.includes(r.id));
+    if (!ownAll && !s.levelsBeaten) return;
+    const opened = Object.keys(s.states).filter((code) => !s.states[code].open);
+    opened.forEach((code) => {
+      s.states[code].open = true;
+      s.states[code].budget += T.newStateBudget;
+    });
+    if (opened.length) emit("statesOpen", { codes: opened });
+  }
 
   // A passenger delivered here counts toward the goals of locked neighboring counties.
   function countGoals(s, stationId) {
@@ -543,8 +622,11 @@
     if (p.tourist) fare *= p.scenic ? 2.4 : 1.2; // tourists pay more, double on a Scenic train
     return fare;
   }
-  function earn(s, amount) {
-    s.money += amount;
+  // Fares and cargo fees go into the budget of the state where the trip ends.
+  function earn(s, amount, here) {
+    const st = s.states[NR.stateOf(here)];
+    st.budget += amount;
+    st.weekIncome += amount;
     s.weekIncome += amount;
   }
 
@@ -553,13 +635,13 @@
     goalTick(s, p, here);
     if (p.kind) {
       const fee = NR.CARGO[p.kind].fee;
-      earn(s, fee[0] + miles(city(p.from), city(here)) * fee[1]);
+      earn(s, fee[0] + miles(city(p.from), city(here)) * fee[1], here);
       s.cargoDelivered[p.kind]++;
       emit("deliver", { at: here, cargo: p.kind });
       return;
     }
     s.delivered++;
-    earn(s, fareFor(p, here));
+    earn(s, fareFor(p, here), here);
     emit("deliver", { at: here });
     countGoals(s, here);
     if (NR.onStateDelivery) NR.onStateDelivery(s, p, here);
@@ -657,7 +739,7 @@
     }
   }
 
-  // ---------- California events ----------
+  // ---------- Earthquakes and wildfires ----------
   // Every stretch of track on the map (each counted once).
   function allSegments(s) {
     const keys = new Set();
@@ -668,7 +750,8 @@
   }
   // A wildfire in a county with mountain track, or an earthquake somewhere on the network.
   function californiaEvent(s) {
-    const open = allSegments(s).filter((k) => !s.damage[k]);
+    // Track in a state a head of transportation is managing is looked after for you.
+    const open = allSegments(s).filter((k) => !s.damage[k] && !NR.stateFrozen(s, NR.segmentPayer(...k.split("|"))));
     if (open.length < 2) return; // not much track yet: nothing happens
     const fireCounties = [...new Set(open.flatMap((k) => k.split("|")).filter((id) => city(id).type === "mountain").map((id) => city(id).county))];
     if (fireCounties.length && Math.random() < 0.5) {
@@ -685,11 +768,109 @@
     rt.dirty = true;
   }
 
+  // ---------- State budgets and heads of transportation ----------
+  // A head of transportation works for a state just like for a city (see js/metro.js):
+  // 3 weeks settling in (you still run the state), then 100 weeks managing it safely
+  // (stations never overflow, track and trains inside the state are frozen, no new counties
+  // or towns, management keeps 90% of the state's profit), then the state is yours again.
+  const weeks = (n) => n * T.weekLength;
+  NR.stateHeadState = function (s, code) {
+    const h = s.states[code] && s.states[code].head;
+    if (!h) return null;
+    return s.time < h.from ? "settling" : "managing";
+  };
+  NR.stateFrozen = (s, code) => code !== "national" && NR.stateHeadState(s, code) === "managing";
+  // What the state's own track and trains cost to build, in $k.
+  NR.stateInfraValue = function (s, code) {
+    let value = 0;
+    s.lines.forEach((l) => {
+      value += NR.chainBill(l.stops, l.grade)[code] || 0;
+      if (NR.linePayer(l) === code) NR.trainsOn(s, l).forEach((t) => (value += typeOf(t).price));
+    });
+    return value;
+  };
+  NR.stateHeadFee = (s, code) => Math.round(Math.max(T.headFeeBudget * s.states[code].budget, T.headFeeInfra * NR.stateInfraValue(s, code)));
+  // Why a head can't be hired right now, or null if one can.
+  NR.stateHeadProblem = function (s, code) {
+    const st = s.states[code];
+    if (!st.open) return "This state isn't open yet";
+    if (st.head) return "A head of transportation is already in charge";
+    if (!NR.stateInfraValue(s, code)) return "Build some track in the state first";
+    if (!NR.canPay(s, { [code]: NR.stateHeadFee(s, code) })) return "Not enough money";
+    return null;
+  };
+  NR.hireStateHead = function (s, code) {
+    if (NR.stateHeadProblem(s, code)) return false;
+    const fee = NR.stateHeadFee(s, code);
+    NR.pay(s, { [code]: fee });
+    s.states[code].head = { hired: s.time, from: s.time + weeks(T.headSettleWeeks), until: s.time + weeks(T.headSettleWeeks + T.headTermWeeks) };
+    emit("stateHeadHired", { code, fee });
+    return true;
+  };
+  // Move money between national money and a state budget (positive: into the state).
+  NR.stateTransfer = function (s, code, amount) {
+    const st = s.states[code];
+    const move = amount > 0 ? Math.min(amount, Math.max(0, s.money)) : -Math.min(-amount, Math.max(0, st.budget));
+    s.money -= move;
+    st.budget += move;
+    return move;
+  };
+
+  // Every step: each state's clock, and its head of transportation starting or retiring.
+  function updateStates(s, dt) {
+    for (const [code, st] of Object.entries(s.states)) {
+      if (!st.open) continue;
+      if (st.head && !st.head.started && s.time >= st.head.from) {
+        st.head.started = true;
+        emit("stateHeadTakesOver", { code });
+      }
+      if (st.head && s.time >= st.head.until) {
+        st.head = null; // the term is over: the state is yours again
+        emit("stateHeadRetired", { code });
+      }
+      if (!NR.stateFrozen(s, code)) st.liveTime += dt; // a state only gets busier while you run it yourself
+    }
+  }
+
+  // Once a week: each state pays the running costs of its own trains, and national money pays
+  // for trains on lines that cross a border. While managed, management keeps 90% of a state's
+  // profit and 10% goes to national money. National money covers any state that runs short.
+  function stateWeek(s) {
+    const upkeepOf = {};
+    s.trains.forEach((t) => {
+      const line = NR.lineById(s, t.lineId);
+      NR.addToBill(upkeepOf, line ? NR.linePayer(line) : "national", typeOf(t).upkeep);
+    });
+    s.money -= upkeepOf.national || 0;
+    s.nationalUpkeep = upkeepOf.national || 0;
+    for (const [code, st] of Object.entries(s.states)) {
+      if (!st.open) continue;
+      const upkeep = upkeepOf[code] || 0;
+      const profit = st.weekIncome - upkeep;
+      st.budget -= upkeep;
+      let toNational = 0;
+      if (NR.stateFrozen(s, code) && profit > 0) {
+        st.budget -= profit; // the profit leaves the state: 90% to management, 10% to national money
+        toNational = profit * (1 - T.managementShare);
+        s.money += toNational;
+      }
+      st.lastWeek = { income: st.weekIncome, upkeep, profit, toNational };
+      st.weekIncome = 0;
+      if (st.budget < 0) {
+        s.money += st.budget;
+        emit("stateShortfall", { code, amount: -st.budget });
+        st.budget = 0;
+      }
+    }
+    if (s.money < 0) emit("nationalShort", { amount: -s.money }); // a reminder to move money in from a state
+  }
+
   // ---------- One step of the game ----------
   NR.update = function (s, dt) {
     if (s.over) return;
     if (rt.dirty) rebuildRoutes(s);
     s.time += dt;
+    updateStates(s, dt);
 
     // A new city joins the map now and then.
     s.nextCityIn -= dt;
@@ -716,9 +897,9 @@
       }
     }
 
-    // Passengers appear. Busy cities make more, and everything speeds up over time.
-    const pressure = 1 + s.time / 240;
+    // Passengers appear. Busy cities make more, and each state gets busier the longer you run it.
     s.stations.forEach((st) => {
+      const pressure = 1 + s.states[NR.stateOf(st.id)].liveTime / 240;
       st.spawnIn -= dt;
       if (st.spawnIn <= 0) {
         const to = pickDestination(s, st);
@@ -811,7 +992,15 @@
     }
 
     // Overcrowding: a station that stays too full for too long ends the game.
+    // While a head of transportation manages a state, its stations are kept at most half full
+    // (extra passengers take the bus), so the state is in good shape when it comes back to you.
     for (const st of s.stations) {
+      if (NR.stateFrozen(s, NR.stateOf(st.id))) {
+        const calm = Math.floor(T.stationRoom / 2);
+        if (st.waiting.length > calm) st.waiting.length = calm;
+        st.crowd = 0;
+        continue;
+      }
       if (st.waiting.length > T.stationRoom) st.crowd = Math.min(1, st.crowd + dt / T.overflowSeconds);
       else st.crowd = Math.max(0, st.crowd - dt / (T.overflowSeconds * 1.5));
       if (st.crowd >= 1) {
@@ -828,7 +1017,7 @@
       // Pay the running costs of every train on the map.
       const upkeep = s.trains.reduce((sum, t) => sum + typeOf(t).upkeep, 0);
       if (NR.cityWeek) NR.cityWeek(s); // each city pays its own running costs from its budget
-      s.money -= upkeep;
+      stateWeek(s); // each state pays for its trains; national money for trains across borders
       s.lastWeek = { income: s.weekIncome, upkeep };
       s.weekIncome = 0;
       if (s.mode === "timed" && week >= T.timedWeeks) {
@@ -859,6 +1048,15 @@
     for (let i = 0; i + 1 < chain.length; i++) p += NR.trackPrice(chain[i], chain[i + 1], grade);
     return p;
   };
+  // The same, as a bill: each stretch is paid by its state, or by national money across a border.
+  NR.chainBill = (chain, grade, share = 1) => {
+    const bill = {};
+    for (let i = 0; i + 1 < chain.length; i++) NR.addToBill(bill, NR.segmentPayer(chain[i], chain[i + 1]), NR.trackPrice(chain[i], chain[i + 1], grade) * share);
+    return bill;
+  };
+  // Track inside a state that a head of transportation is managing can't change.
+  NR.chainFrozen = (s, chain) => chain.some((id, i) => i > 0 && NR.stateFrozen(s, NR.segmentPayer(chain[i - 1], id)));
+  NR.lineFrozen = (s, line) => NR.chainFrozen(s, line.stops);
   NR.freeColor = (s) => {
     for (let c = 0; c < s.linesUnlocked; c++) if (!s.lines.some((l) => l.color === c)) return c;
     return -1;
@@ -871,7 +1069,7 @@
 
   NR.createLine = function (s, stops, color) {
     const line = { id: s.nextId++, color, stops: stops.slice(), grade: "standard" };
-    s.money -= NR.chainPrice(stops, "standard");
+    NR.pay(s, NR.chainBill(stops, "standard"));
     s.lines.push(line);
     rt.dirty = true;
     const type = depotTypeFor(s, line);
@@ -882,7 +1080,7 @@
   // added = new stops in the order they were dragged, starting next to the old end.
   NR.extendLine = function (s, line, atHead, added) {
     const end = atHead ? line.stops[0] : line.stops[line.stops.length - 1];
-    s.money -= NR.chainPrice([end, ...added], line.grade);
+    NR.pay(s, NR.chainBill([end, ...added], line.grade));
     if (atHead) {
       line.stops.unshift(...added.slice().reverse());
       NR.trainsOn(s, line).forEach((t) => (t.i += added.length));
@@ -894,10 +1092,18 @@
 
   // Price of upgrading a whole line to high-speed track, in $k.
   NR.highSpeedUpgradePrice = (line) => NR.lineMiles(line) * T.highSpeedPrice;
+  NR.upgradeBill = (line) => {
+    const bill = {};
+    for (let i = 0; i + 1 < line.stops.length; i++) {
+      const [a, b] = [line.stops[i], line.stops[i + 1]];
+      NR.addToBill(bill, NR.segmentPayer(a, b), NR.trackMiles(a, b) * T.highSpeedPrice);
+    }
+    return bill;
+  };
   NR.upgradeLine = function (s, line) {
-    const price = NR.highSpeedUpgradePrice(line);
-    if (line.grade === "high" || s.money < price) return false;
-    s.money -= price;
+    const bill = NR.upgradeBill(line);
+    if (line.grade === "high" || NR.lineFrozen(s, line) || !NR.canPay(s, bill)) return false;
+    NR.pay(s, bill);
     line.grade = "high";
     return true;
   };
@@ -906,13 +1112,14 @@
   NR.canAddTrain = function (s, line, type) {
     const t = NR.TRAIN_TYPES[type];
     if (s.week < t.unlockWeek) return { ok: false, reason: `Unlocks in week ${t.unlockWeek + 1}` };
+    if (NR.lineFrozen(s, line)) return { ok: false, reason: "Frozen while managed" };
     if (t.needsHighSpeed && line.grade !== "high") return { ok: false, reason: "Needs high-speed track" };
     if (t.needsPort && !line.stops.some((id) => city(id).port)) return { ok: false, reason: "Needs a port on the line" };
     if (t.needsAirport && !line.stops.some((id) => city(id).airport)) return { ok: false, reason: "Needs an airport on the line" };
     if (t.maxLineMiles && NR.lineMiles(line) > t.maxLineMiles) return { ok: false, reason: `Only on lines up to ${t.maxLineMiles} mi` };
     if (line.stops.filter((id) => serves(type, id)).length < 2) return { ok: false, reason: "Needs 2 cities it stops at" };
     if (s.depot[type] > 0) return { ok: true, fromDepot: true };
-    if (s.money < t.price) return { ok: false, reason: `Costs ${NR.money(t.price)}` };
+    if (!NR.canPay(s, { [NR.linePayer(line)]: t.price })) return { ok: false, reason: `Costs ${NR.money(t.price)}` };
     return { ok: true, fromDepot: false };
   };
 
@@ -921,7 +1128,7 @@
     const check = NR.canAddTrain(s, line, type);
     if (!check.ok) return false;
     if (check.fromDepot) s.depot[type]--;
-    else s.money -= NR.TRAIN_TYPES[type].price;
+    else NR.pay(s, { [NR.linePayer(line)]: NR.TRAIN_TYPES[type].price }); // the line's state, or national money across borders
     const fromEnd = NR.trainsOn(s, line).length % 2 === 1; // spread trains out
     const train = {
       id: s.nextId++,
@@ -957,6 +1164,7 @@
     const train = s.trains.find((t) => t.id === trainId);
     if (!train) return false;
     const line = NR.lineById(s, train.lineId);
+    if (line && NR.lineFrozen(s, line)) return false;
     if (line) dropOff(s, train, line);
     s.trains = s.trains.filter((t) => t !== train);
     s.depot[train.type]++;
@@ -966,14 +1174,16 @@
 
   // Delete a line: its trains go back to the depot and part of the track cost comes back.
   NR.deleteLine = function (s, line) {
+    if (NR.lineFrozen(s, line)) return false;
     NR.trainsOn(s, line).forEach((t) => {
       dropOff(s, t, line);
       s.depot[t.type]++;
     });
     s.trains = s.trains.filter((t) => t.lineId !== line.id);
     s.lines = s.lines.filter((l) => l !== line);
-    s.money += NR.lineValue(line) * T.refundShare;
+    NR.refund(s, NR.chainBill(line.stops, line.grade, T.refundShare));
     rt.dirty = true;
+    return true;
   };
 
   // Put trains waiting in the depot onto lines that have none.
@@ -1182,7 +1392,7 @@
     for (const c of s.contracts.slice()) {
       refreshGoal(s, c, dt, crowded);
       if (c.done) {
-        earn(s, c.reward.money);
+        s.money += c.reward.money; // rewards are national money
         if (c.reward.train) s.depot[c.reward.train]++;
         s.contracts = s.contracts.filter((x) => x !== c);
         s.contractsDone++;
@@ -1201,7 +1411,7 @@
 
   // ---------- Weekly upgrades ----------
   NR.UPGRADES = {
-    grant: { title: "State grant", text: `${NR.money(T.grant)} to spend on track and trains.`, ok: () => true, apply: (s) => (s.money += T.grant) },
+    grant: { title: "Federal grant", text: `${NR.money(T.grant)} of national money to spend anywhere.`, ok: () => true, apply: (s) => (s.money += T.grant) },
     regional: {
       title: "Free Regional train",
       text: "A faster train with 10 seats, waiting in your depot.",
@@ -1254,6 +1464,8 @@
     if (s.level + 1 >= NR.LEVELS.length) {
       s.mode = "endless"; // every level beaten: carry on in Endless
       s.levelGoals = [];
+      s.levelsBeaten = true;
+      openMoreStates(s); // the neighboring states open
       return;
     }
     s.level++;

@@ -16,7 +16,7 @@
     headTermWeeks: 100, // then runs the city safely for 100 weeks
     headFeeBudget: 0.8, // fee: 80% of the city budget...
     headFeeInfra: 0.5, // ...but at least 50% of the city's track and vehicle value
-    managementShare: 0.9, // while managed, management keeps 90% of the city's profit (10% comes to you)
+    managementShare: 0.9, // while managed, management keeps 90% of the profit (10% comes to you)
   });
 
   // City vehicles. price = $k per vehicle, track = $k per mile, upkeep = $k per week,
@@ -290,11 +290,14 @@
       return sum + NR.cityLineMiles(key, l) * m.track + NR.cityTrainsOn(c, l).length * m.price;
     }, 0);
   };
-  // Move money between your main money and a city budget (positive: into the city).
+  // A city's money comes from, and goes back to, the budget of its state.
+  NR.cityState = (s, key) => s.states[NR.stateOf(key)];
+  // Move money between the state budget and a city budget (positive: into the city).
   NR.cityTransfer = function (s, key, amount) {
     const c = s.cities[key];
-    const move = amount > 0 ? Math.min(amount, Math.max(0, s.money)) : -Math.min(-amount, Math.max(0, c.budget));
-    s.money -= move;
+    const st = NR.cityState(s, key);
+    const move = amount > 0 ? Math.min(amount, Math.max(0, st.budget)) : -Math.min(-amount, Math.max(0, c.budget));
+    st.budget -= move;
     c.budget += move;
     return move;
   };
@@ -322,8 +325,8 @@
   };
 
   // Once a week: each city pays its running costs from its budget. While managed, management
-  // keeps 90% of the profit and 10% comes to your main money. If a city budget runs dry,
-  // your main money covers the rest.
+  // keeps 90% of the profit and 10% goes to the state budget. If a city budget runs dry,
+  // the state budget covers the rest (and national money covers the state, see js/game.js).
   NR.cityWeek = function (s) {
     for (const [key, c] of Object.entries(s.cities || {})) {
       const upkeep = c.trains.reduce((n, t) => n + NR.CITY_MODES[NR.cityLineById(c, t.lineId).mode].upkeep, 0);
@@ -333,12 +336,12 @@
       if (NR.cityFrozen(s, key) && profit > 0) {
         c.budget -= profit; // the profit leaves the city: 90% to management, 10% to you
         toYou = profit * (1 - T.managementShare);
-        s.money += toYou;
+        NR.cityState(s, key).budget += toYou;
       }
       c.lastWeek = { income: c.weekIncome, upkeep, profit, toYou };
       c.weekIncome = 0;
       if (c.budget < 0) {
-        s.money += c.budget;
+        NR.cityState(s, key).budget += c.budget;
         emit("cityShortfall", { key, amount: -c.budget });
         c.budget = 0;
       }

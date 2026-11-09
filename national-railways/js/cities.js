@@ -1,5 +1,5 @@
-// National Railways: stations and levels for California.
-// The land, county borders and county names come from js/map-california.js.
+// National Railways: stations and levels for California, Nevada, Arizona and Oregon.
+// The land, county borders and county names come from js/map.js.
 window.NR = window.NR || {};
 
 // The five kinds of place. In "type of place" mode a passenger wants to reach
@@ -15,7 +15,7 @@ NR.PLACE_TYPES = {
 // Names for the line colors, in the order they unlock.
 NR.LINE_NAMES = ["Golden", "Redwood", "Pacific", "Sierra", "Mojave", "Jacaranda", "Delta"];
 
-// Main stations: one per county (small counties are merged in map-california.js), at its biggest city.
+// Main stations: one per county (small counties are merged in map.js), at its biggest city.
 // A county's main station appears as soon as you own the county.
 // id = the short code shown on passengers. county = region id in NR.MAP.regions.
 // pop = county population in thousands (2020 census). size = how busy (1 to 5).
@@ -76,6 +76,58 @@ NR.CITIES = [
   { id: "TRK", name: "Truckee", county: "nevada", lat: 39.33, lon: -120.18, type: "mountain", size: 1, pop: 102, main: true, level: "north" },
   { id: "QCY", name: "Quincy", county: "plumas-sierra", lat: 39.94, lon: -120.95, type: "mountain", size: 1, pop: 23, main: true, level: "north" },
   { id: "SUS", name: "Susanville", county: "lassen-modoc", lat: 40.42, lon: -120.65, type: "mountain", size: 1, pop: 41, main: true, level: "north" },
+  // Nevada, Arizona and Oregon open once you own all of California (or finish every level).
+  // They have no level: their counties can be unlocked as soon as the state is open.
+  // Nevada
+  { id: "LV", name: "Las Vegas", county: "nv-clark", lat: 36.17, lon: -115.14, airport: "Harry Reid International", type: "metro", size: 5, pop: 2265, main: true },
+  { id: "RNO", name: "Reno", county: "nv-washoe", lat: 39.53, lon: -119.81, airport: "Reno-Tahoe International", type: "metro", size: 4, pop: 486, main: true },
+  { id: "CSN", name: "Carson City", county: "nv-carson-city", lat: 39.16, lon: -119.77, type: "mountain", size: 2, pop: 59, main: true },
+  { id: "FER", name: "Fernley", county: "nv-douglas-lyon-storey", lat: 39.61, lon: -119.25, type: "desert", size: 2, pop: 112, main: true },
+  { id: "PAH", name: "Pahrump", county: "nv-nye", lat: 36.21, lon: -115.98, type: "desert", size: 1, pop: 52, main: true },
+  { id: "ELK", name: "Elko", county: "nv-elko-humboldt", lat: 40.83, lon: -115.76, type: "desert", size: 1, pop: 71, main: true },
+  { id: "FAL", name: "Fallon", county: "nv-churchill-esmeralda-mineral", lat: 39.47, lon: -118.78, type: "farm", size: 1, pop: 32, main: true },
+  { id: "BMT", name: "Battle Mountain", county: "nv-eureka-lander-pershing", lat: 40.64, lon: -116.93, type: "desert", size: 1, pop: 15, main: true },
+  { id: "ELY", name: "Ely", county: "nv-lincoln-white-pine", lat: 39.25, lon: -114.89, type: "mountain", size: 1, pop: 13, main: true },
+  // Arizona
+  { id: "PHX", name: "Phoenix", county: "az-maricopa", lat: 33.45, lon: -112.07, airport: "Phoenix Sky Harbor International", type: "metro", size: 5, pop: 4421, main: true },
+  { id: "TUS", name: "Tucson", county: "az-pima", lat: 32.22, lon: -110.97, airport: "Tucson International", type: "metro", size: 4, pop: 1043, main: true },
+  // Casa Grande rather than the slightly bigger city of Maricopa, which shares its name with Maricopa County.
+  { id: "CGZ", name: "Casa Grande", county: "az-pinal", lat: 32.88, lon: -111.76, type: "farm", size: 3, pop: 425, main: true },
+  { id: "PRC", name: "Prescott", county: "az-yavapai", lat: 34.54, lon: -112.47, type: "mountain", size: 2, pop: 236, main: true },
+  { id: "LHC", name: "Lake Havasu City", county: "az-mohave", lat: 34.48, lon: -114.32, type: "desert", size: 2, pop: 213, main: true },
+  { id: "YUM", name: "Yuma", county: "az-la-paz-yuma", lat: 32.69, lon: -114.63, type: "farm", size: 2, pop: 221, main: true },
+  { id: "FLG", name: "Flagstaff", county: "az-coconino", lat: 35.2, lon: -111.65, type: "mountain", size: 2, pop: 145, main: true },
+  { id: "SVA", name: "Sierra Vista", county: "az-cochise-santa-cruz", lat: 31.55, lon: -110.3, type: "desert", size: 2, pop: 173, main: true },
+  { id: "SLW", name: "Show Low", county: "az-navajo", lat: 34.25, lon: -110.03, type: "mountain", size: 1, pop: 107, main: true },
+  { id: "CHN", name: "Chinle", county: "az-apache", lat: 36.15, lon: -109.55, scenic: true, type: "desert", size: 1, pop: 66, main: true },
+  { id: "PAY", name: "Payson", county: "az-gila", lat: 34.23, lon: -111.33, type: "mountain", size: 1, pop: 53, main: true },
+  { id: "SAF", name: "Safford", county: "az-graham-greenlee", lat: 32.83, lon: -109.71, type: "farm", size: 1, pop: 49, main: true },
+  // Oregon
+  { id: "PDX", name: "Portland", county: "or-multnomah", lat: 45.52, lon: -122.68, port: "Port of Portland", airport: "Portland International", type: "metro", size: 5, pop: 815, main: true },
+  { id: "HIL", name: "Hillsboro", county: "or-washington", lat: 45.52, lon: -122.99, type: "metro", size: 3, pop: 600, main: true },
+  // Oregon City rather than Lake Oswego, which sits right next to Portland.
+  { id: "ORC", name: "Oregon City", county: "or-clackamas", lat: 45.36, lon: -122.61, type: "metro", size: 3, pop: 421, main: true },
+  { id: "EUG", name: "Eugene", county: "or-lane", lat: 44.05, lon: -123.09, airport: "Eugene Airport", type: "metro", size: 3, pop: 383, main: true },
+  { id: "SLE", name: "Salem", county: "or-marion", lat: 44.94, lon: -123.04, type: "metro", size: 3, pop: 346, main: true },
+  { id: "MFR", name: "Medford", county: "or-jackson", lat: 42.33, lon: -122.87, airport: "Rogue Valley International", type: "farm", size: 2, pop: 223, main: true },
+  { id: "BND", name: "Bend", county: "or-crook-deschutes", lat: 44.06, lon: -121.31, type: "mountain", size: 2, pop: 223, main: true },
+  { id: "ALB", name: "Albany", county: "or-linn", lat: 44.64, lon: -123.11, type: "farm", size: 2, pop: 129, main: true },
+  { id: "RBG", name: "Roseburg", county: "or-douglas", lat: 43.22, lon: -123.34, type: "mountain", size: 1, pop: 111, main: true },
+  { id: "MMV", name: "McMinnville", county: "or-yamhill", lat: 45.21, lon: -123.2, type: "farm", size: 1, pop: 108, main: true },
+  { id: "CVO", name: "Corvallis", county: "or-benton", lat: 44.56, lon: -123.26, type: "farm", size: 2, pop: 95, main: true },
+  { id: "HRM", name: "Hermiston", county: "or-morrow-umatilla", lat: 45.84, lon: -119.29, type: "farm", size: 1, pop: 92, main: true },
+  { id: "GPS", name: "Grants Pass", county: "or-josephine", lat: 42.44, lon: -123.33, type: "mountain", size: 1, pop: 88, main: true },
+  { id: "CBY", name: "Coos Bay", county: "or-coos-curry", lat: 43.37, lon: -124.22, port: "Port of Coos Bay", type: "coast", size: 1, pop: 88, main: true },
+  { id: "DAL", name: "Dallas", county: "or-polk", lat: 44.92, lon: -123.32, type: "farm", size: 1, pop: 87, main: true },
+  { id: "TDL", name: "The Dalles", county: "or-hood-river-jefferson-wasco", lat: 45.6, lon: -121.18, type: "farm", size: 1, pop: 76, main: true },
+  { id: "KLF", name: "Klamath Falls", county: "or-klamath", lat: 42.22, lon: -121.78, type: "farm", size: 1, pop: 69, main: true },
+  { id: "AST", name: "Astoria", county: "or-clatsop-tillamook", lat: 46.19, lon: -123.83, type: "coast", size: 1, pop: 68, main: true },
+  { id: "STH", name: "St. Helens", county: "or-columbia", lat: 45.86, lon: -122.81, type: "farm", size: 1, pop: 53, main: true },
+  { id: "NPT", name: "Newport", county: "or-lincoln", lat: 44.64, lon: -124.05, type: "coast", size: 1, pop: 50, main: true },
+  { id: "LGD", name: "La Grande", county: "or-baker-union-wallowa", lat: 45.32, lon: -118.09, type: "mountain", size: 1, pop: 50, main: true },
+  { id: "ONO", name: "Ontario", county: "or-malheur", lat: 44.03, lon: -116.96, type: "farm", size: 1, pop: 32, main: true },
+  { id: "BNO", name: "Burns", county: "or-grant-harney-lake", lat: 43.59, lon: -119.05, type: "desert", size: 1, pop: 22, main: true },
+  { id: "CDN", name: "Condon", county: "or-gilliam-sherman-wheeler", lat: 45.23, lon: -120.18, type: "farm", size: 1, pop: 5, main: true },
 ];
 
 // Towns: they appear over time, but only inside counties you own.
@@ -170,6 +222,93 @@ NR.TOWNS = [
   { id: "ORO", name: "Oroville", county: "butte", lat: 39.51, lon: -121.56, type: "farm", size: 1 },
   { id: "COL", name: "Colusa", county: "colusa-glenn", lat: 39.21, lon: -122.01, type: "farm", size: 1 },
   { id: "ALT", name: "Alturas", county: "lassen-modoc", lat: 41.49, lon: -120.54, type: "mountain", size: 1 },
+  // Nevada
+  { id: "HND", name: "Henderson", county: "nv-clark", lat: 36.04, lon: -114.98, type: "metro", size: 3 },
+  { id: "BLC", name: "Boulder City", county: "nv-clark", lat: 35.98, lon: -114.83, scenic: true, type: "desert", size: 1 },
+  { id: "MCH", name: "Mount Charleston", county: "nv-clark", lat: 36.27, lon: -115.64, scenic: true, type: "mountain", size: 1 },
+  { id: "MSQ", name: "Mesquite", county: "nv-clark", lat: 36.8, lon: -114.07, type: "desert", size: 1 },
+  { id: "INC", name: "Incline Village", county: "nv-washoe", lat: 39.25, lon: -119.95, type: "mountain", size: 1 },
+  { id: "GER", name: "Gerlach", county: "nv-washoe", lat: 40.65, lon: -119.36, type: "desert", size: 1 },
+  { id: "VGC", name: "Virginia City", county: "nv-douglas-lyon-storey", lat: 39.31, lon: -119.65, scenic: true, type: "mountain", size: 1 },
+  { id: "GVL", name: "Gardnerville", county: "nv-douglas-lyon-storey", lat: 38.94, lon: -119.75, type: "farm", size: 1 },
+  { id: "YER", name: "Yerington", county: "nv-douglas-lyon-storey", lat: 38.99, lon: -119.16, type: "farm", size: 1 },
+  { id: "TPH", name: "Tonopah", county: "nv-nye", lat: 38.07, lon: -117.23, type: "desert", size: 1 },
+  { id: "BTY", name: "Beatty", county: "nv-nye", lat: 36.91, lon: -116.76, type: "desert", size: 1 },
+  { id: "WMC", name: "Winnemucca", county: "nv-elko-humboldt", lat: 40.97, lon: -117.74, type: "desert", size: 1 },
+  { id: "WLS", name: "Wells", county: "nv-elko-humboldt", lat: 41.11, lon: -114.96, type: "desert", size: 1 },
+  { id: "HTH", name: "Hawthorne", county: "nv-churchill-esmeralda-mineral", lat: 38.52, lon: -118.62, type: "desert", size: 1 },
+  { id: "GFD", name: "Goldfield", county: "nv-churchill-esmeralda-mineral", lat: 37.71, lon: -117.24, type: "desert", size: 1 },
+  { id: "LOL", name: "Lovelock", county: "nv-eureka-lander-pershing", lat: 40.18, lon: -118.47, type: "farm", size: 1 },
+  { id: "AUS", name: "Austin", county: "nv-eureka-lander-pershing", lat: 39.49, lon: -117.07, type: "mountain", size: 1 },
+  { id: "GBN", name: "Great Basin National Park", county: "nv-lincoln-white-pine", lat: 39.01, lon: -114.22, scenic: true, type: "mountain", size: 1 },
+  { id: "CLT", name: "Caliente", county: "nv-lincoln-white-pine", lat: 37.61, lon: -114.51, type: "desert", size: 1 },
+  // Arizona
+  { id: "MES", name: "Mesa", county: "az-maricopa", lat: 33.42, lon: -111.83, type: "metro", size: 4 },
+  { id: "BKY", name: "Buckeye", county: "az-maricopa", lat: 33.37, lon: -112.58, type: "desert", size: 1 },
+  { id: "WKB", name: "Wickenburg", county: "az-maricopa", lat: 33.97, lon: -112.73, type: "desert", size: 1 },
+  { id: "GBD", name: "Gila Bend", county: "az-maricopa", lat: 32.95, lon: -112.72, type: "desert", size: 1 },
+  { id: "AJO", name: "Ajo", county: "az-pima", lat: 32.37, lon: -112.86, type: "desert", size: 1 },
+  { id: "LMN", name: "Mount Lemmon", county: "az-pima", lat: 32.44, lon: -110.79, scenic: true, type: "mountain", size: 1 },
+  { id: "FLO", name: "Florence", county: "az-pinal", lat: 33.03, lon: -111.39, type: "desert", size: 1 },
+  { id: "ELO", name: "Eloy", county: "az-pinal", lat: 32.76, lon: -111.55, type: "farm", size: 1 },
+  { id: "SED", name: "Sedona", county: "az-yavapai", lat: 34.86, lon: -111.8, scenic: true, type: "mountain", size: 1 },
+  { id: "CTW", name: "Cottonwood", county: "az-yavapai", lat: 34.74, lon: -112.0, type: "farm", size: 1 },
+  { id: "KGM", name: "Kingman", county: "az-mohave", lat: 35.19, lon: -114.05, type: "desert", size: 1 },
+  { id: "BHC", name: "Bullhead City", county: "az-mohave", lat: 35.15, lon: -114.56, type: "desert", size: 1 },
+  { id: "PKR", name: "Parker", county: "az-la-paz-yuma", lat: 34.15, lon: -114.29, type: "desert", size: 1 },
+  { id: "QZS", name: "Quartzsite", county: "az-la-paz-yuma", lat: 33.66, lon: -114.23, type: "desert", size: 1 },
+  { id: "SLU", name: "San Luis", county: "az-la-paz-yuma", lat: 32.49, lon: -114.78, type: "farm", size: 1 },
+  { id: "GCN", name: "Grand Canyon Village", county: "az-coconino", lat: 36.05, lon: -112.14, scenic: true, type: "mountain", size: 2 },
+  { id: "PGA", name: "Page", county: "az-coconino", lat: 36.91, lon: -111.46, scenic: true, type: "desert", size: 1 },
+  { id: "WLM", name: "Williams", county: "az-coconino", lat: 35.25, lon: -112.19, type: "mountain", size: 1 },
+  { id: "TBC", name: "Tuba City", county: "az-coconino", lat: 36.13, lon: -111.24, type: "desert", size: 1 },
+  { id: "TMB", name: "Tombstone", county: "az-cochise-santa-cruz", lat: 31.71, lon: -110.07, scenic: true, type: "desert", size: 1 },
+  { id: "NOG", name: "Nogales", county: "az-cochise-santa-cruz", lat: 31.34, lon: -110.94, type: "desert", size: 1 },
+  { id: "DGL", name: "Douglas", county: "az-cochise-santa-cruz", lat: 31.34, lon: -109.55, type: "desert", size: 1 },
+  { id: "WCX", name: "Willcox", county: "az-cochise-santa-cruz", lat: 32.25, lon: -109.83, type: "farm", size: 1 },
+  { id: "INW", name: "Winslow", county: "az-navajo", lat: 35.02, lon: -110.7, type: "desert", size: 1 },
+  { id: "HBK", name: "Holbrook", county: "az-navajo", lat: 34.9, lon: -110.16, type: "desert", size: 1 },
+  { id: "MVA", name: "Monument Valley", county: "az-navajo", lat: 36.93, lon: -110.11, scenic: true, type: "desert", size: 1 },
+  { id: "SJN", name: "St. Johns", county: "az-apache", lat: 34.51, lon: -109.36, type: "farm", size: 1 },
+  { id: "WRK", name: "Window Rock", county: "az-apache", lat: 35.68, lon: -109.05, type: "desert", size: 1 },
+  { id: "SPV", name: "Springerville", county: "az-apache", lat: 34.13, lon: -109.29, type: "mountain", size: 1 },
+  { id: "GLB", name: "Globe", county: "az-gila", lat: 33.39, lon: -110.79, type: "mountain", size: 1 },
+  { id: "CFT", name: "Clifton", county: "az-graham-greenlee", lat: 33.05, lon: -109.3, type: "mountain", size: 1 },
+  // Oregon
+  { id: "GRS", name: "Gresham", county: "or-multnomah", lat: 45.5, lon: -122.43, type: "metro", size: 2 },
+  { id: "MFL", name: "Multnomah Falls", county: "or-multnomah", lat: 45.58, lon: -122.12, scenic: true, type: "mountain", size: 1 },
+  { id: "MTH", name: "Mount Hood", county: "or-clackamas", lat: 45.3, lon: -121.75, scenic: true, type: "mountain", size: 1 },
+  { id: "FLR", name: "Florence", county: "or-lane", lat: 43.98, lon: -124.1, type: "coast", size: 1 },
+  { id: "CGR", name: "Cottage Grove", county: "or-lane", lat: 43.8, lon: -123.06, type: "farm", size: 1 },
+  { id: "OAR", name: "Oakridge", county: "or-lane", lat: 43.75, lon: -122.46, type: "mountain", size: 1 },
+  { id: "WDB", name: "Woodburn", county: "or-marion", lat: 45.14, lon: -122.86, type: "farm", size: 1 },
+  { id: "SFS", name: "Silver Falls", county: "or-marion", lat: 44.88, lon: -122.65, scenic: true, type: "mountain", size: 1 },
+  { id: "ASH", name: "Ashland", county: "or-jackson", lat: 42.19, lon: -122.71, type: "mountain", size: 1 },
+  { id: "RDM", name: "Redmond", county: "or-crook-deschutes", lat: 44.27, lon: -121.17, airport: "Redmond Municipal", type: "desert", size: 2 },
+  { id: "PRN", name: "Prineville", county: "or-crook-deschutes", lat: 44.3, lon: -120.83, type: "farm", size: 1 },
+  { id: "SIS", name: "Sisters", county: "or-crook-deschutes", lat: 44.29, lon: -121.55, type: "mountain", size: 1 },
+  { id: "LEB", name: "Lebanon", county: "or-linn", lat: 44.54, lon: -122.91, type: "farm", size: 1 },
+  { id: "SWH", name: "Sweet Home", county: "or-linn", lat: 44.4, lon: -122.74, type: "mountain", size: 1 },
+  { id: "RDS", name: "Reedsport", county: "or-douglas", lat: 43.7, lon: -124.1, type: "coast", size: 1 },
+  { id: "NBG", name: "Newberg", county: "or-yamhill", lat: 45.3, lon: -122.97, type: "farm", size: 1 },
+  { id: "CVJ", name: "Cave Junction", county: "or-josephine", lat: 42.16, lon: -123.65, type: "mountain", size: 1 },
+  { id: "CRL", name: "Crater Lake", county: "or-klamath", lat: 42.91, lon: -122.14, scenic: true, type: "mountain", size: 1 },
+  { id: "CHQ", name: "Chiloquin", county: "or-klamath", lat: 42.58, lon: -121.87, type: "mountain", size: 1 },
+  { id: "BKG", name: "Brookings", county: "or-coos-curry", lat: 42.05, lon: -124.27, type: "coast", size: 1 },
+  { id: "BDN", name: "Bandon", county: "or-coos-curry", lat: 43.12, lon: -124.41, type: "coast", size: 1 },
+  { id: "CNN", name: "Cannon Beach", county: "or-clatsop-tillamook", lat: 45.89, lon: -123.96, scenic: true, type: "coast", size: 1 },
+  { id: "TLM", name: "Tillamook", county: "or-clatsop-tillamook", lat: 45.46, lon: -123.84, type: "farm", size: 1 },
+  { id: "LCC", name: "Lincoln City", county: "or-lincoln", lat: 44.96, lon: -124.01, type: "coast", size: 1 },
+  { id: "PDT", name: "Pendleton", county: "or-morrow-umatilla", lat: 45.67, lon: -118.79, type: "farm", size: 1 },
+  { id: "BDM", name: "Boardman", county: "or-morrow-umatilla", lat: 45.84, lon: -119.7, type: "farm", size: 1 },
+  { id: "HDR", name: "Hood River", county: "or-hood-river-jefferson-wasco", lat: 45.71, lon: -121.52, type: "farm", size: 1 },
+  { id: "MDS", name: "Madras", county: "or-hood-river-jefferson-wasco", lat: 44.63, lon: -121.13, type: "farm", size: 1 },
+  { id: "BKE", name: "Baker City", county: "or-baker-union-wallowa", lat: 44.77, lon: -117.83, type: "mountain", size: 1 },
+  { id: "JOS", name: "Joseph", county: "or-baker-union-wallowa", lat: 45.35, lon: -117.23, scenic: true, type: "mountain", size: 1 },
+  { id: "JDY", name: "John Day", county: "or-grant-harney-lake", lat: 44.42, lon: -118.95, type: "mountain", size: 1 },
+  { id: "LKV", name: "Lakeview", county: "or-grant-harney-lake", lat: 42.19, lon: -120.35, type: "desert", size: 1 },
+  { id: "VAL", name: "Vale", county: "or-malheur", lat: 43.98, lon: -117.24, type: "farm", size: 1 },
+  { id: "ARL", name: "Arlington", county: "or-gilliam-sherman-wheeler", lat: 45.72, lon: -120.2, type: "farm", size: 1 },
 ];
 
 // Level mode: finish every goal on a level's checklist to open the next part of the state.

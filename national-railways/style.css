@@ -251,6 +251,22 @@ button { font: inherit; color: inherit; }
 .chip.free { background: transparent; border-style: dashed; }
 .resources { display: flex; gap: 16px; }
 .res { display: grid; }
+/* National money and the state budgets: one button that opens the Budgets panel */
+.res-group {
+  display: flex;
+  gap: 16px;
+  padding: 2px 8px;
+  margin: -2px -8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.res-group:hover, .res-group[aria-expanded="true"] { border-color: var(--panel-line); }
+.res-group:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .controls { display: flex; gap: 6px; }
 .icon-btn {
   display: grid;
@@ -427,7 +443,8 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   /* On wide screens these panels sit at the right, leaving the middle of the map free to tap. */
   #county-panel,
   #contracts-panel,
-  #city-panel { left: auto; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 52px); transform: none; }
+  #city-panel,
+  #budget-panel { left: auto; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 52px); transform: none; }
 }
 
 /* ---------- City maps ---------- */
@@ -543,3 +560,14 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   .stat-value { font-size: 0.92rem; }
   .card { padding: 18px; }
 }
+
+/* ---------- Budgets panel ---------- */
+.bp-states { display: grid; gap: 10px; }
+.bp-state { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--panel-line); border-radius: 12px; }
+.bp-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.bp-name { font-weight: 800; font-size: 0.95rem; }
+.bp-state .cy-budget { font-size: 1.25rem; }
+.bp-state .lp-meta, .bp-state .cp-goal-text { margin: 0; }
+.bp-closed { margin: 0; font-size: 0.8rem; color: var(--muted); }
+#budget-panel .guide { margin-top: 2px; }
+#budget-panel .guide summary { cursor: pointer; font-size: 0.8rem; font-weight: 700; }

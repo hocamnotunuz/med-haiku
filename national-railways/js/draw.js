@@ -41,28 +41,42 @@
   };
   NR.lineColor = (i) => colors.lines[i] || colors.ink;
 
-  // ---------- Fitting California on the screen ----------
+  // ---------- Fitting the open states on the screen ----------
   const base = (lon, lat) => [lon * COS, -lat];
-  const ALL = NR.MAP.land.flatMap((ring) => {
+  const ringPoints = (ring) => {
     const pts = [];
     for (let i = 0; i < ring.length; i += 2) pts.push(base(ring[i], ring[i + 1]));
     return pts;
-  });
-  const MID = ALL.reduce((m, p) => [m[0] + p[0] / ALL.length, m[1] + p[1] / ALL.length], [0, 0]);
+  };
+  let ALL = [];
+  let MID = [0, 0];
+  let fitted = "";
+  let maxTilt = 12;
+  // Fit the map to these states (the ones open in the game). Returns true if that changed.
+  NR.fitStates = function (codes) {
+    const key = codes.join(",");
+    if (key === fitted) return false;
+    fitted = key;
+    maxTilt = codes.length === 1 ? 12 : 0; // only long, diagonal California on its own may tilt
+    ALL = codes.flatMap((code) => NR.MAP.stateLand[code].flatMap(ringPoints));
+    MID = ALL.reduce((m, p) => [m[0] + p[0] / ALL.length, m[1] + p[1] / ALL.length], [0, 0]);
+    return true;
+  };
+  NR.fitStates([NR.HOME_STATE]);
   const turn = (x, y, c, s) => {
     const dx = x - MID[0];
     const dy = y - MID[1];
     return [dx * c - dy * s, dx * s + dy * c];
   };
 
-  // The state is long and diagonal, so the map may tilt a little (at most 12°)
+  // California is long and diagonal, so the map may tilt a little (at most 12°)
   // when that makes it noticeably bigger on screen. The compass shows north.
   NR.layout = function (w, h, dpr, box) {
     Object.assign(view, { w, h, dpr, box });
     const bw = Math.max(60, w - box.left - box.right);
     const bh = Math.max(60, h - box.top - box.bottom);
     let best = null;
-    for (let deg = -12; deg <= 12; deg += 2) {
+    for (let deg = -maxTilt; deg <= maxTilt; deg += 2) {
       const a = (deg * Math.PI) / 180;
       const c = Math.cos(a);
       const s = Math.sin(a);
@@ -291,15 +305,15 @@
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let lat = 30; lat <= 44; lat++) {
+    for (let lat = 30; lat <= 48; lat++) {
       const a = NR.toScreen(-128, lat);
-      const b = NR.toScreen(-110, lat);
+      const b = NR.toScreen(-107, lat);
       ctx.moveTo(a[0], a[1]);
       ctx.lineTo(b[0], b[1]);
     }
-    for (let lon = -128; lon <= -110; lon++) {
+    for (let lon = -128; lon <= -107; lon++) {
       const a = NR.toScreen(lon, 30);
-      const b = NR.toScreen(lon, 44);
+      const b = NR.toScreen(lon, 48);
       ctx.moveTo(a[0], a[1]);
       ctx.lineTo(b[0], b[1]);
     }
@@ -307,7 +321,7 @@
     ctx.font = `500 10px ${MONO}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    for (let lat = 33; lat <= 41; lat += 2) {
+    for (let lat = 33; lat <= 47; lat += 2) {
       const p = NR.toScreen(-125.6, lat);
       if (inView(p)) halo(ctx, `${lat}°N`, p[0], p[1], colors.muted, colors.sea);
     }
@@ -336,6 +350,12 @@
       });
       ctx.fillStyle = colors.locked;
       ctx.fill("evenodd");
+      // States that aren't open yet are shaded twice as dark.
+      ctx.beginPath();
+      Object.keys(s.states).forEach((code) => {
+        if (!s.states[code].open) NR.MAP.stateLand[code].forEach((ring) => tracePath(ctx, ring, true));
+      });
+      ctx.fill("evenodd");
     }
     // County borders
     ctx.beginPath();
@@ -344,11 +364,15 @@
     ctx.lineWidth = 1;
     ctx.lineJoin = "round";
     ctx.stroke();
-    // Coastline and state border
+    // Coastline, then the borders between states (thicker)
     ctx.beginPath();
     NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
     ctx.strokeStyle = colors.coast;
     ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.beginPath();
+    NR.MAP.stateBorders.forEach((line) => tracePath(ctx, line, false));
+    ctx.lineWidth = 3;
     ctx.stroke();
     if (!s) return;
     // Counties you can unlock now: a dashed outline. The county you tapped: a solid one.
@@ -406,11 +430,57 @@
       const p = NR.toScreen(r.label[0], r.label[1]);
       if (p[0] < -100 || p[0] > view.w + 100 || p[1] < -50 || p[1] > view.h + 50) continue;
       // Long merged names go on several lines: DEL NORTE- / SISKIYOU- / TRINITY
-      const parts = r.name.replace(/ County$/, "").toUpperCase().split("-");
+      const parts = r.name.replace(/, .*$/, "").replace(/ County$/, "").toUpperCase().split("-");
       const lines = parts.length > 1 && r.name.length > 18 ? parts.map((s, i) => (i < parts.length - 1 ? s + "-" : s)) : [parts.join("-")];
       lines.forEach((text, i) => halo(ctx, text, p[0], p[1] + (i - (lines.length - 1) / 2) * 11, colors.countyText, colors.land));
     }
     if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+  }
+
+  // States that aren't open yet: their name, and when they open, over the part you can see.
+  // Points on a grid inside each state are worked out once; each frame uses the visible ones.
+  const stateGrid = {};
+  function gridOf(code) {
+    if (stateGrid[code]) return stateGrid[code];
+    const rings = NR.MAP.stateLand[code];
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    rings.forEach((ring) => {
+      for (let i = 0; i < ring.length; i += 2) {
+        x0 = Math.min(x0, ring[i]);
+        x1 = Math.max(x1, ring[i]);
+        y0 = Math.min(y0, ring[i + 1]);
+        y1 = Math.max(y1, ring[i + 1]);
+      }
+    });
+    const pts = [];
+    for (let lon = x0; lon <= x1; lon += 0.3)
+      for (let lat = y0; lat <= y1; lat += 0.3) if (rings.reduce((inside, ring) => (inRing(lon, lat, ring) ? !inside : inside), false)) pts.push([lon, lat]);
+    return (stateGrid[code] = pts);
+  }
+  function drawClosedStates(ctx, s) {
+    const b = view.box;
+    for (const code of Object.keys(s.states)) {
+      if (s.states[code].open) continue;
+      let x = 0, y = 0, n = 0;
+      for (const [lon, lat] of gridOf(code)) {
+        const p = NR.toScreen(lon, lat);
+        if (p[0] < b.left + 50 || p[0] > view.w - b.right - 50 || p[1] < b.top + 20 || p[1] > view.h - b.bottom - 20) continue;
+        x += p[0];
+        y += p[1];
+        n++;
+      }
+      if (n < 4) continue; // hardly any of it on screen
+      x /= n;
+      y /= n;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `700 12px ${MONO}`;
+      if ("letterSpacing" in ctx) ctx.letterSpacing = "2px";
+      halo(ctx, NR.STATE_NAMES[code].toUpperCase(), x, y - 7, colors.muted, colors.land);
+      if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+      ctx.font = `500 10px ${MONO}`;
+      halo(ctx, `Opens once you own all of ${NR.STATE_NAMES[NR.HOME_STATE]}`, x, y + 9, colors.muted, colors.land);
+    }
   }
 
   // North arrow and a 100-mile scale bar in the corner of the map.
@@ -1241,6 +1311,12 @@
       drawCity(ctx, s, ui.city, ui);
       return;
     }
+    // Fit the map to the open states (it zooms out when new states open).
+    const open = s && s.states ? Object.keys(s.states).filter((code) => s.states[code].open) : [NR.HOME_STATE];
+    if (NR.fitStates(open) && view.box) {
+      NR.layout(view.w, view.h, view.dpr, view.box);
+      NR.resetCamera();
+    }
     updatePositions();
     drawGraticule(ctx);
     drawLand(ctx, s, ui.county);
@@ -1250,6 +1326,7 @@
     }
     drawFire(ctx, s, ui.now);
     drawCountyNames(ctx);
+    drawClosedStates(ctx, s);
     drawCountyTags(ctx, s);
     drawCompass(ctx);
     // Night: the map darkens, while lines and stations stay bright like city lights.

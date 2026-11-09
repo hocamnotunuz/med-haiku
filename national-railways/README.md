@@ -1,10 +1,25 @@
 # National Railways
 
-A passenger-rail strategy game set in California. Lay track between real cities, run trains, and get passengers where they are going before any station overflows.
+A passenger-rail strategy game set in California and its neighbors. Lay track between real cities, run trains, and get passengers where they are going before any station overflows. Own all of California and Nevada, Arizona and Oregon open next.
 
 ## The map
 
-California is divided into its real counties (U.S. Census Bureau borders). Counties with fewer than 50,000 people are merged with small neighbors into regions such as **Del Norte-Siskiyou-Trinity County**, which turns 58 counties into **49 regions**. Every region has one main station at its biggest city (Yuba County uses Wheatland, because its larger towns sit across the river from Yuba City), plus up to five **towns** (71 in all).
+Four states share one map: **California, Nevada, Arizona and Oregon**, divided into their real counties (U.S. Census Bureau borders). Counties with fewer than 50,000 people are merged with small neighbors into regions such as **Del Norte-Siskiyou-Trinity County**:
+
+| State | Counties | Regions | Towns |
+| --- | --- | --- | --- |
+| California | 58 | 49 | 72 |
+| Nevada | 17 | 9 | 19 |
+| Arizona | 15 | 12 | 31 |
+| Oregon | 36 | 24 | 29 |
+
+Every region has one main station at its biggest city, with a few exceptions to keep stations apart or names clear: Yuba County uses Wheatland (its larger towns sit across the river from Yuba City), Clackamas County uses Oregon City (Lake Oswego is right next to Portland), and Pinal County uses Casa Grande (the city of Maricopa shares its name with Maricopa County). Regions outside California are named with their state, like "Clark County, Nevada".
+
+### Opening more states
+
+- Every game starts in California. Nevada, Arizona and Oregon are shaded darker until they open.
+- They open **once you own every county in California** (or when you finish the last level in Levels mode). Each starts with a $200k budget, and the map zooms out to show them.
+- Their counties are then unlocked like California's: next to one you own, by paying or by reaching the free-unlock goal.
 
 ### Unlocking counties
 
@@ -22,7 +37,7 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 - **Build a line:** drag from one city to another. Keep dragging to add more stops.
 - **Extend a line:** drag the tab at either end of a line to a new city.
 - **Manage a line:** tap its color at the bottom of the screen to buy trains, send them to the depot, upgrade to high-speed track, or delete the line.
-- **Money:** track costs $1k per mile (high-speed track $2.5k per mile). Passengers pay a fare when they arrive: more for long trips and fast trains. Every train costs a little to run each week.
+- **Money:** track costs $1k per mile (high-speed track $2.5k per mile). Passengers pay a fare when they arrive: more for long trips and fast trains. Every train costs a little to run each week. Who pays is explained under **Budgets** below.
 - **Every week** a new Regular train arrives and you choose one upgrade.
 - **Rush hour:** now and then a big city gets very busy for a few seconds. Commuter trains help.
 - **Lose** when a station stays overcrowded too long (red ring fills up).
@@ -55,8 +70,8 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 ### Day, night and events
 
 - **Day and night:** each day runs from 00:00 to 24:00 (10 seconds). The map darkens at night and fewer people travel.
-- **Tourists (★)** leave Metro cities for scenic places (Yosemite Valley, South Lake Tahoe, Big Sur, Death Valley, Mount Shasta, Mammoth Lakes, Napa, Three Rivers), three times as often at weekends.
-- **Flights** land at airports (✈) with 5 travelers at a time: LAX, SFO (San Mateo), San Diego, San José, Oakland, Sacramento, Ontario, Fresno and Palm Springs.
+- **Tourists (★)** leave Metro cities for scenic places, three times as often at weekends. California: Yosemite Valley, South Lake Tahoe, Big Sur, Death Valley, Mount Shasta, Mammoth Lakes, Napa, Three Rivers. Nevada: Boulder City (Hoover Dam), Mount Charleston, Virginia City, Great Basin National Park. Arizona: Grand Canyon Village, Sedona, Page, Monument Valley, Chinle (Canyon de Chelly), Tombstone, Mount Lemmon. Oregon: Multnomah Falls, Mount Hood, Silver Falls, Crater Lake, Cannon Beach, Joseph (Wallowa Lake).
+- **Flights** land at airports (✈) with 5 travelers at a time: LAX, SFO (San Mateo), San Diego, San José, Oakland, Sacramento, Ontario, Fresno, Palm Springs, Las Vegas, Reno, Phoenix, Tucson, Portland, Eugene, Medford and Redmond.
 - **Earthquakes and wildfires** (from week 3) damage track (red ✕). Trains turn back at the damage. A Work train on that line repairs it in a few seconds; otherwise it mends after 3 weeks.
 
 ### City maps: trams, metro and cable cars
@@ -76,11 +91,34 @@ Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own ci
 
 #### City budget and head of transportation
 
-- **Each city has its own budget.** City fares go into it; city track, vehicles and weekly running costs are paid from it. Move money in or out with **City budget** on the city map. If a city budget runs dry, your main money covers the rest.
+- **Each city has its own budget.** City fares go into it; city track, vehicles and weekly running costs are paid from it. Move money in or out (from and to the state budget) with **City budget** on the city map. If a city budget runs dry, the state budget covers the rest.
 - **Head of transportation:** hire one from the city budget. Fee: the higher of 80% of the city budget or 50% of the city's track and vehicle value.
   1. **Settling in (3 weeks):** the head does nothing yet; you keep the city running (it can still be lost).
-  2. **Managed (100 weeks):** the city runs safely (stops never overflow, kept at most half full), its lines are frozen, and management keeps 90% of its profit; 10% comes to your main money each week. The city doesn't get busier while managed.
+  2. **Managed (100 weeks):** the city runs safely (stops never overflow, kept at most half full), its lines are frozen, and management keeps 90% of its profit; 10% goes to the state budget each week. The city doesn't get busier while managed.
   3. **Retired:** the city is yours again (live, can grow, can be lost). You can hire a new head.
+
+### Budgets: national money and each state
+
+Tap the money at the bottom (**National** and **California**, or **4 states** once more are open) to open the **Budgets** panel.
+
+| Money | What comes in | What it pays for |
+| --- | --- | --- |
+| Each state's budget (California starts with $400k) | Fares and cargo fees for trips that end at its stations | Track between two of its own stations, trains on lines entirely inside it, its counties, its head of transportation |
+| National money (starts at $0) | Contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Track that crosses a state border, trains on lines that cross a border, and any state that runs short |
+
+- A state spends its own budget first; if that isn't enough, national money pays the rest. If a state budget is empty at the end of a week, national money pays its running costs.
+- Move money with **Move $100k in** (national → state) and **Take $100k out** (state → national).
+- City budgets (trams and metro) take money from, and give it back to, the budget of their state.
+- The line panel says who pays for each line, and the county panel says which budget pays to unlock it.
+
+#### A state's head of transportation
+
+Works just like a city's, using the same numbers:
+
+- **Fee:** the higher of 80% of the state budget or 50% of the state's own track and trains. Tap **Hire** twice to confirm.
+- **Settling in (3 weeks):** nothing changes yet; you keep the state running.
+- **Managed (100 weeks):** the state's stations never overflow (they are kept at most half full), earthquakes and wildfires leave its track alone, and it doesn't get busier. But its track and trains are frozen, no new counties or towns open there, and management keeps 90% of the state's profit (10% goes to national money). Lines that cross a border stay yours.
+- **Retired:** the state is yours again, and you can hire a new head.
 
 ### Cargo
 
@@ -92,7 +130,7 @@ Cargo shares the map with passengers. It waits in a **yard** to the left of each
 | Containers (rust) | Ports, when a ship docks (8 at a time) | Desert and Farmland warehouses | Dock train |
 | Trucks (gray) | Desert and Mountain towns, from week 2 | Metro cities | Truck bypass |
 
-Ports (anchor symbol): Port of Hueneme (Oxnard), Port of Long Beach, Port of San Diego, Port of Oakland and Humboldt Bay (Eureka).
+Ports (anchor symbol): Port of Hueneme (Oxnard), Port of Long Beach, Port of San Diego, Port of Oakland, Humboldt Bay (Eureka), Port of Portland and Port of Coos Bay.
 
 All the numbers live in `js/game.js` (`TUNING` and `TRAIN_TYPES`).
 
@@ -121,8 +159,8 @@ Tap the **clipboard** on the bottom bar.
 | --- | --- |
 | `index.html` | The page: screens, buttons and the map area. |
 | `style.css` | Colors, fonts and layout (light and dark themes). |
-| `js/map-california.js` | California's land, county borders and county regions. Generated: do not edit by hand. |
-| `js/cities.js` | The 49 county main stations, the 71 towns, and the levels. |
+| `js/map.js` | The land, state and county borders, and county regions of all four states. Generated: do not edit by hand. |
+| `js/cities.js` | The 94 county main stations, the 151 towns, and the levels. |
 | `tools/build-map.js` | Rebuilds the map file from Census data (see below). |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
 | `js/metro.js` | City maps: neighborhoods, trams, metro and cable cars. |
@@ -137,7 +175,7 @@ The map file is generated from U.S. Census Bureau county boundaries (the `us-atl
 cd national-railways/tools
 npm install
 cd ..
-node tools/build-map.js tools/node_modules CA
+node tools/build-map.js tools/node_modules CA NV AZ OR
 ```
 
-To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code, which small counties to merge, and any bridges), run the script, then list its main stations and towns in `js/cities.js`.
+To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code, and either a list of which small counties to merge or a table of county populations so small ones merge automatically), add its code to the command above, run it, then list its main stations and towns in `js/cities.js`. Every game starts in the counties listed in `NR.START_COUNTIES` (in `js/cities.js`), and their state is the home state.
