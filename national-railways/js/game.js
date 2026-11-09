@@ -11,6 +11,7 @@
     startMoney: 400, // California's budget at the start, in thousands of dollars ($k)
     nationalStart: 0, // national money at the start ($k)
     newStateBudget: 200, // budget a state gets when it opens ($k)
+    stateTax: 0.1, // share of every fare and cargo fee a state pays to national money
     trackPrice: 1, // $k per mile of standard track
     highSpeedPrice: 1.5, // extra $k per mile for high-speed track
     refundShare: 0.5, // share of the track cost you get back when you delete a line
@@ -43,7 +44,7 @@
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 12; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 13; // bump when saved games from older versions no longer fit
 
   // ---- Time of day: night runs from 21:00 to 05:00 ----
   NR.hourOf = (s) => ((s.time % T.dayLength) / T.dayLength) * 24;
@@ -328,7 +329,7 @@
     NR.MAP.states.forEach(({ code }) => {
       const home = code === NR.HOME_STATE;
       // liveTime: seconds the state has run without a head in charge (it gets busier over this time)
-      states[code] = { open: home, budget: home ? T.startMoney : 0, liveTime: 0, weekIncome: 0, lastWeek: null, head: null };
+      states[code] = { open: home, budget: home ? T.startMoney : 0, liveTime: 0, weekIncome: 0, weekTax: 0, lastWeek: null, head: null };
     });
     return states;
   }
@@ -353,6 +354,7 @@
       levelsBeaten: false,
       weekIncome: 0, // fares and cargo fees this week, all states together
       nationalIncome: 0, // fares for trips across a state border this week
+      nationalTax: 0, // taxes paid by the states this week
       nationalLastWeek: null,
       lastWeek: null,
       depot: Object.fromEntries(Object.keys(NR.TRAIN_TYPES).map((k) => [k, k === "regular" ? T.startTrains : 0])),
@@ -632,8 +634,8 @@
     if (p.tourist) fare *= p.scenic ? 2.4 : 1.2; // tourists pay more, double on a Scenic train
     return fare;
   }
-  // Fares and cargo fees go into the budget of the state where the trip happened.
-  // A trip from one state to another pays national money instead.
+  // Fares and cargo fees go into the budget of the state where the trip happened, less a 10%
+  // tax that goes to national money. A trip from one state to another pays national money.
   function earn(s, amount, here, from) {
     s.weekIncome += amount;
     if (from && NR.cityById[from] && NR.stateOf(from) !== NR.stateOf(here)) {
@@ -642,8 +644,12 @@
       return;
     }
     const st = s.states[NR.stateOf(here)];
-    st.budget += amount;
-    st.weekIncome += amount;
+    const tax = amount * T.stateTax;
+    st.budget += amount - tax;
+    st.weekIncome += amount - tax; // a head of transportation splits what's left after tax
+    st.weekTax += tax;
+    s.money += tax;
+    s.nationalTax += tax;
   }
 
   // A passenger or a load of cargo has arrived: collect the money.
@@ -863,7 +869,8 @@
         toNational = profit * (1 - T.managementShare);
         s.money += toNational;
       }
-      st.lastWeek = { income: st.weekIncome, upkeep, profit, toNational };
+      st.lastWeek = { income: st.weekIncome, tax: st.weekTax, upkeep, profit, toNational };
+      st.weekTax = 0;
       st.weekIncome = 0;
       if (st.budget < 0) {
         s.money += st.budget;
@@ -887,8 +894,9 @@
       if (paid.length) emit("nationalRefill", { paid });
       if (s.money < 0) emit("nationalShort", { amount: -s.money });
     }
-    s.nationalLastWeek = { income: s.nationalIncome, upkeep: s.nationalUpkeep };
+    s.nationalLastWeek = { income: s.nationalIncome, tax: s.nationalTax, upkeep: s.nationalUpkeep };
     s.nationalIncome = 0;
+    s.nationalTax = 0;
   }
 
   // ---------- One step of the game ----------

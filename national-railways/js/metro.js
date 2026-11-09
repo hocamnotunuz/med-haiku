@@ -18,6 +18,7 @@
     headFeeInfra: 0.5, // ...but at least 50% of the city's track and vehicle value
     managementShare: 0.9, // while managed, management keeps 90% of the profit (10% comes to you)
     cityGrant: 200, // $k a city map gets from its state's budget when it opens
+    cityTax: 0.1, // share of every city fare the city pays to its state
   });
 
   // City vehicles. price = $k per vehicle, track = $k per mile, upkeep = $k per week,
@@ -165,6 +166,7 @@
         budget: grant, // the city's own money ($k): fares come in, track, vehicles and running costs go out
         liveTime: 0, // seconds the city has run without a head in charge (it gets busier over this time)
         weekIncome: 0,
+        weekTax: 0,
         lastWeek: null,
         head: null, // head of transportation: { from, until } (global game time)
         lines: [],
@@ -493,7 +495,8 @@
         toYou = profit * (1 - T.managementShare);
         NR.cityState(s, key).budget += toYou;
       }
-      c.lastWeek = { income: c.weekIncome, upkeep, profit, toYou };
+      c.lastWeek = { income: c.weekIncome, tax: c.weekTax || 0, upkeep, profit, toYou };
+      c.weekTax = 0;
       c.weekIncome = 0;
       if (c.budget < 0) {
         NR.cityState(s, key).budget += c.budget;
@@ -542,8 +545,12 @@
 
   function deliverRider(s, key, c, p, here, mode) {
     const fare = (1.2 + miles(stopOf(key, p.from), stopOf(key, here)) * 0.08) * NR.CITY_MODES[mode].fare;
-    c.budget += fare; // city fares go into the city budget
-    c.weekIncome += fare;
+    // City fares go into the city budget, less a 10% tax to its state budget.
+    const tax = fare * T.cityTax;
+    c.budget += fare - tax;
+    c.weekIncome += fare - tax; // a head of transportation splits what's left after tax
+    c.weekTax = (c.weekTax || 0) + tax;
+    NR.cityState(s, key).budget += tax;
     c.delivered++;
     emit("cityDeliver", { key, at: here });
     // A rider who came to the main station to catch a train joins the trains across California.

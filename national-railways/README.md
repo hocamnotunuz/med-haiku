@@ -119,7 +119,7 @@ Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own ci
 
 #### City budget and head of transportation
 
-- **Each city has its own budget.** Opening a city map moves **$200k** from its state's budget into it. City fares go into it; city track, vehicles and weekly running costs are paid from it. When it runs short, the state budget pays the rest (for building as well as running costs). Tap **City budget** on the city map to see it.
+- **Each city has its own budget.** Opening a city map moves **$200k** from its state's budget into it. City fares go into it, less a 10% tax to the state; city track, vehicles and weekly running costs are paid from it. When it runs short, the state budget pays the rest (for building as well as running costs). Tap **City budget** on the city map to see it.
 - **Head of transportation:** hire one from the city budget. Fee: the higher of 80% of the city budget or 50% of the city's track and vehicle value.
   1. **Settling in (3 weeks):** the head does nothing yet; you keep the city running (it can still be lost).
   2. **Managed (100 weeks):** the city runs safely (stops never overflow, kept at most half full), its lines are frozen, and management keeps 90% of its profit; 10% goes to the state budget each week. The city doesn't get busier while managed.
@@ -131,11 +131,12 @@ Tap the money at the bottom (**National** and **California**, or **4 states** on
 
 | Money | What comes in | What it pays for |
 | --- | --- | --- |
-| Each state's budget (California starts with $400k) | Fares and cargo fees for trips inside the state | Track between two of its own stations, trains on lines entirely inside it, its counties, its head of transportation, $200k for each city map it opens, and its cities when they run short |
-| National money (starts at $0) | Fares and cargo fees for trips that cross a state border, contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Track that crosses a state border, trains on lines that cross a border, and any state that runs short |
+| Each state's budget (California starts with $400k) | Fares and cargo fees for trips inside the state (less 10% tax), and 10% tax on its cities' fares | Track between two of its own stations, trains on lines entirely inside it, its counties, its head of transportation, $200k for each city map it opens, and its cities when they run short |
+| National money (starts at $0) | 10% tax on every state's fares and cargo fees, fares and cargo fees for trips that cross a state border, contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Track that crosses a state border, trains on lines that cross a border, and any state that runs short |
 
 - A state spends its own budget first; if that isn't enough, national money pays the rest. If a state budget is empty at the end of a week, national money pays its running costs.
 - If national money ends a week below zero, the richest state budget covers it (then the next richest).
+- **Taxes:** a city pays 10% of its fares to its state, and a state pays 10% of its fares and cargo fees to national money, as they are earned. (A state doesn't pay tax again on the tax it gets from its cities.) While a head of transportation runs a city or state, the tax is paid first and management splits what's left. The Budgets panel and the City budget panel show last week's taxes.
 - **Money can't be moved between budgets by hand.** It only moves by these rules.
 - The line panel says who pays for each line, and the county panel says which budget pays to unlock it.
 

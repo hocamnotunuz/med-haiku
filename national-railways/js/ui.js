@@ -640,7 +640,9 @@
     setText("cy-budget", NR.money(c.budget));
     setText(
       "cy-week",
-      (lw ? `Last week: fares ${NR.money(lw.income)}, running costs ${NR.money(lw.upkeep)}${lw.toYou ? `, ${NR.money(lw.toYou)} to the state budget` : ""} · ` : "") +
+      (lw
+        ? `Last week: fares ${NR.money(lw.income)} (after ${NR.money(lw.tax || 0)} tax to the state), running costs ${NR.money(lw.upkeep)}${lw.toYou ? `, ${NR.money(lw.toYou)} to the state budget` : ""} · `
+        : "") +
         `${plural(c.delivered, "rider")} so far`
     );
     const hire = $("cy-hire");
@@ -746,7 +748,7 @@
     setText("bp-national", NR.money(game.money));
     $("bp-national").classList.toggle("negative", game.money < 0);
     const nw = game.nationalLastWeek;
-    setText("bp-national-week", nw ? `Last week: border fares ${NR.money(nw.income)}, border trains ${NR.money(nw.upkeep || 0)}` : "");
+    setText("bp-national-week", nw ? `Last week: taxes ${NR.money(nw.tax || 0)}, border fares ${NR.money(nw.income)}, border trains ${NR.money(nw.upkeep || 0)}` : "");
     const codes = Object.keys(game.states);
     const open = codes.filter((code) => game.states[code].open);
     const closed = codes.filter((code) => !game.states[code].open);
@@ -779,7 +781,7 @@
       const lw = st.lastWeek;
       el.budget.textContent = NR.money(st.budget);
       el.week.textContent = lw
-        ? `Last week: fares ${NR.money(lw.income)}, running costs ${NR.money(lw.upkeep)}${lw.toNational ? `, ${NR.money(lw.toNational)} to national money` : ""}`
+        ? `Last week: fares ${NR.money(lw.income)} (after ${NR.money(lw.tax || 0)} tax to national money), running costs ${NR.money(lw.upkeep)}${lw.toNational ? `, ${NR.money(lw.toNational)} more to national money` : ""}`
         : "Fares earned at its stations come in here.";
       el.chip.className = `head-chip ${state || ""}`;
       el.chip.textContent = state === "managing" ? `Managed · ${weeksUntil(st.head.until)} wk left` : state === "settling" ? `Head settling in · ${weeksUntil(st.head.from)} wk` : "No head";
