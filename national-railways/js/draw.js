@@ -46,6 +46,7 @@
     MONO = get("--font-mono") || MONO;
     toon = NR.cartoon.on();
     NR.cartoon.readTheme();
+    if (typeof landStore !== "undefined") landStore.key = ""; // colors changed: draw the land again
   };
   NR.lineColor = (i) => colors.lines[i] || colors.ink;
 
@@ -105,8 +106,17 @@
     const k = view.scale * cam.zoom, c = view.cos * k, s = view.sin * k;
     const ex = cam.x + view.ox * cam.zoom - MID[0] * c + MID[1] * s;
     const ey = cam.y + view.oy * cam.zoom - MID[0] * s - MID[1] * c;
-    ctx.moveTo(xy[0] * c - xy[1] * s + ex, xy[0] * s + xy[1] * c + ey);
-    for (let i = 2; i < xy.length; i += 2) ctx.lineTo(xy[i] * c - xy[i + 1] * s + ex, xy[i] * s + xy[i + 1] * c + ey);
+    let px = xy[0] * c - xy[1] * s + ex, py = xy[0] * s + xy[1] * c + ey;
+    ctx.moveTo(px, py);
+    // Points closer than about half a pixel to the last one drawn add nothing you can see: skip them
+    const last = xy.length - 2;
+    for (let i = 2; i < xy.length; i += 2) {
+      const x = xy[i] * c - xy[i + 1] * s + ex, y = xy[i] * s + xy[i + 1] * c + ey;
+      if (i < last && Math.abs(x - px) + Math.abs(y - py) < 0.6) continue;
+      ctx.lineTo(x, y);
+      px = x;
+      py = y;
+    }
     if (close) ctx.closePath();
   };
 
@@ -456,7 +466,8 @@
     if (!img) return;
     const [x0, y0, x1, y1] = info.box;
     const W = img.naturalWidth, H = img.naturalHeight;
-    const n = project === NR.toScreen ? 8 : 1;
+    // Pieces about 2° across are close enough to the curve (a small state needs just one)
+    const n = project === NR.toScreen ? Math.min(8, Math.max(1, Math.ceil(Math.max(x1 - x0, y1 - y0) / 2))) : 1;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.imageSmoothingEnabled = true;
@@ -533,14 +544,65 @@
     }
   }
 
+  // Is any of this longitude/latitude box on the screen?
+  function boxOnScreen(b) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [lon, lat] of [
+      [b[0], b[1]],
+      [b[2], b[1]],
+      [b[0], b[3]],
+      [b[2], b[3]],
+      [(b[0] + b[2]) / 2, b[3]],
+      [(b[0] + b[2]) / 2, b[1]],
+    ]) {
+      const p = NR.toScreen(lon, lat);
+      x0 = Math.min(x0, p[0]);
+      y0 = Math.min(y0, p[1]);
+      x1 = Math.max(x1, p[0]);
+      y1 = Math.max(y1, p[1]);
+    }
+    return x1 > 0 && y1 > 0 && x0 < view.w && y0 < view.h;
+  }
+  // The land layer (land, shading, borders, coast; the Classic look's relief too) changes only
+  // when the view moves, counties are bought or states open, so it is kept as a picture.
+  const landStore = { canvas: null, key: "", cam: "", seen: "", since: 0, a: null, b: null };
   function drawLand(ctx, s, selected) {
+    const open = s ? Object.keys(s.states).filter((code) => s.states[code].open).join("") : "";
+    const key = [toon ? "toon" : "classic", NR.packVersion, s ? `${s.owned.length}:${s.owned[s.owned.length - 1]}` : "-", open].join("|");
+    NR.cartoon.keptPicture(landStore, ctx, key, (g) => paintLand(g, s));
+    if (!s) return;
+    // Counties you can unlock now: a dashed outline. The county you tapped: a solid one.
+    // (Only counties next to one you own can be unlocked.)
+    const near = new Set();
+    s.owned.forEach((id) => NR.countyById[id] && NR.countyById[id].neighbors.forEach((n) => near.add(n)));
+    ctx.save();
+    ctx.strokeStyle = colors.accent;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    near.forEach((id) => {
+      const r = NR.countyById[id];
+      if (r && id !== selected && NR.countyStatus(s, id).ok) r.rings.forEach((ring) => tracePath(ctx, ring, true));
+    });
+    ctx.stroke();
+    if (selected && NR.countyById[selected]) {
+      ctx.setLineDash([]);
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      NR.countyById[selected].rings.forEach((ring) => tracePath(ctx, ring, true));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function paintLand(ctx, s) {
     if (!toon) {
       ctx.beginPath();
       NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
       ctx.fillStyle = colors.land;
       ctx.fill("evenodd");
-      // Shaded mountains: each state's picture, kept inside the state
+      // Shaded mountains: each state's picture, kept inside the state (states on screen only)
       for (const r of NR.TERRAIN.reliefs) {
+        if (!boxOnScreen(r.box)) continue;
         ctx.save();
         ctx.beginPath();
         NR.MAP.stateLand[r.code].forEach((ring) => tracePath(ctx, ring, true));
@@ -555,11 +617,11 @@
       ctx.fill("evenodd");
     }
     if (s) {
-      // Counties you don't own yet are shaded.
+      // Counties you don't own yet are shaded: all the land, with the counties you own cut out
+      // (much quicker than tracing every county you don't own, once there are thousands).
       ctx.beginPath();
-      NR.MAP.regions.forEach((r) => {
-        if (!s.owned.includes(r.id)) r.rings.forEach((ring) => tracePath(ctx, ring, true));
-      });
+      NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
+      s.owned.forEach((id) => NR.countyById[id] && NR.countyById[id].rings.forEach((ring) => tracePath(ctx, ring, true)));
       ctx.fillStyle = colors.locked;
       ctx.fill("evenodd");
       // States that aren't open yet are shaded twice as dark (the cartoon look covers them in fog instead).
@@ -603,25 +665,6 @@
       ctx.lineWidth = 3;
       ctx.stroke();
     }
-    if (!s) return;
-    // Counties you can unlock now: a dashed outline. The county you tapped: a solid one.
-    ctx.save();
-    ctx.strokeStyle = colors.accent;
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([5, 4]);
-    ctx.beginPath();
-    NR.MAP.regions.forEach((r) => {
-      if (r.id !== selected && NR.countyStatus(s, r.id).ok) r.rings.forEach((ring) => tracePath(ctx, ring, true));
-    });
-    ctx.stroke();
-    if (selected) {
-      ctx.setLineDash([]);
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      NR.countyById[selected].rings.forEach((ring) => tracePath(ctx, ring, true));
-      ctx.stroke();
-    }
-    ctx.restore();
   }
 
   // Price and goal tags on counties you can unlock now.
@@ -689,28 +732,51 @@
   }
   function drawClosedStates(ctx, s) {
     const b = view.box;
+    const spots = [];
     for (const code of Object.keys(s.states)) {
       if (s.states[code].open) continue;
-      let x = 0, y = 0, n = 0;
+      let x = 0, y = 0, n = 0, x0 = Infinity, x1 = -Infinity;
       for (const [lon, lat] of gridOf(code)) {
         const p = NR.toScreen(lon, lat);
         if (p[0] < b.left + 50 || p[0] > view.w - b.right - 50 || p[1] < b.top + 20 || p[1] > view.h - b.bottom - 20) continue;
         x += p[0];
         y += p[1];
+        x0 = Math.min(x0, p[0]);
+        x1 = Math.max(x1, p[0]);
         n++;
       }
       if (n < 4) continue; // hardly any of it on screen
-      x /= n;
-      y /= n;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+      spots.push({ code, x: x / n, y: y / n, n, wide: x1 - x0 });
+    }
+    // Bigger states first; a label that would cover one already drawn is left out (zoomed far
+    // out, with many states closed), and the "Opens once…" line shows only where it fits
+    spots.sort((p, q) => q.n - p.n);
+    const taken = [];
+    const free = (r) => !taken.some((t) => r[0] < t[2] && r[2] > t[0] && r[1] < t[3] && r[3] > t[1]);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const back = toon ? NR.cartoon.fogColor() : colors.land; // the names sit on the fog in the cartoon look
+    for (const { code, x, y, wide } of spots) {
+      const name = NR.STATE_NAMES[code].toUpperCase();
+      const more = `Opens once you own all of ${NR.opensAfter(s, code)}`;
       ctx.font = `700 12px ${MONO}`;
       if ("letterSpacing" in ctx) ctx.letterSpacing = "2px";
-      const back = toon ? NR.cartoon.fogColor() : colors.land; // the names sit on the fog in the cartoon look
-      halo(ctx, NR.STATE_NAMES[code].toUpperCase(), x, y - 7, colors.muted, back);
+      const nw = ctx.measureText(name).width;
       if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
       ctx.font = `500 10px ${MONO}`;
-      halo(ctx, `Opens once you own all of ${NR.opensAfter(s, code)}`, x, y + 9, colors.muted, back);
+      const mw = ctx.measureText(more).width;
+      const nameBox = [x - nw / 2 - 4, y - 15, x + nw / 2 + 4, y + 1];
+      const bothBox = [Math.min(nameBox[0], x - mw / 2 - 4), y - 15, Math.max(nameBox[2], x + mw / 2 + 4), y + 16];
+      const withMore = mw <= Math.max(wide * 1.4, 160) && free(bothBox);
+      if (!withMore && !free(nameBox)) continue;
+      taken.push(withMore ? bothBox : nameBox);
+      ctx.font = `700 12px ${MONO}`;
+      if ("letterSpacing" in ctx) ctx.letterSpacing = "2px";
+      halo(ctx, name, x, withMore ? y - 7 : y, colors.muted, back);
+      if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+      if (!withMore) continue;
+      ctx.font = `500 10px ${MONO}`;
+      halo(ctx, more, x, y + 9, colors.muted, back);
     }
   }
 

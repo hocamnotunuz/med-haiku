@@ -289,17 +289,16 @@
     const c = Math.floor((lon - WORLD.lon0) / WORLD.step), r = Math.floor((WORLD.lat1 - lat) / WORLD.step);
     return c < 0 || r < 0 || c >= WORLD.cols || r >= WORLD.rows ? true : !!seaMask()[r * WORLD.cols + c];
   };
-  // The longitude and latitude the screen covers (with a margin)
+  // The longitude and latitude the screen covers. The map is curved (the middle of the top edge
+  // can be further north than its corners), so it looks at points all along the screen's edges.
   function screenBox(view) {
     let lon0 = Infinity, lon1 = -Infinity, lat0 = Infinity, lat1 = -Infinity;
-    for (const [x, y] of [
-      [0, 0],
-      [view.w, 0],
-      [0, view.h],
-      [view.w, view.h],
-      [view.w / 2, 0],
-      [view.w / 2, view.h],
-    ]) {
+    const edge = [];
+    for (let k = 0; k <= 8; k++) {
+      const f = k / 8;
+      edge.push([f * view.w, 0], [f * view.w, view.h], [0, f * view.h], [view.w, f * view.h]);
+    }
+    for (const [x, y] of edge) {
       const [lon, lat] = NR.fromScreen(x, y);
       lon0 = Math.min(lon0, lon);
       lon1 = Math.max(lon1, lon);
@@ -596,6 +595,7 @@
   // Everything under the counties, borders and the network: sea and waves, the coast's
   // shallow water, land, deserts, hills and mountains, rivers, lakes, trees and cacti.
   C.drawState = (ctx) => keptPicture(cache, ctx, `v${NR.packVersion}`, paintState);
+  C.keptPicture = keptPicture; // also used for the land layer in js/draw.js
 
   function paintState(ctx, view) {
     const P = NR.toScreen;
@@ -605,6 +605,7 @@
     const ppd = Math.hypot(b[0] - a[0], b[1] - a[1]); // pixels per degree of latitude, mid-screen
     const packs = NR.MAP.states.map((st) => prepPack(st.code)).filter(Boolean);
     coarse = 0.05 * ppd < 9; // a grid cell is under 9 pixels
+    const tiny = 0.05 * ppd < 4;
     // Waves
     const waves = wavesOnScreen(view, ppd);
     ctx.lineCap = "round";
@@ -622,8 +623,9 @@
     ctx.stroke();
     // Shallow water along every coast (the game's states and the land outside them): two bands under the land
     const outside = NR.unloadedAreas().filter((ar) => cull(ar.box));
+    // (along real coasts only: borders between states are covered by land anyway)
     ctx.beginPath();
-    NR.MAP.land.forEach((ring) => traceFlat(ctx, ring, P, true));
+    NR.MAP.coast.forEach((line) => traceFlat(ctx, line, P, false));
     outside.forEach((ar) => ar.outline.forEach((ring) => traceFlat(ctx, ring, P, true)));
     ctx.lineJoin = "round";
     ctx.strokeStyle = K.shallow;
@@ -655,11 +657,13 @@
       traceRings(ctx, p.dry, P, cull);
       ctx.fillStyle = K.sand;
       ctx.fill("evenodd");
-      for (let t = 1; t <= 3; t++) {
+      // Zoomed far out (a grid cell under 4 pixels), gentle hills hardly show: leave them out
+      for (let t = tiny ? 2 : 1; t <= 3; t++) {
         ctx.beginPath();
         traceRings(ctx, p.terraces[t - 1], P, cull);
         ctx.fillStyle = K.tint[t];
         ctx.fill("evenodd");
+        if (tiny) continue;
         ctx.strokeStyle = K.edge;
         ctx.lineWidth = t === 1 ? 1 : 1.4;
         ctx.stroke();
@@ -823,6 +827,9 @@
   }
   // The puffs over these areas ("outside" or state codes). clearing: state code -> 0..1 while
   // its clouds swell and drift apart as they fade.
+  // Which area each lattice point is in, remembered while the closed states and the spacing stay
+  // the same (so a state's clouds clearing for a moment cost little per frame)
+  const fogMemo = { key: "", cells: new Map() };
   function cloudPuffs(codes, closed, clearing, view) {
     const P = NR.toScreen;
     const [clon, clat] = NR.fromScreen(view.w / 2, view.h / 2);
@@ -830,24 +837,19 @@
     const ppd = Math.hypot(b[0] - a[0], b[1] - a[1]);
     const STEPS = [3.2, 1.6, 0.8, 0.4, 0.2, 0.1, 0.05];
     const step = STEPS.find((st) => st * ppd < 46 * 2) || 0.05; // about 46 pixels apart
-    let lon0 = Infinity, lon1 = -Infinity, lat0 = Infinity, lat1 = -Infinity;
-    for (const [x, y] of [
-      [0, 0],
-      [view.w, 0],
-      [0, view.h],
-      [view.w, view.h],
-    ]) {
-      const [lon, lat] = NR.fromScreen(x, y);
-      lon0 = Math.min(lon0, lon);
-      lon1 = Math.max(lon1, lon);
-      lat0 = Math.min(lat0, lat);
-      lat1 = Math.max(lat1, lat);
+    const [lon0, lat0, lon1, lat1] = screenBox(view);
+    const memoKey = `${step}|${[...closed].sort().join(",")}|${NR.packVersion}`;
+    if (fogMemo.key !== memoKey || fogMemo.cells.size > 40000) {
+      fogMemo.key = memoKey;
+      fogMemo.cells = new Map();
     }
     const puffs = [];
     for (let j = Math.floor(lat0 / step) - 1; j <= Math.ceil(lat1 / step) + 1; j++)
       for (let i = Math.floor(lon0 / step) - 1; i <= Math.ceil(lon1 / step) + 1; i++) {
         const lon = (i + 0.15 + 0.7 * hash(i, j, 61)) * step, lat = (j + 0.15 + 0.7 * hash(i, j, 62)) * step;
-        const code = fogAt(lon, lat, closed);
+        const id = (i + 50000) * 100000 + (j + 50000);
+        let code = fogMemo.cells.get(id);
+        if (code === undefined) fogMemo.cells.set(id, (code = fogAt(lon, lat, closed)));
         if (!code || !codes.includes(code)) continue;
         const t = clearing[code] || 0;
         const [x, y] = P(lon, lat);
