@@ -15,7 +15,7 @@
 | 1.2 Map projection | **Done:** Lambert conformal conic, centered on the open states. Fixed outlines are worked out once per projection (faster), clouds are kept as a picture, and the Classic relief is laid in 64 pieces that follow the curve. |
 | 1.3 California-only shortcuts | **Done, but one item moved to 1.6:** bays, forests and deserts, cable cars, messages and screen text are general now. The rule for where the sea ends at the Mexican and Washington borders needs real outlines of the land outside the game; a general rule changed 544 routes, so it waits for the terrain rebuild in 1.6. |
 | 1.4 Choose where to start | **Done:** Settings → Start in (California, Nevada, Arizona, Oregon), from each pack's starting counties. Neighbors open once you own all of a state. Levels mode only where a pack has levels. Best scores per home state. |
-| 1.5 Two countries' money | Not started |
+| 1.5 Two countries' money | Not started (comes after 1.6 and 1.8). Currencies decided: **Freedom Bucks** (US, shown as FB400k) and **Maple Coins** (Canada, shown as MC400k), always worth the same, 1 to 1. |
 | 1.6 Speed and memory | **In progress.** Done: map and terrain data per state (`packs/<code>/map.js`, `terrain.js`, relief pictures), and real outlines of every state, Mexico and Canada (`packs/index.js`), now used to tell land from sea outside the game and for the cartoon map and clouds. Also done: packs load only when needed (the home state at the start, neighbors of open states in the background; states not loaded yet are drawn and fogged from their rough outline). Left: a speed test with all 50 states. |
 | 1.7 Pack checker | **Done (first version):** `tools/check-pack.js`, explained in `PACKS.md`. |
 | 1.8 Pack test | Not started |
@@ -249,7 +249,7 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 
 1. **Canada's territories** (Yukon, Northwest Territories, Nunavut): included **later**, after the provinces, as a few huge regions.
 2. **Alaska and Hawaii:** Alaska opens by land from Yukon or British Columbia. Hawaii comes last, reached by a ferry or air link.
-3. **Money across the border:** the US and Canada each have their own national money. Lines crossing the border are paid half and half, and their fares go to both.
+3. **Money across the border:** the US and Canada each have their own national money, in their own currency: **Freedom Bucks** in the US (shown as FB400k) and **Maple Coins** in Canada (shown as MC400k). The two are pegged 1 to 1, so nothing ever needs converting: 100 Freedom Bucks are worth 100 Maple Coins. Every amount shows the currency of whoever pays or receives it (a US state's budget in Freedom Bucks, a Canadian province's in Maple Coins). Lines crossing the border are paid half and half, and their fares go to both.
 4. **Starting place:** you choose any state or province; California stays the default.
 5. **City maps:** the Tier 1 list in section 6 (36 new cities).
 6. **Order:** Step 0 (own repository), then foundation, then the pilot, then one state at a time in the order in section 6.
