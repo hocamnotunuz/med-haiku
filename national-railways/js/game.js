@@ -8,7 +8,7 @@
   const T = (NR.TUNING = {
     dayLength: 10, // real seconds per in-game day
     timedWeeks: 4, // how many weeks the Timed challenge lasts
-    startMoney: 400, // the home state's budget at the start, in thousands of dollars ($k)
+    startMoney: 400, // the home state's budget at the start, in thousands (400 = 400k)
     nationalStart: 0, // national money at the start ($k)
     newStateBudget: 200, // budget a state gets when it opens ($k)
     stateTax: 0.1, // share of every fare and cargo fee a state pays to national money
@@ -45,7 +45,7 @@
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 13; // bump when saved games from older versions no longer fit
+  NR.SAVE_VERSION = 14; // bump when saved games from older versions no longer fit (14: each country's money)
 
   // ---- Time of day: night runs from 21:00 to 05:00 ----
   NR.hourOf = (s) => ((s.time % T.dayLength) / T.dayLength) * 24;
@@ -219,12 +219,25 @@
     return t.carries ? NR.CARGO[t.carries[0]].unit : "seats";
   };
 
-  // Money is counted in thousands of dollars: 400 means $400k.
-  NR.money = (k) => {
+  // Money is counted in thousands: 400 means 400k, shown in the currency of whoever pays or gets
+  // it: FB400k (Freedom Bucks, the US) or MC400k (Maple Coins, Canada), always worth the same.
+  // where: a state, province or country code (the home country when left out).
+  NR.money = (k, where) => {
+    const sign = NR.COUNTRIES[NR.countryOf(where || NR.HOME_STATE)].sign;
     const v = Math.round(k);
     const a = Math.abs(v);
-    const sign = v < 0 ? "−" : "";
-    return a >= 1000 ? `${sign}$${(a / 1000).toFixed(2)}M` : `${sign}$${a}k`;
+    const minus = v < 0 ? "−" : "";
+    return a >= 1000 ? `${minus}${sign}${(a / 1000).toFixed(2)}M` : `${minus}${sign}${a}k`;
+  };
+  // A bill as money: "FB30k", or "FB15k + MC15k" when two countries share it.
+  NR.billMoney = (bill) => {
+    const by = {};
+    for (const [p, amount] of Object.entries(bill)) {
+      const c = NR.countryOf(p);
+      by[c] = (by[c] || 0) + amount;
+    }
+    const parts = Object.entries(by).map(([c, amount]) => NR.money(amount, c));
+    return parts.length ? parts.join(" + ") : NR.money(0);
   };
 
   // Every place on the map (county main stations and towns) and every county, of the states
@@ -258,12 +271,15 @@
   NR.trackPrice = (a, b, grade) => NR.trackMiles(a, b) * (T.trackPrice + (grade === "high" ? T.highSpeedPrice : 0));
 
   // ---------- States and budgets ----------
-  // Each state has its own budget. Fares and cargo fees for trips inside the state go in, and it
-  // pays for track, trains and counties inside the state. National money gets fares for trips
-  // that cross a state border, contract rewards, grants and level bonuses; it pays for track and
-  // trains that cross a border, and covers any state that runs short (a state spends its own
-  // budget first, then national money). If national money ends a week below zero, the richest
-  // state covers it. Money can't be moved between budgets by hand.
+  // Each state (or province) has its own budget. Fares and cargo fees for trips inside the state
+  // go in, and it pays for track, trains and counties inside the state. Each country has its own
+  // national money (US national money in Freedom Bucks, Canadian federal money in Maple Coins).
+  // It gets fares for trips that cross a state border, its states' taxes, contract rewards,
+  // grants and level bonuses; it pays for track and trains that cross a state border, and covers
+  // any of its states that runs short (a state spends its own budget first). Across the
+  // US–Canada border each country pays half and gets half. If a country's national money ends a
+  // week below zero, its richest state covers it. Money never moves between countries, and
+  // can't be moved between budgets by hand.
   NR.STATE_NAMES = Object.fromEntries(Object.values(NR.AREAS).map((a) => [a.code, a.name]));
   // The home state: where a game starts, with its pack's starting counties and levels.
   // Any state whose pack lists starting counties can be home (California is the default).
@@ -280,44 +296,81 @@
   // "A, B and C" or "A, B or C"
   NR.listWords = (words, last = "and") => (words.length > 1 ? `${words.slice(0, -1).join(", ")} ${last} ${words[words.length - 1]}` : words[0] || "");
   NR.stateOf = (stationId) => NR.countyById[city(stationId).county].state;
-  // Who pays for the track between two stations: their state, or national money across a border.
-  NR.segmentPayer = (a, b) => (NR.stateOf(a) === NR.stateOf(b) ? NR.stateOf(a) : "national");
-  // Who pays for a line's trains: its state if the whole line is in one state, otherwise national money.
-  NR.linePayer = (l) => {
-    const first = NR.stateOf(l.stops[0]);
-    return l.stops.every((id) => NR.stateOf(id) === first) ? first : "national";
+  // A payer is a state (its budget) or a country ("USA", "CAN": its national money).
+  const isNation = (p) => !!NR.COUNTRIES[p] || p === "national";
+  // A country's national money in this game: { money, income, tax, upkeep, lastWeek }.
+  NR.nation = (s, country) => {
+    const c = NR.countryOf(country);
+    return s.nations[c] || (s.nations[c] = { money: 0, income: 0, tax: 0, upkeep: 0, lastWeek: null });
   };
-  NR.payerName = (p) => (p === "national" ? "national money" : `the ${NR.STATE_NAMES[p]} budget`);
+  // Who pays for the track between two stations, as [payer, share] pairs: their state; national
+  // money across a state border; half from each country across the US–Canada border.
+  NR.segmentShares = (a, b) => {
+    const sa = NR.stateOf(a), sb = NR.stateOf(b);
+    if (sa === sb) return [[sa, 1]];
+    const ca = NR.countryOf(sa), cb = NR.countryOf(sb);
+    return ca === cb ? [[ca, 1]] : [[ca, 0.5], [cb, 0.5]];
+  };
+  // Who pays for a line's trains: its state if the whole line is in one state, otherwise national
+  // money (shared equally by the countries it runs through).
+  NR.lineShares = (l) => {
+    const states = [...new Set(l.stops.map((id) => NR.stateOf(id)))];
+    if (states.length === 1) return [[states[0], 1]];
+    const countries = [...new Set(states.map((code) => NR.countryOf(code)))];
+    return countries.map((c) => [c, 1 / countries.length]);
+  };
+  // One payer (the first, when two countries share)
+  NR.segmentPayer = (a, b) => NR.segmentShares(a, b)[0][0];
+  NR.linePayer = (l) => NR.lineShares(l)[0][0];
+  NR.payerName = (p) => (isNation(p) ? NR.nationalName(p) : `the ${NR.STATE_NAMES[p]} budget`);
+  // "the Oregon budget", "national money", or "US national money and Canadian federal money"
+  NR.sharesName = (shares) => NR.listWords(shares.map(([p]) => NR.payerName(p)));
+  // Add an amount to a bill, split as the shares say
+  NR.addShares = (bill, shares, amount) => {
+    shares.forEach(([p, share]) => NR.addToBill(bill, p, amount * share));
+    return bill;
+  };
+  // What a new train for this line costs, as a bill
+  NR.trainBill = (line, type) => NR.addShares({}, NR.lineShares(line), NR.TRAIN_TYPES[type].price);
   // A bill is { CA: 30, national: 12 }: who pays how much ($k).
   NR.addToBill = (bill, payer, amount) => {
     bill[payer] = (bill[payer] || 0) + amount;
     return bill;
   };
-  // National money a bill needs: its own share, plus whatever the states can't cover themselves.
-  NR.nationalNeed = (s, bill) =>
-    Object.entries(bill).reduce((n, [p, amount]) => n + (p === "national" ? amount : Math.max(0, amount - Math.max(0, s.states[p].budget))), 0);
-  NR.canPay = (s, bill) => NR.nationalNeed(s, bill) <= Math.max(0, s.money) + 1e-6;
+  // National money a bill needs from each country: its own share, plus whatever that country's
+  // states can't cover themselves, like { USA: 12 }.
+  NR.nationalNeeds = (s, bill) => {
+    const need = {};
+    for (const [p, amount] of Object.entries(bill)) {
+      const c = NR.countryOf(p);
+      need[c] = (need[c] || 0) + (isNation(p) ? amount : Math.max(0, amount - Math.max(0, s.states[p].budget)));
+    }
+    return need;
+  };
+  // Can every country pay its part? (Each spends only its own money.)
+  NR.canPay = (s, bill) => Object.entries(NR.nationalNeeds(s, bill)).every(([c, n]) => n <= Math.max(0, NR.nation(s, c).money) + 1e-6);
   NR.pay = (s, bill) => {
     for (const [p, amount] of Object.entries(bill)) {
-      if (p === "national") {
-        s.money -= amount;
+      const nation = NR.nation(s, p);
+      if (isNation(p)) {
+        nation.money -= amount;
         continue;
       }
       const st = s.states[p];
       const own = Math.min(amount, Math.max(0, st.budget));
       st.budget -= own;
-      s.money -= amount - own; // national money covers the rest
+      nation.money -= amount - own; // the state's national money covers the rest
     }
   };
   // Money paid back goes to whoever paid.
   NR.refund = (s, bill) => {
     for (const [p, amount] of Object.entries(bill)) {
-      if (p === "national") s.money += amount;
+      if (isNation(p)) NR.nation(s, p).money += amount;
       else s.states[p].budget += amount;
     }
   };
-  // What a payer can spend right now: national money, plus the state's own budget.
-  NR.spendable = (s, payer) => Math.max(0, s.money) + (payer === "national" ? 0 : Math.max(0, s.states[payer].budget));
+  // What a payer can spend right now: its country's national money, plus the state's own budget.
+  NR.spendable = (s, payer) => Math.max(0, NR.nation(s, payer).money) + (isNation(payer) ? 0 : Math.max(0, s.states[payer].budget));
 
   // Data that is worked out from the game state instead of being saved.
   const rt = (NR.runtime = { routes: {}, dirty: true, events: [] });
@@ -355,6 +408,16 @@
 
   // ---------- Starting a game ----------
   // mode: "endless" | "timed" | "levels"    style: "type" | "city"    geo: "gentle" | "tough"
+  // s.money is the home country's national money (the bottom bar shows it, and grants and level
+  // bonuses go there). It isn't saved by itself: it reads and writes s.nations.
+  function attachMoney(s) {
+    Object.defineProperty(s, "money", {
+      configurable: true,
+      enumerable: false,
+      get: () => NR.nation(s, s.home).money,
+      set: (v) => (NR.nation(s, s.home).money = v),
+    });
+  }
   NR.newGame = function (mode, style, geo, home) {
     NR.setHome(home || NR.HOME_STATE);
     if (mode === "levels" && !NR.LEVELS.length) mode = "endless"; // only some states have levels
@@ -371,13 +434,10 @@
       lines: [],
       trains: [],
       v: NR.SAVE_VERSION,
-      money: T.nationalStart, // national money
+      nations: {}, // each country's national money (see NR.nation)
       states: makeStates(), // each state's budget, head of transportation and so on
       levelsBeaten: false,
       weekIncome: 0, // fares and cargo fees this week, all states together
-      nationalIncome: 0, // fares for trips across a state border this week
-      nationalTax: 0, // taxes paid by the states this week
-      nationalLastWeek: null,
       lastWeek: null,
       depot: Object.fromEntries(Object.keys(NR.TRAIN_TYPES).map((k) => [k, k === "regular" ? T.startTrains : 0])),
       cargoDelivered: Object.fromEntries(Object.keys(NR.CARGO).map((k) => [k, 0])),
@@ -407,6 +467,8 @@
       nextId: 1,
       over: false,
     };
+    attachMoney(s);
+    s.money = T.nationalStart; // the home country's national money
     NR.START_COUNTIES.forEach((id) => ownCounty(s, id, true));
     rt.dirty = true;
     rt.events.length = 0;
@@ -671,21 +733,27 @@
     return fare;
   }
   // Fares and cargo fees go into the budget of the state where the trip happened, less a 10%
-  // tax that goes to national money. A trip from one state to another pays national money.
+  // tax that goes to its country's national money. A trip from one state to another pays
+  // national money (half to each country across the US–Canada border).
   function earn(s, amount, here, from) {
     s.weekIncome += amount;
     if (from && NR.cityById[from] && NR.stateOf(from) !== NR.stateOf(here)) {
-      s.money += amount;
-      s.nationalIncome += amount;
+      for (const [c, share] of NR.segmentShares(from, here)) {
+        const nation = NR.nation(s, c);
+        nation.money += amount * share;
+        nation.income += amount * share;
+      }
       return;
     }
-    const st = s.states[NR.stateOf(here)];
+    const code = NR.stateOf(here);
+    const st = s.states[code];
     const tax = amount * T.stateTax;
     st.budget += amount - tax;
     st.weekIncome += amount - tax; // a head of transportation splits what's left after tax
     st.weekTax += tax;
-    s.money += tax;
-    s.nationalTax += tax;
+    const nation = NR.nation(s, code);
+    nation.money += tax;
+    nation.tax += tax;
   }
 
   // A passenger or a load of cargo has arrived: collect the money.
@@ -853,7 +921,7 @@
     if (!h) return null;
     return s.time < h.from ? "settling" : "managing";
   };
-  NR.stateFrozen = (s, code) => code !== "national" && NR.stateHeadState(s, code) === "managing";
+  NR.stateFrozen = (s, code) => !isNation(code) && NR.stateHeadState(s, code) === "managing";
   // What the state's own track and trains cost to build, in $k.
   NR.stateInfraValue = function (s, code) {
     let value = 0;
@@ -900,15 +968,16 @@
 
   // Once a week: each state pays the running costs of its own trains, and national money pays
   // for trains on lines that cross a border. While managed, management keeps 90% of a state's
-  // profit and 10% goes to national money. National money covers any state that runs short.
+  // profit and 10% goes to national money. Each country's national money covers its own states
+  // when they run short.
   function stateWeek(s) {
     const upkeepOf = {};
     s.trains.forEach((t) => {
       const line = NR.lineById(s, t.lineId);
-      NR.addToBill(upkeepOf, line ? NR.linePayer(line) : "national", typeOf(t).upkeep);
+      NR.addShares(upkeepOf, line ? NR.lineShares(line) : [[NR.countryOf(s.home), 1]], typeOf(t).upkeep);
     });
-    s.money -= upkeepOf.national || 0;
-    s.nationalUpkeep = upkeepOf.national || 0;
+    for (const [p, amount] of Object.entries(upkeepOf)) if (isNation(p)) NR.nation(s, p).money -= amount;
+    for (const [c, nation] of Object.entries(s.nations)) nation.upkeep = upkeepOf[c] || 0;
     for (const [code, st] of Object.entries(s.states)) {
       if (!st.open) continue;
       const upkeep = upkeepOf[code] || 0;
@@ -918,36 +987,38 @@
       if (NR.stateFrozen(s, code) && profit > 0) {
         st.budget -= profit; // the profit leaves the state: 90% to management, 10% to national money
         toNational = profit * (1 - T.managementShare);
-        s.money += toNational;
+        NR.nation(s, code).money += toNational;
       }
       st.lastWeek = { income: st.weekIncome, tax: st.weekTax, upkeep, profit, toNational };
       st.weekTax = 0;
       st.weekIncome = 0;
       if (st.budget < 0) {
-        s.money += st.budget;
+        NR.nation(s, code).money += st.budget;
         emit("stateShortfall", { code, amount: -st.budget });
         st.budget = 0;
       }
     }
-    // National money below zero: the richest states cover it.
-    if (s.money < 0) {
-      const paid = [];
-      const rich = Object.keys(s.states)
-        .filter((code) => s.states[code].open && s.states[code].budget > 0)
-        .sort((a, b) => s.states[b].budget - s.states[a].budget);
-      for (const code of rich) {
-        if (s.money >= 0) break;
-        const take = Math.min(-s.money, s.states[code].budget);
-        s.states[code].budget -= take;
-        s.money += take;
-        paid.push({ code, amount: take });
+    // A country's national money below zero: its richest states cover it.
+    for (const [country, nation] of Object.entries(s.nations)) {
+      if (nation.money < 0) {
+        const paid = [];
+        const rich = Object.keys(s.states)
+          .filter((code) => s.states[code].open && s.states[code].budget > 0 && NR.countryOf(code) === country)
+          .sort((a, b) => s.states[b].budget - s.states[a].budget);
+        for (const code of rich) {
+          if (nation.money >= 0) break;
+          const take = Math.min(-nation.money, s.states[code].budget);
+          s.states[code].budget -= take;
+          nation.money += take;
+          paid.push({ code, amount: take });
+        }
+        if (paid.length) emit("nationalRefill", { country, paid });
+        if (nation.money < 0) emit("nationalShort", { country, amount: -nation.money });
       }
-      if (paid.length) emit("nationalRefill", { paid });
-      if (s.money < 0) emit("nationalShort", { amount: -s.money });
+      nation.lastWeek = { income: nation.income, tax: nation.tax, upkeep: nation.upkeep };
+      nation.income = 0;
+      nation.tax = 0;
     }
-    s.nationalLastWeek = { income: s.nationalIncome, tax: s.nationalTax, upkeep: s.nationalUpkeep };
-    s.nationalIncome = 0;
-    s.nationalTax = 0;
   }
 
   // ---------- One step of the game ----------
@@ -1143,7 +1214,7 @@
   NR.chainBill = (chain, grade, share = 1, line) => {
     const bill = {};
     for (let i = 0; i + 1 < chain.length; i++)
-      NR.addToBill(bill, NR.segmentPayer(chain[i], chain[i + 1]), NR.trackPrice(chain[i], chain[i + 1], grade, tunneled(line, chain[i], chain[i + 1])) * share);
+      NR.addShares(bill, NR.segmentShares(chain[i], chain[i + 1]), NR.trackPrice(chain[i], chain[i + 1], grade, tunneled(line, chain[i], chain[i + 1])) * share);
     return bill;
   };
   // Why track can't be laid through these stops (mountains too wide, water too wide), or null.
@@ -1199,7 +1270,7 @@
     for (let i = 0; i + 1 < line.stops.length; i++) {
       const [a, b] = [line.stops[i], line.stops[i + 1]];
       const t = tunneled(line, a, b);
-      NR.addToBill(bill, NR.segmentPayer(a, b), NR.trackPrice(a, b, "high", t) - NR.trackPrice(a, b, "standard", t));
+      NR.addShares(bill, NR.segmentShares(a, b), NR.trackPrice(a, b, "high", t) - NR.trackPrice(a, b, "standard", t));
     }
     return bill;
   };
@@ -1223,7 +1294,7 @@
     if (t.maxLineMiles && NR.lineMiles(line) > t.maxLineMiles) return { ok: false, reason: `Only on lines up to ${t.maxLineMiles} mi` };
     if (line.stops.filter((id) => serves(type, id)).length < 2) return { ok: false, reason: "Needs 2 cities it stops at" };
     if (s.depot[type] > 0) return { ok: true, fromDepot: true };
-    if (!NR.canPay(s, { [NR.linePayer(line)]: t.price })) return { ok: false, reason: `Costs ${NR.money(t.price)}` };
+    if (!NR.canPay(s, NR.trainBill(line, type))) return { ok: false, reason: `Costs ${NR.billMoney(NR.trainBill(line, type))}` };
     return { ok: true, fromDepot: false };
   };
 
@@ -1232,7 +1303,7 @@
     const check = NR.canAddTrain(s, line, type);
     if (!check.ok) return false;
     if (check.fromDepot) s.depot[type]--;
-    else NR.pay(s, { [NR.linePayer(line)]: NR.TRAIN_TYPES[type].price }); // the line's state, or national money across borders
+    else NR.pay(s, NR.trainBill(line, type)); // the line's state, or national money across borders
     const fromEnd = NR.trainsOn(s, line).length % 2 === 1; // spread trains out
     const train = {
       id: s.nextId++,
@@ -1474,7 +1545,10 @@
       const same = (c) => c.kind === spec.kind && c.a === spec.a && c.b === spec.b && c.cargo === spec.cargo;
       if (s.contracts.some(same)) continue;
       const { days, money, train, ...goal } = spec;
-      const c = makeGoal(Object.assign(goal, { id: s.nextId++, deadline: s.time + days * T.dayLength, reward: { money, train: train || null } }));
+      // The reward goes to the country where the job is (half each when it spans the border)
+      const places = [goal.a, goal.b, goal.to, goal.from].filter((id) => id && NR.cityById[id]);
+      const countries = places.length ? [...new Set(places.map((id) => NR.countryOf(NR.stateOf(id))))] : [NR.countryOf(s.home)];
+      const c = makeGoal(Object.assign(goal, { id: s.nextId++, deadline: s.time + days * T.dayLength, reward: { money, train: train || null, countries } }));
       if (stateGoal[c.kind]) c.progress = stateGoal[c.kind](s, c);
       s.contracts.push(c);
       emit("contract", { id: c.id });
@@ -1488,7 +1562,8 @@
     s.contracts = s.contracts.filter((c) => c.id !== id);
   };
   // What a contract pays, as text.
-  NR.rewardText = (r) => NR.money(r.money) + (r.train ? ` + a free ${NR.trainLabel(r.train)}` : "");
+  const rewardShares = (r) => (r.countries && r.countries.length ? r.countries : [NR.countryOf(NR.HOME_STATE)]).map((c, i, all) => [c, 1 / all.length]);
+  NR.rewardText = (r) => NR.billMoney(NR.addShares({}, rewardShares(r), r.money)) + (r.train ? ` + a free ${NR.trainLabel(r.train)}` : "");
 
   function updateGoals(s, dt) {
     const crowded = s.stations.some((st) => st.waiting.length > T.stationRoom);
@@ -1496,7 +1571,7 @@
     for (const c of s.contracts.slice()) {
       refreshGoal(s, c, dt, crowded);
       if (c.done) {
-        s.money += c.reward.money; // rewards are national money
+        for (const [country, share] of rewardShares(c.reward)) NR.nation(s, country).money += c.reward.money * share; // rewards are national money
         if (c.reward.train) s.depot[c.reward.train]++;
         s.contracts = s.contracts.filter((x) => x !== c);
         s.contractsDone++;
@@ -1515,7 +1590,7 @@
 
   // ---------- Weekly upgrades ----------
   NR.UPGRADES = {
-    grant: { title: "Federal grant", text: `${NR.money(T.grant)} of national money to spend anywhere.`, ok: () => true, apply: (s) => (s.money += T.grant) },
+    grant: { title: "Federal grant", text: `${NR.money(T.grant)} of ${NR.nationalName("national")} to spend anywhere.`, ok: () => true, apply: (s) => (s.money += T.grant) },
     regional: {
       title: "Free Regional train",
       text: "A faster train with 10 seats, waiting in your depot.",
@@ -1562,9 +1637,11 @@
   };
 
   // ---------- Buying a line color ----------
-  // A new line color costs money: national money pays, and the richest states cover what it can't.
+  // A new line color costs money: the home country's national money pays, and its richest states
+  // cover what it can't.
   NR.lineColorPrice = (s) => T.lineColorPrice[0] + T.lineColorPrice[1] * Math.max(0, s.linesBought || 0);
-  const nationalReach = (s) => Math.max(0, s.money) + Object.values(s.states).reduce((n, st) => n + (st.open ? Math.max(0, st.budget) : 0), 0);
+  const homeStates = (s) => Object.keys(s.states).filter((code) => s.states[code].open && NR.countryOf(code) === NR.countryOf(s.home)).map((code) => s.states[code]);
+  const nationalReach = (s) => Math.max(0, s.money) + homeStates(s).reduce((n, st) => n + Math.max(0, st.budget), 0);
   NR.canBuyLineColor = (s) => s.linesUnlocked < T.maxLines && nationalReach(s) >= NR.lineColorPrice(s);
   NR.buyLineColor = function (s) {
     if (!NR.canBuyLineColor(s)) return false;
@@ -1572,7 +1649,7 @@
     const own = Math.min(left, Math.max(0, s.money));
     s.money -= own;
     left -= own;
-    for (const st of Object.values(s.states).filter((x) => x.open).sort((a, b) => b.budget - a.budget)) {
+    for (const st of homeStates(s).sort((a, b) => b.budget - a.budget)) {
       if (left <= 0) break;
       const take = Math.min(left, Math.max(0, st.budget));
       st.budget -= take;
@@ -1629,6 +1706,13 @@
   NR.load = (text) => {
     const s = JSON.parse(text);
     NR.setHome(s.home || "CA"); // games saved before you could choose started in California
+    if (!s.nations) {
+      // Saved before each country had its own national money (version 13): it was all the US's
+      s.nations = { USA: { money: s.money || 0, income: s.nationalIncome || 0, tax: s.nationalTax || 0, upkeep: s.nationalUpkeep || 0, lastWeek: s.nationalLastWeek || null } };
+      ["money", "nationalIncome", "nationalTax", "nationalUpkeep", "nationalLastWeek"].forEach((k) => delete s[k]);
+      if (s.v === 13) s.v = NR.SAVE_VERSION;
+    }
+    attachMoney(s);
     rt.geoLevel = s.geo || "gentle";
     rt.dirty = true;
     rt.events.length = 0;

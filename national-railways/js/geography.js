@@ -348,7 +348,7 @@
       const [a, b] = [line.stops[i], line.stops[i + 1]];
       if (NR.tunneled(line, a, b)) continue;
       const mi = NR.segmentGeo(a, b).passes.reduce((sum, p) => sum + p.miles, 0);
-      if (mi) NR.addToBill(bill, NR.segmentPayer(a, b), mi * detour() * (L().tunnelCost - L().passCost) * perMile(line.grade));
+      if (mi) NR.addShares(bill, NR.segmentShares(a, b), mi * detour() * (L().tunnelCost - L().passCost) * perMile(line.grade));
     }
     return bill;
   };

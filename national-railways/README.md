@@ -47,7 +47,7 @@ The map shows real mountains (cartoon peaks in the Arcade look, shaded relief in
 | Along the shore: price / train speed | ×1.6 / ×0.7 | ×2.2 / ×0.55 |
 | Real bridge / new bridge, price per mile | ×3 / ×6 | ×4 / ×10 |
 | Widest new bridge | 8 mi | 2 mi |
-| River bridge: new / real | $10k / $3k | $25k / $5k |
+| River bridge: new / real | FB10k / FB3k | FB25k / FB5k |
 
 All these numbers live in `js/geography.js` (`NR.GEO`).
 
@@ -55,13 +55,13 @@ All these numbers live in `js/geography.js` (`NR.GEO`).
 
 - **Choose your home state** under **Settings → Start in**: California (the default, around Los Angeles), Nevada (Las Vegas), Arizona (Phoenix) or Oregon (Portland). Levels mode is only in California for now. Best scores are kept per home state.
 - The other states are hidden under clouds (shaded darker in the Classic look) until they open.
-- A state's **neighbors open once you own every county in it** (in Levels mode, also when you finish the last level). Each newly opened state starts with a $200k budget, and the map zooms out to show it. The clouds say which state to finish to open them.
+- A state's **neighbors open once you own every county in it** (in Levels mode, also when you finish the last level). Each newly opened state starts with a FB200k budget, and the map zooms out to show it. The clouds say which state to finish to open them.
 - Their counties are then unlocked like the home state's: next to one you own, by paying or by reaching the free-unlock goal.
 
 ### Unlocking counties
 
 - Every game starts with **Los Angeles, Ventura and Riverside** counties.
-- Counties next to yours have a dashed orange outline and a tag like `$85k · 0/33`. Tap one to see its details.
+- Counties next to yours have a dashed orange outline and a tag like `FB85k · 0/33`. Tap one to see its details.
 - **Pay** to unlock it now (bigger counties cost more), or unlock it **for free** by delivering the goal number of passengers to your stations next to it: 45 passengers for the smallest counties, up to 240 for the biggest (45 plus 1 for every 17,000 people).
 - When a county is unlocked, its main station opens right away. Its towns then appear over time.
 - In **Levels** mode, finishing a level opens the next part of the state, so its counties can be unlocked.
@@ -75,8 +75,8 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 - **Extend a line:** drag from its last station (or from the round + tab at its end) to a new city. To start a new line at a station that ends another line, drag from the other city to it instead.
 - **Manage a line:** tap its color at the bottom of the screen to buy trains, send them to the depot, upgrade to high-speed track, or delete the line. Trains you can use on that line are listed first; the others wait under **More trains**, with the reason they can't run yet.
 - **Out of colors?** Dragging from any station that ends a line then extends that line (the shortest one, if several end there), even at a busy hub like Los Angeles.
-- **More line colors:** you start with 3. When all are in use, a **+** chip appears at the bottom: tap it twice to buy another color ($100k, then $150k, $200k and so on, up to 7 lines) from national money (the richest state covers what it can't). The weekly upgrade choice also always includes **New line** while every color is in use.
-- **Money:** track costs $1k per mile (high-speed track $2.5k per mile). Passengers pay a fare when they arrive: more for long trips and fast trains. Every train costs a little to run each week. Who pays is explained under **Budgets** below.
+- **More line colors:** you start with 3. When all are in use, a **+** chip appears at the bottom: tap it twice to buy another color (FB100k, then FB150k, FB200k and so on, up to 7 lines) from national money (the richest state covers what it can't). The weekly upgrade choice also always includes **New line** while every color is in use.
+- **Money:** track costs FB1k per mile (high-speed track FB2.5k per mile). Passengers pay a fare when they arrive: more for long trips and fast trains. Every train costs a little to run each week. Who pays is explained under **Budgets** below.
 - **Every week** a new Regular train arrives and you choose one upgrade.
 - **Rush hour:** now and then a big city gets very busy for a few seconds. Commuter trains help.
 - **New stations** (towns that appear, and main stations of counties you unlock) get about 25 seconds before their first passengers, so you have time to connect them. Rush hours and flights leave them alone during that time.
@@ -97,18 +97,18 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 
 | Train | Price | Seats | Speed | Stops at | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Regular | $60k | 6 | 1× | every city | Cheap and reliable. |
-| Commuter | $80k | 12 | 0.85× | every city | Quick boarding. Lines up to 180 mi. Bonus fares on short trips. |
-| Regional | $120k | 10 | 1.25× | size 2 and up | Skips the smallest towns. |
-| High-speed | $250k | 8 | 2× | size 3 and up | Needs high-speed track. From week 2. |
-| Bullet | $450k | 10 | 3× | Metro cities | Needs high-speed track. From week 4. |
-| Freight | $100k | 10 crates | 0.8× | every city | Produce only. |
-| Dock train | $120k | 16 containers | 0.7× | every city | Containers only. Needs a port on its line. |
-| Truck bypass | $140k | 6 trucks | 1.1× | every city | Trucks only. From week 2. |
-| Night train | $160k | 8 | 1.3× | size 2 and up | Runs only at night (21:00–05:00). Extra bonus on trips of 200+ miles. From week 2. |
-| Scenic train | $130k | 10 | 0.7× | every city | Tourists only; they pay double on it. |
-| Airport express | $150k | 10 | 1.6× | every city | Quick boarding. Needs an airport on its line. |
-| Work train | $90k | – | 0.9× | every city | Carries nothing. Repairs damaged track on its line. |
+| Regular | FB60k | 6 | 1× | every city | Cheap and reliable. |
+| Commuter | FB80k | 12 | 0.85× | every city | Quick boarding. Lines up to 180 mi. Bonus fares on short trips. |
+| Regional | FB120k | 10 | 1.25× | size 2 and up | Skips the smallest towns. |
+| High-speed | FB250k | 8 | 2× | size 3 and up | Needs high-speed track. From week 2. |
+| Bullet | FB450k | 10 | 3× | Metro cities | Needs high-speed track. From week 4. |
+| Freight | FB100k | 10 crates | 0.8× | every city | Produce only. |
+| Dock train | FB120k | 16 containers | 0.7× | every city | Containers only. Needs a port on its line. |
+| Truck bypass | FB140k | 6 trucks | 1.1× | every city | Trucks only. From week 2. |
+| Night train | FB160k | 8 | 1.3× | size 2 and up | Runs only at night (21:00–05:00). Extra bonus on trips of 200+ miles. From week 2. |
+| Scenic train | FB130k | 10 | 0.7× | every city | Tourists only; they pay double on it. |
+| Airport express | FB150k | 10 | 1.6× | every city | Quick boarding. Needs an airport on its line. |
+| Work train | FB90k | – | 0.9× | every city | Carries nothing. Repairs damaged track on its line. |
 
 ### Day, night and events
 
@@ -123,9 +123,9 @@ Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own ci
 
 | Line | Track | Vehicle | Riders | Notes |
 | --- | --- | --- | --- | --- |
-| Tram | $3k/mi | $40k | 8 | Street-running, cheap. |
-| Metro | $10k/mi | $120k | 16 | Fast; riders pay ×1.3. |
-| Cable car | $8k/mi | $60k | 6 | San Francisco only, between cable car stops (Transit Center, Union Square, Nob Hill, Fisherman's Wharf), up to 3.5 miles; riders pay ×2. |
+| Tram | FB3k/mi | FB40k | 8 | Street-running, cheap. |
+| Metro | FB10k/mi | FB120k | 16 | Fast; riders pay ×1.3. |
+| Cable car | FB8k/mi | FB60k | 6 | San Francisco only, between cable car stops (Transit Center, Union Square, Nob Hill, Fisherman's Wharf), up to 3.5 miles; riders pay ×2. |
 
 - Riders appear in the neighborhoods: most cross town, some (orange tags) head for the main station to catch a train and then join the trains across California.
 - **Hills and water:** each city map shows its real hills and water (San Francisco's hills, the Hollywood Hills, San Diego Bay and Mission Bay, the Sacramento and American rivers). Trams slow down on hills (Castro to Haight-Ashbury is a 6% climb). Metro tunnels under hills cost more but don't slow down. Cable cars climb at full speed but can't cross water. Water needs a bridge (or a tube for the metro): cheaper at a real bridge like the Coronado Bridge or Tower Bridge, and impossible if too wide. Lines can run along a shore.
@@ -135,7 +135,7 @@ Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own ci
 
 #### City budget and head of transportation
 
-- **Each city has its own budget.** Opening a city map moves **$200k** from its state's budget into it. City fares go into it, less a 10% tax to the state; city track, vehicles and weekly running costs are paid from it. When it runs short, the state budget pays the rest (for building as well as running costs). Tap **City budget** on the city map to see it.
+- **Each city has its own budget.** Opening a city map moves **FB200k** from its state's budget into it. City fares go into it, less a 10% tax to the state; city track, vehicles and weekly running costs are paid from it. When it runs short, the state budget pays the rest (for building as well as running costs). Tap **City budget** on the city map to see it.
 - **Head of transportation:** hire one from the city budget. Fee: the higher of 80% of the city budget or 50% of the city's track and vehicle value.
   1. **Settling in (3 weeks):** the head does nothing yet; you keep the city running (it can still be lost).
   2. **Managed (100 weeks):** the city runs safely (stops never overflow, kept at most half full), its lines are frozen, and management keeps 90% of its profit; 10% goes to the state budget each week. The city doesn't get busier while managed.
@@ -147,13 +147,19 @@ Tap the money at the bottom (**National** and **California**, or **4 states** on
 
 | Money | What comes in | What it pays for |
 | --- | --- | --- |
-| Each state's budget (California starts with $400k) | Fares and cargo fees for trips inside the state (less 10% tax), and 10% tax on its cities' fares | Track between two of its own stations, trains on lines entirely inside it, its counties, its head of transportation, $200k for each city map it opens, and its cities when they run short |
-| National money (starts at $0) | 10% tax on every state's fares and cargo fees, fares and cargo fees for trips that cross a state border, contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Track that crosses a state border, trains on lines that cross a border, and any state that runs short |
+| Each state's budget (California starts with FB400k) | Fares and cargo fees for trips inside the state (less 10% tax), and 10% tax on its cities' fares | Track between two of its own stations, trains on lines entirely inside it, its counties, its head of transportation, FB200k for each city map it opens, and its cities when they run short |
+| National money (starts at FB0) | 10% tax on every state's fares and cargo fees, fares and cargo fees for trips that cross a state border, contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Track that crosses a state border, trains on lines that cross a border, and any state that runs short |
 
 - A state spends its own budget first; if that isn't enough, national money pays the rest. If a state budget is empty at the end of a week, national money pays its running costs.
 - If national money ends a week below zero, the richest state budget covers it (then the next richest).
 - **Taxes:** a city pays 10% of its fares to its state, and a state pays 10% of its fares and cargo fees to national money, as they are earned. (A state doesn't pay tax again on the tax it gets from its cities.) While a head of transportation runs a city or state, the tax is paid first and management splits what's left. The Budgets panel and the City budget panel show last week's taxes.
 - **Money can't be moved between budgets by hand.** It only moves by these rules.
+
+**Currency.** Money in the US is counted in **Freedom Bucks** (shown as FB400k). Canada, when its provinces join the game, has its own **federal money** in **Maple Coins** (shown as MC400k). The two are always worth the same (1 to 1), so nothing ever needs converting. Every amount is shown in the currency of whoever pays or gets it: a US state's budget in Freedom Bucks, a Canadian province's in Maple Coins.
+
+- Each country's national money is separate and never pays for the other country. If a country's national money ends a week below zero, only its own states (or provinces) cover it.
+- Track and trains on a line that crosses the US–Canada border are paid **half and half** by the two countries' national money, and fares for trips across that border go half to each.
+- Contract rewards go to the country where the job is (half each if it spans the border). Federal grants and level bonuses go to your home country (where you started). The bottom bar shows your home country's national money; the Budgets panel shows both once a province is open.
 - The line panel says who pays for each line, and the county panel says which budget pays to unlock it.
 
 #### A state's head of transportation

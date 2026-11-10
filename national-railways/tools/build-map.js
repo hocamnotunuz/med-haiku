@@ -328,7 +328,7 @@ const areas = stateGeoms.map((g, i) => {
   const outline = roughRings(geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates, POSTAL[g.id] === "AK" ? 0.03 : 0.01);
   // (two pieces of the same state can touch, so leave the state itself out)
   const near = [...new Set(stateNear[i].filter((j) => j !== i).map((j) => POSTAL[stateGeoms[j].id]))].filter((code) => code !== POSTAL[g.id]).sort();
-  return { code: POSTAL[g.id], name: g.properties.name, country: "US", box: boxOf(outline), neighbors: near, outline };
+  return { code: POSTAL[g.id], name: g.properties.name, country: "USA", box: boxOf(outline), neighbors: near, outline };
 });
 // Mexico and Canada, from Natural Earth (public domain), 1:50m
 const neFile = path.join(CACHE, "ne", "ne_50m_admin_0_countries.geojson");

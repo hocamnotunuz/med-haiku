@@ -80,6 +80,7 @@
     }
   }
   const lineName = (c) => `${NR.LINE_NAMES[c]} Line`;
+  const capital = (text) => text.charAt(0).toUpperCase() + text.slice(1); // "national money" -> "National money"
   const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
   // "1 county", "10 counties", "3 days"
   const plural = (n, word) => {
@@ -436,33 +437,34 @@
         showNewStation(main.id);
         toast(ev.free ? `Goal reached: ${name} unlocked for free! ${main.name} station is open.` : `${name} unlocked. ${main.name} station is open.`);
       } else if (ev.type === "headHired") {
-        toast(`Head of transportation hired for ${NR.METROS[ev.key].name} (${NR.money(ev.fee)}). Keep the city running for ${plural(T.headSettleWeeks, "week")} while they settle in.`);
+        toast(`Head of transportation hired for ${NR.METROS[ev.key].name} (${NR.money(ev.fee, NR.stateOf(ev.key))}). Keep the city running for ${plural(T.headSettleWeeks, "week")} while they settle in.`);
       } else if (ev.type === "headTakesOver") {
         toast(`The head of transportation now runs ${NR.METROS[ev.key].name} safely for ${T.headTermWeeks} weeks. Its lines are frozen.`);
       } else if (ev.type === "headRetired") {
         toast(`${NR.METROS[ev.key].name}'s head of transportation has retired. The city is yours to run again.`);
       } else if (ev.type === "cityShortfall") {
-        toast(`${NR.METROS[ev.key].name}'s budget ran dry: the ${NR.STATE_NAMES[NR.stateOf(ev.key)]} budget paid ${NR.money(ev.amount)} of its running costs.`);
+        toast(`${NR.METROS[ev.key].name}'s budget ran dry: the ${NR.STATE_NAMES[NR.stateOf(ev.key)]} budget paid ${NR.money(ev.amount, NR.stateOf(ev.key))} of its running costs.`);
       } else if (ev.type === "stateShortfall") {
-        toast(`The ${NR.STATE_NAMES[ev.code]} budget ran dry: national money paid ${NR.money(ev.amount)} of its running costs.`);
+        toast(`The ${NR.STATE_NAMES[ev.code]} budget ran dry: ${NR.nationalName(ev.code)} paid ${NR.money(ev.amount, ev.code)} of its running costs.`);
       } else if (ev.type === "nationalShort") {
-        toast(`National money is ${NR.money(-ev.amount)} and every state budget is empty too. Border lines can't get new track or trains until fares come in.`);
+        const c = NR.COUNTRIES[NR.countryOf(ev.country)];
+        toast(`${capital(NR.nationalName(ev.country))} is ${NR.money(-ev.amount, ev.country)} and every ${c.unit} budget is empty too. Border lines can't get new track or trains until fares come in.`);
       } else if (ev.type === "nationalRefill") {
-        toast(`National money ran short: ${ev.paid.map((p) => `the ${NR.STATE_NAMES[p.code]} budget paid ${NR.money(p.amount)}`).join(", ")}.`);
+        toast(`${capital(NR.nationalName(ev.country))} ran short: ${ev.paid.map((p) => `the ${NR.STATE_NAMES[p.code]} budget paid ${NR.money(p.amount, p.code)}`).join(", ")}.`);
       } else if (ev.type === "statesOpen") {
         loadNearby(); // the new states' neighbors
         const names = ev.codes.map((code) => NR.STATE_NAMES[code]);
         const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
-        toast(`${list} ${names.length > 1 ? "are" : "is"} open! Each starts with a ${NR.money(T.newStateBudget)} budget. Track across a state border is paid from national money.`);
+        toast(`${list} ${names.length > 1 ? "are" : "is"} open! Each starts with a ${NR.money(T.newStateBudget, ev.codes[0])} budget. Track across a state border is paid from national money.`);
       } else if (ev.type === "stateHeadHired") {
-        toast(`Head of transportation hired for ${NR.STATE_NAMES[ev.code]} (${NR.money(ev.fee)}). Keep the state running for ${plural(T.headSettleWeeks, "week")} while they settle in.`);
+        toast(`Head of transportation hired for ${NR.STATE_NAMES[ev.code]} (${NR.money(ev.fee, ev.code)}). Keep the state running for ${plural(T.headSettleWeeks, "week")} while they settle in.`);
       } else if (ev.type === "stateHeadTakesOver") {
         toast(`The head of transportation now runs ${NR.STATE_NAMES[ev.code]} safely for ${T.headTermWeeks} weeks. Its track, trains and counties are frozen.`);
       } else if (ev.type === "stateHeadRetired") {
         toast(`${NR.STATE_NAMES[ev.code]}'s head of transportation has retired. The state is yours to run again.`);
       } else if (ev.type === "cityOpen") {
         toast(
-          `${NR.METROS[ev.key].name} city map is open with ${NR.money(ev.grant)} from the ${NR.STATE_NAMES[NR.stateOf(ev.key)]} budget. Build soon: riders will start to appear in the neighborhoods.`
+          `${NR.METROS[ev.key].name} city map is open with ${NR.money(ev.grant, NR.stateOf(ev.key))} from the ${NR.STATE_NAMES[NR.stateOf(ev.key)]} budget. Build soon: riders will start to appear in the neighborhoods.`
         );
       } else if (ev.type === "cityCrowd") {
         if (cityKey !== ev.key) toast(`Crowding at ${NR.cityStop(ev.key, ev.at).name} in ${NR.METROS[ev.key].name}! Open the city map to help.`);
@@ -610,11 +612,11 @@
       const price = NR.lineColorPrice(game);
       b.setAttribute("aria-label", `Buy a new line color for ${NR.money(price)}`);
       b.addEventListener("click", () => {
-        if (!NR.canBuyLineColor(game)) return toast(`A new line color costs ${NR.money(price)} of national money (the richest state covers what it can't). Not enough money yet.`);
+        if (!NR.canBuyLineColor(game)) return toast(`A new line color costs ${NR.money(price)} of ${NR.nationalName("national")} (the richest ${NR.COUNTRIES[NR.countryOf("national")].unit} covers what it can't). Not enough money yet.`);
         if (!b.dataset.armed) {
           b.dataset.armed = "1";
           setTimeout(() => (b.dataset.armed = ""), 4000);
-          return toast(`New line color: ${NR.money(price)} from national money (the richest state covers what it can't). Tap + again to buy.`);
+          return toast(`New line color: ${NR.money(price)} from ${NR.nationalName("national")} (the richest ${NR.COUNTRIES[NR.countryOf("national")].unit} covers what it can't). Tap + again to buy.`);
         }
         if (NR.buyLineColor(game)) toast(`You bought the ${lineName(game.linesUnlocked - 1)}. Drag between cities to build it.`);
       });
@@ -746,10 +748,11 @@
       const m = NR.CITY_MODES[b.dataset.mode];
       b.disabled = !NR.cityHasMode(cityKey, b.dataset.mode);
       b.setAttribute("aria-pressed", String(b.dataset.mode === cityMode));
-      b.title = `${m.about} Track ${NR.money(m.track)} per mile, ${m.vehicle} ${NR.money(m.price)}.`;
+      b.title = `${m.about} Track ${NR.money(m.track, NR.stateOf(cityKey))} per mile, ${m.vehicle} ${NR.money(m.price, NR.stateOf(cityKey))}.`;
     });
     const m = NR.CITY_MODES[cityMode];
-    $("city-hint").textContent = `Drag between neighborhoods to build a ${m.name.toLowerCase()} line: ${NR.money(m.track)} per mile plus ${NR.money(m.price)} for the first ${m.vehicle}.`;
+    const where = NR.stateOf(cityKey); // a city's money is in its country's currency
+    $("city-hint").textContent = `Drag between neighborhoods to build a ${m.name.toLowerCase()} line: ${NR.money(m.track, where)} per mile plus ${NR.money(m.price, where)} for the first ${m.vehicle}.`;
   }
   document.querySelectorAll(".mode-btn").forEach((b) =>
     b.addEventListener("click", () => {
@@ -780,11 +783,12 @@
     const state = NR.headState(game, cityKey);
     const lw = c.lastWeek;
     setText("cy-title", `${metro.name} budget`);
-    setText("cy-budget", NR.money(c.budget));
+    const where = NR.stateOf(cityKey);
+    setText("cy-budget", NR.money(c.budget, where));
     setText(
       "cy-week",
       (lw
-        ? `Last week: fares ${NR.money(lw.income)} (after ${NR.money(lw.tax || 0)} tax to the state), running costs ${NR.money(lw.upkeep)}${lw.toYou ? `, ${NR.money(lw.toYou)} to the state budget` : ""} · `
+        ? `Last week: fares ${NR.money(lw.income, where)} (after ${NR.money(lw.tax || 0, where)} tax to the state), running costs ${NR.money(lw.upkeep, where)}${lw.toYou ? `, ${NR.money(lw.toYou, where)} to the state budget` : ""} · `
         : "") +
         `${plural(c.delivered, "rider")} so far`
     );
@@ -800,7 +804,7 @@
           (c.lines.length ? "" : " Build a line first.")
       );
       hire.hidden = false;
-      setText("cy-hire", `Hire for ${NR.money(fee)}`);
+      setText("cy-hire", `Hire for ${NR.money(fee, where)}`);
       hire.disabled = !c.lines.length || !NR.cityCanPay(game, cityKey, fee);
       bar.hidden = true;
     } else {
@@ -886,13 +890,48 @@
     bpCards[code] = { card, chip, budget, week, head, bar, fill, hire, hireRow };
     return card;
   }
+  // A section for another country's national money (Canada's federal money, say), made once
+  const nationBoxes = {};
+  function nationBox(c) {
+    if (nationBoxes[c] && nationBoxes[c].wrap.isConnected) return nationBoxes[c];
+    const wrap = document.createElement("div");
+    const title = document.createElement("p");
+    title.className = "lp-section";
+    const amount = document.createElement("p");
+    amount.className = "cy-budget";
+    const week = document.createElement("p");
+    week.className = "lp-meta";
+    wrap.append(title, amount, week);
+    $("bp-abroad").append(wrap);
+    return (nationBoxes[c] = { wrap, title, amount, week });
+  }
   function renderBudgetPanel() {
     if (!game || !budgetsOpen()) return;
-    setText("bp-national", NR.money(game.money));
-    $("bp-national").classList.toggle("negative", game.money < 0);
-    const nw = game.nationalLastWeek;
-    setText("bp-national-week", nw ? `Last week: taxes ${NR.money(nw.tax || 0)}, border fares ${NR.money(nw.income)}, border trains ${NR.money(nw.upkeep || 0)}` : "");
+    // Each country's national money: the home country's first, then any other country with an
+    // open state or province
     const codes = Object.keys(game.states);
+    const home = NR.countryOf(game.home);
+    const countries = [home, ...Object.keys(NR.COUNTRIES).filter((c) => c !== home && codes.some((code) => game.states[code].open && NR.countryOf(code) === c))];
+    countries.forEach((c, i) => {
+      const nation = NR.nation(game, c);
+      const box = i === 0 ? null : nationBox(c);
+      const [title, amount, week] = box ? [box.title, box.amount, box.week] : [$("bp-national-title"), $("bp-national"), $("bp-national-week")];
+      const info = NR.COUNTRIES[c];
+      title.textContent = `${capital(NR.nationalName(c))} · ${info.money}`;
+      amount.textContent = NR.money(nation.money, c);
+      amount.classList.toggle("negative", nation.money < 0);
+      const nw = nation.lastWeek;
+      week.textContent = nw ? `Last week: taxes ${NR.money(nw.tax || 0, c)}, border fares ${NR.money(nw.income, c)}, border trains ${NR.money(nw.upkeep || 0, c)}` : "";
+    });
+    setText(
+      "bp-national-note",
+      `A 10% tax on every ${NR.COUNTRIES[home].unit}'s fares, fares for trips that cross a ${NR.COUNTRIES[home].unit} border, contract rewards, grants and level bonuses come here. ` +
+        `It pays for track and trains that cross a ${NR.COUNTRIES[home].unit} border, and covers any ${NR.COUNTRIES[home].unit} whose budget runs short. If it ends a week below zero, the richest ${NR.COUNTRIES[home].unit} covers it. ` +
+        (countries.length > 1
+          ? `Each country has its own: ${countries.map((c) => `${NR.COUNTRIES[c].money} (${NR.COUNTRIES[c].sign})`).join(" and ")}, always worth the same. Money never moves between countries; across the border each pays half and gets half of the fares. `
+          : "") +
+        "Money can't be moved between budgets by hand."
+    );
     const open = codes.filter((code) => game.states[code].open);
     const closed = codes.filter((code) => !game.states[code].open);
     const sig = open.join(",");
@@ -917,7 +956,7 @@
         "bp-head-help",
         `Fee: the higher of ${Math.round(T.headFeeBudget * 100)}% of the state budget or ${Math.round(T.headFeeInfra * 100)}% of the state's own track and trains. ` +
           `For the first ${T.headSettleWeeks} weeks they settle in and you still keep the state running. ` +
-          `Then they run it safely for ${T.headTermWeeks} weeks: its stations never overflow (they are kept at most half full), but track and trains inside the state are frozen, no new counties or towns open there, and management keeps ${Math.round(T.managementShare * 100)}% of the state's profit (the rest goes to national money). ` +
+          `Then they run it safely for ${T.headTermWeeks} weeks: its stations never overflow (they are kept at most half full), but track and trains inside the state are frozen, no new counties or towns open there, and management keeps ${Math.round(T.managementShare * 100)}% of the state's profit (the rest goes to ${NR.twoCountries() ? "its country's national money" : "national money"}). ` +
           "After that the state is yours again. Lines that cross a border stay yours throughout."
       );
     }
@@ -926,9 +965,9 @@
       const el = bpCards[code];
       const state = NR.stateHeadState(game, code);
       const lw = st.lastWeek;
-      el.budget.textContent = NR.money(st.budget);
+      el.budget.textContent = NR.money(st.budget, code);
       el.week.textContent = lw
-        ? `Last week: fares ${NR.money(lw.income)} (after ${NR.money(lw.tax || 0)} tax to national money), running costs ${NR.money(lw.upkeep)}${lw.toNational ? `, ${NR.money(lw.toNational)} more to national money` : ""}`
+        ? `Last week: fares ${NR.money(lw.income, code)} (after ${NR.money(lw.tax || 0, code)} tax to ${NR.nationalName(code)}), running costs ${NR.money(lw.upkeep, code)}${lw.toNational ? `, ${NR.money(lw.toNational, code)} more to ${NR.nationalName(code)}` : ""}`
         : "Fares earned at its stations come in here.";
       el.chip.className = `head-chip ${state || ""}`;
       el.chip.textContent = state === "managing" ? `Managed · ${weeksUntil(st.head.until)} wk left` : state === "settling" ? `Head settling in · ${weeksUntil(st.head.from)} wk` : "No head";
@@ -945,7 +984,7 @@
         const problem = NR.stateHeadProblem(game, code);
         el.head.textContent = problem && problem !== "Not enough money" ? `Head of transportation: ${problem.toLowerCase()}.` : "Head of transportation: none.";
         el.hire.disabled = !!problem;
-        if (!el.hire.dataset.armed) el.hire.textContent = `Hire a head · ${NR.money(NR.stateHeadFee(game, code))}`;
+        if (!el.hire.dataset.armed) el.hire.textContent = `Hire a head · ${NR.money(NR.stateHeadFee(game, code), code)}`;
       }
     }
   }
@@ -1014,7 +1053,7 @@
     if (hasCity && st.owned)
       setText(
         "cp-city",
-        NR.cityActive(game, main.id) ? `Go to the ${NR.METROS[main.id].name} city map` : `Open city map (trams and metro) · ${NR.money(T.cityGrant)} from the ${NR.STATE_NAMES[NR.stateOf(main.id)]} budget`
+        NR.cityActive(game, main.id) ? `Go to the ${NR.METROS[main.id].name} city map` : `Open city map (trams and metro) · ${NR.money(T.cityGrant, NR.stateOf(main.id))} from the ${NR.STATE_NAMES[NR.stateOf(main.id)]} budget`
       );
     // What it would cost to connect the county's main station to your nearest stations.
     const connect = $("cp-connect");
@@ -1029,15 +1068,15 @@
         .sort((a, b) => a.price - b.price)[0];
       if (near) {
         const notes = NR.geoNotes(near.id, main.id);
-        setText("cp-connect", `Connecting ${main.name}: about ${NR.money(near.price)} of track from ${NR.cityById[near.id].name}${notes.length ? ` (${notes.join(", ")})` : ""}.`);
+        setText("cp-connect", `Connecting ${main.name}: about ${NR.billMoney(NR.chainBill([near.id, main.id], "standard"))} of track from ${NR.cityById[near.id].name}${notes.length ? ` (${notes.join(", ")})` : ""}.`);
       } else setText("cp-connect", `${main.name} can't be reached by track from your stations yet.`);
     }
     if (st.ok) {
       setText("cp-goal-text", `Free unlock: deliver ${st.goal} passengers to your stations next to this county (${st.progress}/${st.goal}).`);
       $("cp-goal-fill").style.width = `${Math.min(100, (100 * st.progress) / st.goal)}%`;
-      setText("cp-buy", `Unlock now · ${NR.money(st.price)}`);
+      setText("cp-buy", `Unlock now · ${NR.money(st.price, st.payer)}`);
       $("cp-buy").disabled = !NR.canPay(game, { [st.payer]: st.price });
-      $("cp-buy").title = `Paid from the ${NR.STATE_NAMES[st.payer]} budget (national money covers what it can't).`;
+      $("cp-buy").title = `Paid from the ${NR.STATE_NAMES[st.payer]} budget (${NR.nationalName(st.payer)} covers what it can't).`;
     }
   }
 
@@ -1094,7 +1133,7 @@
       label.textContent = `${m.name} · ${m.seats + game.extraSeats} riders`;
       li.append(
         label,
-        button(`Sell (+${NR.money(m.price * T.refundShare)})`, "btn btn-small", () => {
+        button(`Sell (+${NR.money(m.price * T.refundShare, NR.stateOf(cityKey))})`, "btn btn-small", () => {
           NR.cityRemoveVehicle(game, cityKey, t.id);
           renderLinePanel();
         })
@@ -1120,7 +1159,7 @@
     name.textContent = `Add a ${m.vehicle}`;
     const note = document.createElement("span");
     note.className = "buy-note";
-    note.textContent = frozen ? "Frozen while managed" : `Buy ${NR.money(m.price)} (city budget, then state)`;
+    note.textContent = frozen ? "Frozen while managed" : `Buy ${NR.money(m.price, NR.stateOf(cityKey))} (city budget, then state)`;
     add.append(name, note);
     buy.appendChild(add);
     $("lp-upgrade").hidden = true;
@@ -1128,7 +1167,7 @@
     $("lp-delete").disabled = frozen;
     if (!$("lp-delete").dataset.armed) {
       const value = NR.cityLinePrice(cityKey, line) + vehicles.length * m.price;
-      $("lp-delete").textContent = `Delete line (get back ${NR.money(value * T.refundShare)})`;
+      $("lp-delete").textContent = `Delete line (get back ${NR.money(value * T.refundShare, NR.stateOf(cityKey))})`;
     }
   }
 
@@ -1166,7 +1205,7 @@
     const tunnelPrice = Object.values(tunnelBill).reduce((a, b) => a + b, 0);
     const canTunnel = tunnelPrice > 0 && NR.canPay(game, tunnelBill);
     const frozen = NR.lineFrozen(game, line);
-    const payer = NR.linePayer(line);
+    const shares = NR.lineShares(line);
     const sig = JSON.stringify([
       line.stops,
       line.grade,
@@ -1184,8 +1223,9 @@
 
     $("lp-dot").style.background = `var(--line-${line.color + 1})`;
     $("lp-name").textContent = lineName(line.color);
-    // Who pays: a line inside one state is paid from its budget; a line across a border from national money.
-    const paidBy = payer === "national" ? "crosses a border: national money pays" : `paid from the ${NR.STATE_NAMES[payer]} budget`;
+    // Who pays: a line inside one state is paid from its budget; a line across a border from
+    // national money (half from each country across the US–Canada border).
+    const paidBy = NR.STATE_NAMES[shares[0][0]] && shares.length === 1 ? `paid from the ${NR.STATE_NAMES[shares[0][0]]} budget` : `crosses a border: ${NR.sharesName(shares)} ${shares.length > 1 ? "share it" : "pays"}`;
     $("lp-meta").textContent =
       `${plural(line.stops.length, "stop")} · ${NR.lineMiles(line)} mi · ${line.grade === "high" ? "high-speed" : "standard"} track · ${paidBy}` +
       (frozen ? " · frozen while its state is managed" : "");
@@ -1246,7 +1286,7 @@
       name.textContent = type.name;
       const note = document.createElement("span");
       note.className = "buy-note";
-      note.textContent = c.ok ? (c.fromDepot ? `From depot (${game.depot[key]})` : `Buy ${NR.money(type.price)}`) : c.reason;
+      note.textContent = c.ok ? (c.fromDepot ? `From depot (${game.depot[key]})` : `Buy ${NR.billMoney(NR.trainBill(line, key))}`) : c.reason;
       b.append(name, note);
       if (trainUseful(line, key, c)) buy.appendChild(b);
       else {
@@ -1263,14 +1303,14 @@
 
     const up = $("lp-upgrade");
     up.hidden = line.grade === "high";
-    up.textContent = `Upgrade to high-speed track · ${NR.money(upgradePrice)}`;
+    up.textContent = `Upgrade to high-speed track · ${NR.billMoney(NR.upgradeBill(line))}`;
     up.disabled = !canUpgrade || frozen;
     const tun = $("lp-tunnel");
     tun.hidden = !tunnelPrice;
-    tun.textContent = `Dig tunnels under the passes · ${NR.money(tunnelPrice)}`;
+    tun.textContent = `Dig tunnels under the passes · ${NR.billMoney(tunnelBill)}`;
     tun.title = "Trains stop slowing down on the climbs over mountain passes on this line.";
     tun.disabled = !canTunnel || frozen;
-    if (!$("lp-delete").dataset.armed) $("lp-delete").textContent = `Delete line (get back ${NR.money(NR.lineValue(line) * T.refundShare)})`;
+    if (!$("lp-delete").dataset.armed) $("lp-delete").textContent = `Delete line (get back ${NR.billMoney(NR.chainBill(line.stops, line.grade, T.refundShare, line))})`;
   }
 
   // Zoom in on your stations and the counties you own.
@@ -1308,7 +1348,7 @@
     if (cityKey) {
       setText("mode-label", `${NR.METROS[cityKey].name} city map · trams and metro`);
       const c = game.cities[cityKey];
-      setText("city-budget", NR.money(c.budget));
+      setText("city-budget", NR.money(c.budget, NR.stateOf(cityKey)));
       const head = NR.headState(game, cityKey);
       const chip = $("city-head");
       chip.className = `head-chip ${head || ""}`;
@@ -1324,12 +1364,16 @@
     setText("contracts-badge", game.contracts.length);
     $("contracts-badge").hidden = !game.contracts.length;
     renderContracts();
+    // The home country's national money ("National", or "Federal" for Canada)
+    setText("money-label", capital(NR.COUNTRIES[NR.countryOf(game.home)].national.split(" ")[0]));
     setText("money", NR.money(game.money));
     $("money").classList.toggle("negative", game.money < 0);
-    // One open state: its name and budget. Several: all state budgets together.
+    // One open state: its name and budget. Several: all state budgets together (the two
+    // currencies are worth the same, so they add up).
     const open = Object.keys(game.states).filter((code) => game.states[code].open);
     const stateMoney = open.reduce((sum, code) => sum + game.states[code].budget, 0);
-    setText("state-money-label", open.length === 1 ? NR.STATE_NAMES[open[0]] : `${open.length} states`);
+    const units = [...new Set(open.map((code) => NR.COUNTRIES[NR.countryOf(code)].unit))];
+    setText("state-money-label", open.length === 1 ? NR.STATE_NAMES[open[0]] : `${open.length} ${units.length > 1 ? "states & provinces" : `${units[0]}s`}`);
     setText("state-money", NR.money(stateMoney));
     renderBudgetPanel();
     if (openLineId) renderLinePanel();
@@ -1423,7 +1467,8 @@
       }
       const left = NR.citySpendable(game, draft.city) - draft.cost;
       if (cost > left) {
-        toast(`Not enough money: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.money(cost)}, and the city and state budgets have ${NR.money(Math.max(0, left))} left.`);
+        const where = NR.stateOf(draft.city);
+        toast(`Not enough money: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.money(cost, where)}, and the city and state budgets have ${NR.money(Math.max(0, left), where)} left.`);
         return;
       }
     } else {
@@ -1439,10 +1484,11 @@
         return;
       }
       if (!NR.canPay(game, NR.chainBill([...chain, id], draft.grade))) {
-        const payer = NR.segmentPayer(lastId, id);
+        const shares = NR.segmentShares(lastId, id);
+        const inState = shares.length === 1 && !NR.COUNTRIES[shares[0][0]];
         toast(
-          `Not enough money: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.money(cost)}, paid from ${NR.payerName(payer)}` +
-            (payer === "national" ? " because it crosses a state border." : " (national money covers what the state can't).") +
+          `Not enough money: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.billMoney(NR.chainBill([lastId, id], draft.grade))}, paid from ${NR.sharesName(shares)}` +
+            (inState ? ` (${NR.nationalName(shares[0][0])} covers what the ${NR.COUNTRIES[NR.countryOf(shares[0][0])].unit} can't).` : shares.length > 1 ? ", half each, because it crosses the border." : " because it crosses a state border.") +
             " Tap the money at the bottom to see your budgets."
         );
         return;
@@ -1460,7 +1506,7 @@
     pointer = null;
     if (!game || d.chain.length < 2) return;
     if (d.city ? !NR.cityCanPay(game, d.city, d.cost) : !NR.canPay(game, NR.chainBill(d.chain, d.grade))) {
-      toast(`Not enough money to build this: it costs ${NR.money(d.cost)}.`);
+      toast(`Not enough money to build this: it costs ${d.city ? NR.money(d.cost, NR.stateOf(d.city)) : NR.billMoney(NR.chainBill(d.chain, d.grade))}.`);
       return;
     }
     if (d.city) {
@@ -1471,7 +1517,7 @@
         const problem = NR.cityModeProblem(d.city, d.mode, d.chain);
         if (problem) return toast(`${problem}.`);
         if (!NR.cityCanPay(game, d.city, d.cost + m.price))
-          return toast(`Not enough money: this ${m.name.toLowerCase()} line costs ${NR.money(d.cost + m.price)} with its first ${m.vehicle}, more than the city and state budgets have.`);
+          return toast(`Not enough money: this ${m.name.toLowerCase()} line costs ${NR.money(d.cost + m.price, NR.stateOf(d.city))} with its first ${m.vehicle}, more than the city and state budgets have.`);
         if (NR.cityFreeColor(c) === d.color) NR.cityCreateLine(game, d.city, d.chain, d.color, d.mode);
       } else {
         const line = NR.cityLineById(c, d.lineId);

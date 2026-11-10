@@ -228,9 +228,9 @@ const mapColors = (page) =>
         NR.update(g, 0.05);
         for (const ev of NR.runtime.events.splice(0)) seen[ev.type] = (seen[ev.type] || 0) + 1;
       }
-      return { delivered: g.delivered, over: g.over, week: g.week, money: Math.round(g.money), budget: Math.round(g.states[g.home].budget), events: seen };
+      return { delivered: g.delivered, over: g.over, week: g.week, budget: NR.money(g.states[g.home].budget, g.home), events: seen };
     });
-    check("one week", !week.over && week.delivered > 0, `${week.delivered} passengers arrived; budget ${week.budget}k`, week.over ? "the game ended within a week" : "no passengers arrived in a week");
+    check("one week", !week.over && week.delivered > 0, `${week.delivered} passengers arrived; budget ${week.budget}`, week.over ? "the game ended within a week" : "no passengers arrived in a week");
 
     // ---------- 6. Save and load ----------
     const saved = await page.evaluate(() => {

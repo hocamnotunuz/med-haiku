@@ -18,6 +18,28 @@ window.NR = window.NR || {};
   const NR = window.NR;
   // Every pack, in load order (the order of stations and towns follows it).
   NR.PACK_LIST = ["CA", "NV", "AZ", "OR"];
+  // The countries. Each has its own national money in its own currency, and the two currencies
+  // are always worth the same (1 Freedom Buck = 1 Maple Coin), so nothing ever needs converting.
+  // A pack says which country it is in with `country` (the US when left out).
+  NR.COUNTRIES = {
+    USA: { name: "the United States", adjective: "US", money: "Freedom Bucks", sign: "FB", national: "national money", unit: "state" },
+    CAN: { name: "Canada", adjective: "Canadian", money: "Maple Coins", sign: "MC", national: "federal money", unit: "province" },
+  };
+  // The country of a state, a province or a payer ("USA", "CAN"; "national" is the home country's).
+  NR.countryOf = (code) => {
+    if (NR.COUNTRIES[code]) return code;
+    if (code === "national") return NR.countryOf(NR.HOME_STATE);
+    const pack = NR.PACKS[code], area = NR.AREAS && NR.AREAS[code];
+    const c = (pack && pack.country) || (area && area.country);
+    return NR.COUNTRIES[c] ? c : "USA";
+  };
+  // Are states from more than one country in the game? (Until then, names stay as they were.)
+  NR.twoCountries = () => new Set(NR.PACK_LIST.map((code) => NR.countryOf(code))).size > 1;
+  // "national money", or "US national money" and "Canadian federal money" with two countries
+  NR.nationalName = (country) => {
+    const c = NR.COUNTRIES[NR.countryOf(country)];
+    return NR.twoCountries() ? `${c.adjective} ${c.national}` : c.national;
+  };
   NR.PACKS = {};
   NR.addPack = (pack) => {
     NR.PACKS[pack.code] = pack;

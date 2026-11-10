@@ -84,6 +84,10 @@ function check(code) {
   if (!state) err(`${code} has no packs/${code}/map.js (run tools/build-map.js with it first)`);
   if (p.code !== code) err(`code is "${p.code}" but the folder is ${code}`);
   if (state && p.name !== state.name) err(`name is "${p.name}" but the map calls it "${state.name}"`);
+  // The country decides the currency (Freedom Bucks or Maple Coins) and whose national money pays
+  if (p.country !== undefined && !NR.COUNTRIES[p.country]) err(`country must be one of ${Object.keys(NR.COUNTRIES).join(", ")} (or left out for the US)`);
+  const area = NR.AREAS[code];
+  if (area && area.country && NR.COUNTRIES[area.country] && NR.countryOf(code) !== area.country) err(`country is ${NR.countryOf(code)} but packs/index.js puts ${code} in ${area.country}`);
   for (const field of ["stations", "towns", "passes", "bridges"]) if (!Array.isArray(p[field])) err(`${field} must be a list`);
   if (p.biomes && typeof p.biomes !== "object") err("biomes must be an object");
   if (errors.length) return { errors, warnings };

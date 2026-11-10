@@ -678,7 +678,7 @@
       const p = NR.toScreen(r.label[0], r.label[1]);
       const y = p[1] + (view.showCounties ? 14 : 0);
       // Small map: just the price. Room to spare: price and goal progress.
-      const text = view.big ? `${NR.money(st.price)} · ${st.progress}/${st.goal}` : NR.money(st.price);
+      const text = view.big ? `${NR.money(st.price, st.payer)} · ${st.progress}/${st.goal}` : NR.money(st.price, st.payer);
       const w = ctx.measureText(text).width + 12;
       roundRect(ctx, p[0] - w / 2, y - 8, w, 16, 8);
       ctx.fillStyle = colors.panel;
@@ -924,7 +924,7 @@
       ctx.font = `700 11px ${MONO}`;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      halo(ctx, NR.money(draft.cost), pointer.x + 16, pointer.y - 18, colors.ink, colors.land);
+      halo(ctx, NR.money(draft.cost, NR.stateOf(draft.city || draft.chain[draft.chain.length - 1])), pointer.x + 16, pointer.y - 18, colors.ink, colors.land);
       // What the last stretch crosses: a pass, a tunnel, a bridge...
       if (draft.note) {
         ctx.font = `600 10px ${MONO}`;

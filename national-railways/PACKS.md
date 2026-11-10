@@ -40,6 +40,7 @@ A pack is one call: `NR.addPack({ ... })`.
 | --- | --- | --- |
 | `code` | yes | Two-letter code, the same as the folder (`"CA"`) |
 | `name` | yes | The name, exactly as in `packs/index.js` (`"California"`) |
+| `country` | for Canada | `"CAN"` for a Canadian province (its money is in Maple Coins, paid from Canadian federal money). Left out, the pack is in the US (`"USA"`, Freedom Bucks) |
 | `stations` | yes | Main stations: **exactly one per county region** (see below) |
 | `towns` | yes | Towns that appear over time inside counties you own |
 | `passes` | yes (may be empty) | Real mountain passes, canyons and gaps: `[name, latitude, longitude]` |
