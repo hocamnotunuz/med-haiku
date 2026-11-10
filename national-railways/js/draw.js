@@ -122,14 +122,15 @@
   let maxTilt = 12;
   // Fit the map to these states (the ones open in the game). Returns true if that changed.
   NR.fitStates = function (codes) {
-    const key = codes.join(",");
+    // Fit again once a state's exact map has loaded (until then its rough outline is used)
+    const key = codes.join(",") + "|" + codes.map((code) => (NR.isLoaded(code) ? 1 : 0)).join("");
     if (key === fitted) return false;
     fitted = key;
     maxTilt = codes.length === 1 ? 12 : 0; // a state on its own may tilt (long, diagonal California does)
     // Center the projection on these states
     let lon0 = Infinity, lon1 = -Infinity, lat0 = Infinity, lat1 = -Infinity;
     codes.forEach((code) =>
-      NR.MAP.stateLand[code].forEach((ring) => {
+      NR.landOf(code).forEach((ring) => {
         for (let i = 0; i < ring.length; i += 2) {
           lon0 = Math.min(lon0, ring[i]);
           lon1 = Math.max(lon1, ring[i]);
@@ -140,7 +141,7 @@
     );
     setProjection((lon0 + lon1) / 2, lat0, lat1);
     projVersion++;
-    ALL = codes.flatMap((code) => NR.MAP.stateLand[code].flatMap(ringPoints));
+    ALL = codes.flatMap((code) => NR.landOf(code).flatMap(ringPoints));
     MID = ALL.reduce((m, p) => [m[0] + p[0] / ALL.length, m[1] + p[1] / ALL.length], [0, 0]);
     return true;
   };
@@ -547,6 +548,11 @@
         drawRelief(ctx, r, NR.toScreen, colors.relief);
         ctx.restore();
       }
+      // States of the game whose map hasn't loaded yet: their rough outline
+      ctx.beginPath();
+      NR.gameStates().forEach(({ code }) => !NR.isLoaded(code) && NR.landOf(code).forEach((ring) => tracePath(ctx, ring, true)));
+      ctx.fillStyle = colors.land;
+      ctx.fill("evenodd");
     }
     if (s) {
       // Counties you don't own yet are shaded.
@@ -560,7 +566,7 @@
       if (!toon) {
         ctx.beginPath();
         Object.keys(s.states).forEach((code) => {
-          if (!s.states[code].open) NR.MAP.stateLand[code].forEach((ring) => tracePath(ctx, ring, true));
+          if (!s.states[code].open) NR.landOf(code).forEach((ring) => tracePath(ctx, ring, true));
         });
         ctx.fill("evenodd");
       }
@@ -664,8 +670,8 @@
   // Points on a grid inside each state are worked out once; each frame uses the visible ones.
   const stateGrid = {};
   function gridOf(code) {
-    if (stateGrid[code]) return stateGrid[code];
-    const rings = NR.MAP.stateLand[code];
+    const rings = NR.landOf(code); // the rough outline until the state's map loads
+    if (stateGrid[code] && stateGrid[code].rings === rings) return stateGrid[code].pts;
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
     rings.forEach((ring) => {
       for (let i = 0; i < ring.length; i += 2) {
@@ -678,7 +684,8 @@
     const pts = [];
     for (let lon = x0; lon <= x1; lon += 0.3)
       for (let lat = y0; lat <= y1; lat += 0.3) if (rings.reduce((inside, ring) => (inRing(lon, lat, ring) ? !inside : inside), false)) pts.push([lon, lat]);
-    return (stateGrid[code] = pts);
+    stateGrid[code] = { rings, pts };
+    return pts;
   }
   function drawClosedStates(ctx, s) {
     const b = view.box;

@@ -9,7 +9,7 @@ Every state (and later every Canadian province) has a **pack**: `packs/<code>/pa
 | `packs/<code>/terrain.js` (made by `tools/build-terrain.js`) | The state's mountains grid, lakes, rivers, named ranges, and its city maps' hills and water (with `relief.png` and `city-<key>.png`) |
 | **the pack** (hand-made) | Main stations, towns, levels, starting counties, city maps, passes, bridges, bays, biomes |
 
-`js/packs.js` lists the packs (`NR.PACK_LIST`, in load order) and collects them into the lists the game uses. `index.html` loads each pack with a `<script>` tag.
+`js/packs.js` lists the packs (`NR.PACK_LIST`, in load order) and collects them into the lists the game uses. `index.html` loads every `pack.js` with a `<script>` tag (they are small). A state's `map.js` and `terrain.js` load only when needed: the home state when a game starts, and the neighbors of open states in the background, so a state is ready when it opens. Until then it is drawn from its rough outline in `packs/index.js`.
 
 **Every pack must pass the checker before it joins the game:**
 
@@ -102,7 +102,7 @@ Keyed by a main station id. Each has a `name`, a `size` and 10–12 `stops` (the
 ## Adding a state
 
 1. **Map:** add the state to `tools/build-map.js` (its FIPS code, and either a merge list or populations so small counties merge automatically). Run it with every state's code: it writes the state's `map.js` (and rewrites its neighbors', whose borders change).
-2. **Pack:** create `packs/<code>/pack.js` with the fields above. Add the code to `NR.PACK_LIST` in `js/packs.js` and a `<script>` tag in `index.html`.
+2. **Pack:** create `packs/<code>/pack.js` with the fields above. Add the code to `NR.PACK_LIST` in `js/packs.js` and a `<script>` tag for its `pack.js` in `index.html` (its `map.js` and `terrain.js` load by themselves when needed).
 3. **Terrain:** run `tools/build-terrain.js`: it writes the state's `terrain.js` and relief pictures (and hills and water for its city maps), and warns about passes with no mountains nearby.
 4. **Check:** run `node tools/check-pack.js <code>` until it passes with no errors.
 5. **Test:** run the game's browser tests, and play it in both looks (Arcade and Classic).

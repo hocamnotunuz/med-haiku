@@ -138,7 +138,7 @@
   function prepPack(code) {
     const t = NR.TERRAIN.grids.find((x) => x.code === code);
     if (!t) return null;
-    if (packPrep[code] && packPrep[code].t === t) return packPrep[code];
+    if (packPrep[code] && packPrep[code].cells === t.cells) return packPrep[code];
     const { cols, rows, step } = t;
     const lon0 = t.box[0], lat1 = t.box[3];
     // One pixel per cell: the kind of county (red, this state's counties only) and lakes (green)
@@ -184,6 +184,7 @@
     const p = {
       code,
       t,
+      cells: t.cells,
       cols,
       rows,
       step,
@@ -594,7 +595,7 @@
   }
   // Everything under the counties, borders and the network: sea and waves, the coast's
   // shallow water, land, deserts, hills and mountains, rivers, lakes, trees and cacti.
-  C.drawState = (ctx) => keptPicture(cache, ctx, "", paintState);
+  C.drawState = (ctx) => keptPicture(cache, ctx, `v${NR.packVersion}`, paintState);
 
   function paintState(ctx, view) {
     const P = NR.toScreen;
@@ -620,7 +621,7 @@
     }
     ctx.stroke();
     // Shallow water along every coast (the game's states and the land outside them): two bands under the land
-    const outside = NR.outsideAreas().filter((ar) => cull(ar.box));
+    const outside = NR.unloadedAreas().filter((ar) => cull(ar.box));
     ctx.beginPath();
     NR.MAP.land.forEach((ring) => traceFlat(ctx, ring, P, true));
     outside.forEach((ar) => ar.outline.forEach((ring) => traceFlat(ctx, ring, P, true)));
@@ -749,6 +750,11 @@
       const set = setOf(NR.MAP.stateLand[st.code]);
       if (inSet(set, lon, lat)) return closed.has(st.code) ? st.code : null;
     }
+    for (const code of closed) {
+      const ar = NR.AREAS[code];
+      if (NR.isLoaded(code) || !ar) continue;
+      if (lon >= ar.box[0] && lon <= ar.box[2] && lat >= ar.box[1] && lat <= ar.box[3] && inSet(setOf(ar.outline), lon, lat)) return code;
+    }
     for (const ar of NR.outsideAreas())
       if (lon >= ar.box[0] && lon <= ar.box[2] && lat >= ar.box[1] && lat <= ar.box[3] && inSet(setOf(ar.outline), lon, lat)) return "outside";
     return null;
@@ -773,8 +779,15 @@
           ctx.fill("evenodd");
         }
       } else {
+        if (!NR.isLoaded(code)) {
+          // Not loaded yet: its rough outline, kept off the loaded states' land
+          ctx.beginPath();
+          ctx.rect(-50, -50, view.w + 100, view.h + 100);
+          NR.MAP.land.forEach((ring) => traceFlat(ctx, ring, P, true));
+          ctx.clip("evenodd");
+        }
         ctx.beginPath();
-        NR.MAP.stateLand[code].forEach((ring) => traceFlat(ctx, ring, P, true));
+        NR.landOf(code).forEach((ring) => traceFlat(ctx, ring, P, true));
         ctx.fill("evenodd");
       }
       ctx.restore();
@@ -867,7 +880,7 @@
     const dx = Math.sin(time * 0.35) * 3, dy = Math.cos(time * 0.27) * 1.5;
     // The fog that stays: a kept picture, redrawn only when the view or the closed states change
     const staying = ["outside", ...[...closed].filter((c) => clearing[c] === undefined)];
-    keptPicture(fogCache, ctx, staying.join(","), (c, v) => {
+    keptPicture(fogCache, ctx, `${staying.join(",")}v${NR.packVersion}`, (c, v) => {
       const puffs = cloudPuffs(staying, closed, {}, v);
       if (!puffs.length) return false; // no fog anywhere on screen
       paintFog(c, staying, puffs, v, culler(NR.toScreen, v.w, v.h));

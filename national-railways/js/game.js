@@ -227,16 +227,21 @@
     return a >= 1000 ? `${sign}$${(a / 1000).toFixed(2)}M` : `${sign}$${a}k`;
   };
 
-  // Every place on the map: county main stations and towns.
-  NR.PLACES = [...NR.CITIES, ...NR.TOWNS];
-  NR.cityById = {};
-  NR.PLACES.forEach((c) => (NR.cityById[c.id] = c));
+  // Every place on the map (county main stations and towns) and every county, of the states
+  // loaded so far: worked out again each time more states load.
+  NR.reindex = function () {
+    NR.PLACES = [...NR.CITIES, ...NR.TOWNS];
+    NR.cityById = {};
+    NR.PLACES.forEach((c) => (NR.cityById[c.id] = c));
+    // Counties: their shape and neighbors (from the map file) and their main station.
+    NR.countyById = {};
+    NR.MAP.regions.forEach((r) => (NR.countyById[r.id] = r));
+    NR.mainStation = {};
+    NR.CITIES.forEach((c) => (NR.mainStation[c.county] = c));
+  };
+  NR.reindex();
+  NR.onPacksChanged(NR.reindex);
   const city = (id) => NR.cityById[id];
-  // Counties: their shape and neighbors (from the map file) and their main station.
-  NR.countyById = {};
-  NR.MAP.regions.forEach((r) => (NR.countyById[r.id] = r));
-  NR.mainStation = {};
-  NR.CITIES.forEach((c) => (NR.mainStation[c.county] = c));
 
   // Great-circle distance between two cities, in miles.
   function miles(a, b) {
@@ -259,7 +264,7 @@
   // trains that cross a border, and covers any state that runs short (a state spends its own
   // budget first, then national money). If national money ends a week below zero, the richest
   // state covers it. Money can't be moved between budgets by hand.
-  NR.STATE_NAMES = Object.fromEntries(NR.MAP.states.map((x) => [x.code, x.name]));
+  NR.STATE_NAMES = Object.fromEntries(Object.values(NR.AREAS).map((a) => [a.code, a.name]));
   // The home state: where a game starts, with its pack's starting counties and levels.
   // Any state whose pack lists starting counties can be home (California is the default).
   NR.homeChoices = () => NR.PACK_LIST.filter((code) => NR.PACKS[code] && NR.PACKS[code].start && NR.PACKS[code].start.length);
@@ -340,7 +345,7 @@
   const allAreas = () => [...new Set(NR.CITIES.map((c) => c.level).filter(Boolean))];
   function makeStates() {
     const states = {};
-    NR.MAP.states.forEach(({ code }) => {
+    NR.gameStates().forEach(({ code }) => {
       const home = code === NR.HOME_STATE;
       // liveTime: seconds the state has run without a head in charge (it gets busier over this time)
       states[code] = { open: home, budget: home ? T.startMoney : 0, liveTime: 0, weekIncome: 0, weekTax: 0, lastWeek: null, head: null };
@@ -488,21 +493,9 @@
     return true;
   };
 
-  // A state's neighbors (states with a county next to one of its counties) open once you own
-  // every county in it. Beating every level counts as owning the home state.
-  let stateNeighbors = null;
-  NR.stateNeighbors = (code) => {
-    if (!stateNeighbors) {
-      stateNeighbors = {};
-      NR.MAP.regions.forEach((r) =>
-        r.neighbors.forEach((n) => {
-          const other = NR.countyById[n] && NR.countyById[n].state;
-          if (other && other !== r.state) (stateNeighbors[r.state] = stateNeighbors[r.state] || new Set()).add(other);
-        })
-      );
-    }
-    return [...(stateNeighbors[code] || [])];
-  };
+  // A state's neighbors (states that share a border with it, from packs/index.js) open once you
+  // own every county in it. Beating every level counts as owning the home state.
+  NR.stateNeighbors = (code) => ((NR.AREAS[code] && NR.AREAS[code].neighbors) || []).filter((n) => n !== code && NR.PACKS[n]);
   // Which open state you'd need to own all of for this closed state to open ("Nevada or Oregon").
   NR.opensAfter = (s, code) => {
     const near = NR.stateNeighbors(code).filter((n) => s.states[n]);
@@ -514,7 +507,7 @@
   function openMoreStates(s) {
     const opened = [];
     for (const code of Object.keys(s.states)) {
-      if (!s.states[code].open) continue;
+      if (!s.states[code].open || !NR.isLoaded(code)) continue; // still loading: its counties aren't known yet
       const ownAll = NR.MAP.regions.every((r) => r.state !== code || s.owned.includes(r.id));
       if (!ownAll && !(code === NR.HOME_STATE && s.levelsBeaten)) continue;
       NR.stateNeighbors(code).forEach((n) => s.states[n] && !s.states[n].open && !opened.includes(n) && opened.push(n));

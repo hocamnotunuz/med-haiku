@@ -5,7 +5,7 @@
   "use strict";
   const NR = window.NR;
   const T = NR.TUNING;
-  const G = NR.TERRAIN;
+  let G = NR.TERRAIN; // the loaded states' terrain (made again when more states load)
   const rt = NR.runtime;
 
   // ---- The two difficulty settings ----
@@ -102,14 +102,21 @@
     }
     return b;
   };
-  const landRings = NR.MAP.land.map((ring) => ({ ring, box: boxOf(ring) }));
-  const lakes = G.lakes.map((l) => ({ name: l.name, ring: l.ring, box: boxOf(l.ring) }));
+  // The loaded states' land and lakes, bays, and land outside them (worked out again when more states load)
+  let landRings, lakes, bays, outsideLand;
+  function refresh() {
+    G = NR.TERRAIN;
+    landRings = NR.MAP.land.map((ring) => ({ ring, box: boxOf(ring) }));
+    lakes = G.lakes.map((l) => ({ name: l.name, ring: l.ring, box: boxOf(l.ring) }));
+    bays = (NR.BAYS || []).map((b) => ({ name: b.name, ring: b.ring, box: boxOf(b.ring) }));
+    // Land in a state or country whose exact map isn't loaded (outside the game, or not loaded yet),
+    // from the rough outlines in packs/index.js
+    outsideLand = NR.unloadedAreas().map((a) => ({ box: a.box, rings: a.outline.map((ring) => ({ ring, box: boxOf(ring) })) }));
+    if (cache) cache.clear();
+  }
   const inside = (list, x, y) => list.reduce((n, o) => (x >= o.box[0] && x <= o.box[2] && y >= o.box[1] && y <= o.box[3] && inRing(x, y, o.ring) ? !n : n), false);
   // Bays (from the state packs): water inside one needs a bridge. Elsewhere, sea between two
   // coastal stations just means track follows the coast.
-  const bays = (NR.BAYS || []).map((b) => ({ name: b.name, ring: b.ring, box: boxOf(b.ring) }));
-  // Land in a state or country outside the game, from the rough outlines in packs/index.js.
-  const outsideLand = NR.outsideAreas().map((a) => ({ box: a.box, rings: a.outline.map((ring) => ({ ring, box: boxOf(ring) })) }));
   const foreignLand = (lon, lat) => outsideLand.some((a) => lon >= a.box[0] && lon <= a.box[2] && lat >= a.box[1] && lat <= a.box[3] && inside(a.rings, lon, lat));
   function waterAt(lon, lat) {
     const lake = lakes.find((l) => lon >= l.box[0] && lon <= l.box[2] && lat >= l.box[1] && lat <= l.box[3] && inRing(lon, lat, l.ring));
@@ -165,7 +172,9 @@
   //           water: [{miles, kind, name, bridge, isNew}], rivers: [{name, bridge}], blocked }
   // All lengths are in miles along the straight line between the stations.
   const STEP = 0.5; // look at the ground every half mile
-  const cache = new Map();
+  var cache = new Map();
+  refresh();
+  NR.onPacksChanged(refresh);
   NR.segmentGeo = function (a, b) {
     const key = (a < b ? a + "|" + b : b + "|" + a) + "|" + (rt.geoLevel || "gentle");
     if (cache.has(key)) return cache.get(key);

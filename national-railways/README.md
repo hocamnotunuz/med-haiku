@@ -209,7 +209,7 @@ Tap the **clipboard** on the bottom bar.
 | `packs/<code>/terrain.js` | One per state: real geography (the mountains grid, lakes, rivers, named ranges, and its city maps' hills and water). Generated: do not edit by hand. |
 | `packs/<code>/relief.png`, `city-<key>.png` | Shaded relief (mountain shading) for the state and each of its city maps (Classic look). Generated. |
 | `js/geography.js` | The geography rules: passes, tunnels, bridges, prices and train speeds, Gentle and Tough. |
-| `js/packs.js` | Lists the state packs and collects them into the game's lists. |
+| `js/packs.js` | Lists the state packs, loads each state's map and terrain when needed (the home state at the start, the neighbors of open states in the background), and collects them into the game's lists. |
 | `packs/<code>/pack.js` | One per state: its main stations, towns, levels, starting counties, city maps, mountain passes, bridges, bays and biomes (hand-made). See `PACKS.md`. |
 | `js/cities.js` | The kinds of place and line names shared by every state. |
 | `tools/build-map.js` | Rebuilds `packs/index.js` and each state's `map.js` from Census data and Natural Earth outlines (see below). |

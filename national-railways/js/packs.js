@@ -8,6 +8,10 @@
 // packs/index.js has every state (and Mexico and Canada) as a rough outline, for the clouds
 // and the land outside the game. PACKS.md explains every field. This file collects the packs
 // into what the rest of the game uses (NR.MAP, NR.CITIES, NR.TOWNS, NR.METROS...).
+//
+// Every pack.js loads with the page (they are small). A state's map.js and terrain.js load only
+// when needed: the home state at the start, then states as they open and their neighbors just
+// before (NR.loadPacks). Until then the state is drawn from its rough outline in packs/index.js.
 window.NR = window.NR || {};
 (function () {
   "use strict";
@@ -26,6 +30,43 @@ window.NR = window.NR || {};
   NR.addPackTerrain = (terrain) => {
     NR.PACK_TERRAIN[terrain.code] = terrain;
   };
+  // Is a state's map and terrain loaded?
+  NR.isLoaded = (code) => !!(NR.PACK_MAPS[code] && NR.PACK_TERRAIN[code]);
+  // The states of the game (every pack), loaded or not
+  NR.gameStates = () => NR.PACK_LIST.filter((code) => NR.PACKS[code]).map((code) => ({ code, name: NR.AREAS[code] ? NR.AREAS[code].name : code }));
+  // A state's land: its exact outline once loaded, its rough one before
+  NR.landOf = (code) => (NR.PACK_MAPS[code] ? NR.PACK_MAPS[code].land : NR.AREAS[code] ? NR.AREAS[code].outline : []);
+
+  // ---------- Loading a state's map and terrain when it's needed ----------
+  // Bumps every time states load, so drawings and lookups that depend on them start over.
+  NR.packVersion = 0;
+  const changedHooks = [];
+  NR.onPacksChanged = (fn) => changedHooks.push(fn);
+  const pending = {};
+  const loadScript = (src) =>
+    new Promise((resolve, reject) => {
+      const el = document.createElement("script");
+      el.src = src;
+      el.onload = resolve;
+      el.onerror = () => reject(new Error(`Couldn't load ${src}`));
+      document.head.appendChild(el);
+    });
+  // Loads these states (those not loaded yet), then rebuilds the game's lists once. Resolves when done.
+  NR.loadPacks = function (codes) {
+    const want = [...new Set(codes)].filter((code) => NR.PACKS[code] && !NR.isLoaded(code));
+    if (!want.length) return Promise.resolve();
+    const jobs = want.map((code) => (pending[code] = pending[code] || Promise.all([loadScript(`packs/${code}/map.js`), loadScript(`packs/${code}/terrain.js`)]).finally(() => delete pending[code])));
+    return Promise.all(jobs).then(() => {
+      if (want.some((code) => NR.isLoaded(code))) NR.packsChanged();
+    });
+  };
+  // Rebuild everything that depends on which states are loaded
+  NR.packsChanged = function () {
+    NR.assemblePacks();
+    NR.packVersion++;
+    changedHooks.forEach((fn) => fn());
+  };
+
   // A grid's letters ("A12C3": A flat or sea, B hills, C mountains, D high mountains) as numbers 0-3
   const decodeGrid = (t) => {
     const cells = new Uint8Array(t.cols * t.rows);
@@ -50,7 +91,9 @@ window.NR = window.NR || {};
     return 0;
   };
   // Land outside the game: every state and country on the map that isn't one of the packs.
-  NR.outsideAreas = () => Object.values(NR.AREAS).filter((a) => !NR.PACK_MAPS[a.code]);
+  NR.outsideAreas = () => Object.values(NR.AREAS).filter((a) => !NR.PACKS[a.code]);
+  // Land whose exact map isn't loaded: outside the game, or a state of the game not loaded yet.
+  NR.unloadedAreas = () => Object.values(NR.AREAS).filter((a) => !NR.PACK_MAPS[a.code]);
   // Every state and country on the map (packs/index.js), by code
   NR.AREAS = {};
   NR.addAreas = (list) => list.forEach((a) => (NR.AREAS[a.code] = a));
@@ -58,9 +101,10 @@ window.NR = window.NR || {};
   NR.HOME_PACK = "CA";
 
   NR.assemblePacks = function () {
-    const packs = NR.PACK_LIST.map((code) => NR.PACKS[code]).filter(Boolean);
-    // The map: every state's regions, land, coast and borders, joined
-    const maps = NR.PACK_LIST.map((code) => NR.PACK_MAPS[code]).filter(Boolean);
+    // Only loaded states take part: their stations, towns and city maps need their counties
+    const packs = NR.PACK_LIST.filter((code) => NR.isLoaded(code)).map((code) => NR.PACKS[code]).filter(Boolean);
+    // The map: every loaded state's regions, land, coast and borders, joined
+    const maps = NR.PACK_LIST.filter((code) => NR.isLoaded(code)).map((code) => NR.PACK_MAPS[code]);
     const seen = new Set();
     NR.MAP = {
       states: maps.map((m) => ({ code: m.code, name: NR.AREAS[m.code] ? NR.AREAS[m.code].name : m.code })),
@@ -87,7 +131,7 @@ window.NR = window.NR || {};
     packs.forEach((p) => Object.entries(p.biomes || {}).forEach(([kind, ids]) => ids.forEach((id) => (NR.BIOMES[id] = kind))));
     // Terrain: each state's grid and relief picture; lakes, rivers and ranges that touch two
     // states are in both packs, so keep one copy of each
-    const terrain = NR.PACK_LIST.map((code) => NR.PACK_TERRAIN[code]).filter(Boolean);
+    const terrain = NR.PACK_LIST.filter((code) => NR.isLoaded(code)).map((code) => NR.PACK_TERRAIN[code]);
     const unique = (list) => {
       const ids = new Set();
       return list.filter((x) => !ids.has(x.id) && ids.add(x.id));

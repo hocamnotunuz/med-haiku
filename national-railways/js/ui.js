@@ -200,13 +200,14 @@
       input.addEventListener("change", () => {
         updateLevelsChoice();
         updateBestLine();
+        NR.loadPacks([code]).catch(() => {}); // get its map ready before you press Start
       });
       const title = document.createElement("span");
       title.className = "option-title";
       title.textContent = NR.STATE_NAMES[code];
       const text = document.createElement("span");
       text.className = "option-text";
-      const names = NR.PACKS[code].start.map((id) => NR.mainStation[id].name);
+      const names = NR.PACKS[code].start.map((id) => NR.PACKS[code].stations.find((st) => st.county === id).name);
       text.textContent = `Start with ${NR.listWords(names)}.${NR.hasLevels(code) ? "" : " No Levels mode here yet."}`;
       label.append(input, title, text);
       box.append(label);
@@ -214,12 +215,34 @@
   }
   renderHomeChoices();
 
+  // Load the open states' maps, and quietly their neighbors' too, so a state is ready by the time it opens.
+  function loadNearby() {
+    if (!game) return;
+    const open = Object.keys(game.states).filter((code) => game.states[code].open);
+    NR.loadPacks(open.concat(open.flatMap((code) => NR.stateNeighbors(code)))).catch(() => toast("Couldn't load a neighboring state's map. Check your connection."));
+  }
+
   function startGame() {
     settings.mode = checkedValue("mode") || "endless";
     settings.style = checkedValue("style") || "type";
     settings.geo = checkedValue("geo") || "gentle";
     settings.home = checkedValue("home") || settings.home;
     store.set("nr-settings", settings);
+    // The home state's map must be loaded first (usually it already is)
+    const button = $("btn-start");
+    button.disabled = true;
+    NR.loadPacks([settings.home]).then(
+      () => {
+        button.disabled = false;
+        beginGame();
+      },
+      () => {
+        button.disabled = false;
+        toast(`Couldn't load the map of ${NR.STATE_NAMES[settings.home]}. Check your connection and try again.`);
+      }
+    );
+  }
+  function beginGame() {
     leaveCity();
     game = NR.newGame(settings.mode, settings.style, settings.geo, settings.home);
     levelSave = NR.save(game);
@@ -230,6 +253,7 @@
     renderLegend();
     show(null);
     toast(`Drag from ${NR.mainStation[NR.START_COUNTIES[0]].name} to another city to lay your first track.`);
+    loadNearby();
   }
 
   function openWeek(week) {
@@ -426,6 +450,7 @@
       } else if (ev.type === "nationalRefill") {
         toast(`National money ran short: ${ev.paid.map((p) => `the ${NR.STATE_NAMES[p.code]} budget paid ${NR.money(p.amount)}`).join(", ")}.`);
       } else if (ev.type === "statesOpen") {
+        loadNearby(); // the new states' neighbors
         const names = ev.codes.map((code) => NR.STATE_NAMES[code]);
         const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
         toast(`${list} ${names.length > 1 ? "are" : "is"} open! Each starts with a ${NR.money(T.newStateBudget)} budget. Track across a state border is paid from national money.`);
@@ -1769,6 +1794,25 @@
   // Keep the current game when the page is updated while it is open.
   function boot(data) {
     if (data && data.game) {
+      // A game kept when the page was updated: load its open states' maps first
+      let open = [];
+      try {
+        const saved = JSON.parse(data.game);
+        open = Object.keys(saved.states || {}).filter((code) => saved.states[code].open);
+      } catch (e) {
+        /* not readable: start over below */
+      }
+      NR.loadPacks(open).then(
+        () => resume(data),
+        () => openStart()
+      );
+      return;
+    }
+    NR.loadPacks([settings.home]).catch(() => {}); // the start screen shows the home state
+    openStart();
+  }
+  function resume(data) {
+    {
       try {
         game = NR.load(data.game);
         if (game.v !== NR.SAVE_VERSION) throw new Error("Saved game is from an older version");
@@ -1778,6 +1822,7 @@
         show(null);
         setPaused(true);
         toast("The game was updated. Press play to carry on.");
+        loadNearby();
         return;
       } catch (e) {
         game = null;
