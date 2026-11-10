@@ -36,7 +36,10 @@ const GAME = path.join(__dirname, "..");
 const RIVERS = [
   "Colorado", "Columbia", "Sacramento", "San Joaquin", "Klamath", "Willamette", "Gila", "Rogue", "Eel", "Trinity", "Pit",
   "Feather", "Stanislaus", "Humboldt", "John Day", "Salinas", "Snake", "Deschutes", "American", "Umpqua", "Truckee",
+  "Yakima", "Skagit", "Cowlitz", "Chehalis", "Okanogan", "Pend Orielle",
 ];
+// Natural Earth spellings to fix
+const RIVER_NAMES = { "Pend Orielle": "Pend Oreille" };
 
 // ---------- Load the game's map and cities ----------
 const ctx = {};
@@ -47,6 +50,11 @@ load("js/packs.js");
 load("packs/index.js");
 ctx.NR.PACK_LIST.forEach((code) => load(`packs/${code}/map.js`));
 ctx.NR.PACK_LIST.forEach((code) => load(`packs/${code}/pack.js`));
+// The terrain is what this tool makes: until it's made, each state gets an empty one, so the
+// game's code counts every state as loaded (NR.isLoaded needs both its map and its terrain)
+ctx.NR.PACK_LIST.forEach((code) =>
+  ctx.NR.addPackTerrain({ code, box: [0, 0, 0, 0], step: 1, cols: 0, rows: 0, cells: new Uint8Array(0), relief: { src: "", box: [0, 0, 0, 0] }, lakes: [], rivers: [], ranges: [], cities: {} })
+);
 for (const f of ["js/cities.js", "js/game.js", "js/metro.js"]) load(f);
 const NR = ctx.NR;
 // Real mountain passes and bridges are hand-made in each state's pack (packs/<code>/pack.js).
@@ -212,7 +220,7 @@ const lines = (g) => (g.type === "LineString" ? [g.coordinates] : g.type === "Mu
 const LAKES = [...NE("ne_10m_lakes").features, ...NE("ne_10m_lakes_north_america").features];
 const RIVER_FEATURES = [...NE("ne_10m_rivers_lake_centerlines").features, ...NE("ne_10m_rivers_north_america").features];
 // Mountain range names (Natural Earth), used only to name a range in messages.
-const RANGE_NAMES = { "SIERRA NEVADA": "the Sierra Nevada", "COAST RANGES": "the Coast Ranges", "CASCADE RANGE": "the Cascade Range", "Klamath Mts.": "the Klamath Mountains", "Mogollon Rim": "the Mogollon Rim" };
+const RANGE_NAMES = { "SIERRA NEVADA": "the Sierra Nevada", "COAST RANGES": "the Coast Ranges", "CASCADE RANGE": "the Cascade Range", "Klamath Mts.": "the Klamath Mountains", "Mogollon Rim": "the Mogollon Rim", "COLUMBIA MTS.": "the Columbia Mountains", "ROCKY MOUNTAINS": "the Rocky Mountains" };
 const RANGES = NE("ne_10m_geography_regions_polys").features.filter((f) => RANGE_NAMES[f.properties.name || f.properties.NAME]);
 const idOf = (name, x, y) => `${name}@${round(x)},${round(y)}`;
 
@@ -278,8 +286,9 @@ function buildState(code) {
   const rivers = [];
   const seen = new Set();
   for (const f of RIVER_FEATURES) {
-    const name = f.properties.name || f.properties.NAME;
-    if (!RIVERS.includes(name) || !/river/i.test(f.properties.featurecla || "")) continue;
+    const neName = f.properties.name || f.properties.NAME;
+    if (!RIVERS.includes(neName) || !/river/i.test(f.properties.featurecla || "")) continue;
+    const name = RIVER_NAMES[neName] || neName;
     for (const line of lines(f.geometry)) {
       let part = [];
       const flush = () => {

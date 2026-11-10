@@ -10,3 +10,6 @@ national-railways/.terrain-cache/
 
 # Pack test screenshots
 national-railways/test-out/
+
+# Raw facts for pack agents (remade by tools/make-raw.js)
+national-railways/packs/*/raw/

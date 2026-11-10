@@ -12,7 +12,10 @@
 //
 // To add a state: add it to STATES below (FIPS code, name, and either a hand-made `merge`
 // list or `pop` so small counties are merged automatically), run the script with it, then
-// make its pack (see PACKS.md).
+// make its pack (see PACKS.md). join: [["Island county", "Mainland county"]] puts a county of
+// islands that no bridge reaches in one region with a mainland county. pop: "census" reads every county's population from the U.S.
+// Census Bureau's county totals (the 2020 census base), downloaded into the cache folder, so
+// nothing is typed by hand.
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -65,6 +68,9 @@ const STATES = {
       Apache: 66, Gila: 53, "Santa Cruz": 48, Graham: 39, "La Paz": 17, Greenlee: 10,
     },
   },
+  // San Juan County is islands with no bridge: track could never reach its station, so it
+  // joins the mainland county across the water
+  WA: { fips: "53", name: "Washington", pop: "census", join: [["San Juan", "Skagit"]] },
   OR: {
     fips: "41",
     name: "Oregon",
@@ -92,6 +98,23 @@ const find = (code, name) => {
   return i;
 };
 
+// County populations in thousands, by FIPS code, from the Census Bureau's county totals
+// (ESTIMATESBASE2020, the 2020 census base). Downloaded once into the cache folder.
+let censusCache = null;
+function censusPop() {
+  if (censusCache) return censusCache;
+  const file = path.join(CACHE, "census", "co-est2023-alldata.csv");
+  if (!fs.existsSync(file)) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    execFileSync("curl", ["-sS", "-f", "-m", "300", "--retry", "3", "-o", file, "https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/counties/totals/co-est2023-alldata.csv"]);
+  }
+  const rows = fs.readFileSync(file, "latin1").split(/\r?\n/).filter(Boolean).map((l) => l.split(","));
+  const col = (name) => rows[0].indexOf(name);
+  censusCache = {};
+  for (const r of rows.slice(1)) if (r[col("SUMLEV")] === "050") censusCache[r[col("STATE")] + r[col("COUNTY")]] = +r[col("ESTIMATESBASE2020")] / 1000;
+  return censusCache;
+}
+
 // ---------- Which region each county belongs to ----------
 const groupOf = new Map(); // county index -> list of county indexes in its region
 for (const code of CODES) {
@@ -108,9 +131,14 @@ for (const code of CODES) {
       members.forEach((i) => groupOf.set(i, members));
     }
   } else if (cfg.pop) {
+    // Islands with no bridge first: each joins the mainland county named with it
+    for (const [island, mainland] of cfg.join || []) {
+      const members = [find(code, island), find(code, mainland)];
+      members.forEach((i) => groupOf.set(i, members));
+    }
     // Automatic: smallest counties first, each joined by its smallest small neighbors (at most 3 per region).
     const pop = (i) => {
-      const p = cfg.pop[counties[i].properties.name];
+      const p = cfg.pop === "census" ? censusPop()[String(counties[i].id)] : cfg.pop[counties[i].properties.name];
       if (p === undefined) throw new Error(`No population for ${counties[i].properties.name}, ${cfg.name}`);
       return p;
     };
