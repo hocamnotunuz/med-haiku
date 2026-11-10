@@ -263,10 +263,12 @@
         const real = nearest(G.bridges, a1, b1, lv.bridgeRadius);
         const w = { miles: mi, kind: run.kind, name: run.name, bridge: real ? real.name : null, isNew: !real };
         g.water.push(w);
-        if (!real && mi > lv.maxNewBridge && !g.blocked)
-          g.blocked = `${Math.round(mi)} miles across ${run.name} is too wide for a new bridge. Go around it, or cross at a real bridge${
-            run.kind === "bay" ? " like the Golden Gate, Bay Bridge or San Mateo Bridge" : ""
-          }.`;
+        if (!real && mi > lv.maxNewBridge && !g.blocked) {
+          // Suggest the real bridges nearest to this crossing (bays only)
+          const near = run.kind === "bay" ? [...G.bridges].sort((x, y) => distToPiece(x, a1, b1) - distToPiece(y, a1, b1)).slice(0, 3).map((x) => x.name) : [];
+          const list = near.length > 1 ? `${near.slice(0, -1).join(", ")} or ${near[near.length - 1]}` : near[0];
+          g.blocked = `${Math.round(mi)} miles across ${run.name} is too wide for a new bridge. Go around it, or cross at a real bridge${list ? ` like the ${list}` : ""}.`;
+        }
       }
     }
     // Rivers: every crossing needs a bridge (cheap where a real one stands).
