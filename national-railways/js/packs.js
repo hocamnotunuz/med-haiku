@@ -1,8 +1,11 @@
-// National Railways: state packs. Every state (and later every Canadian province) has a pack,
-// packs/<code>/pack.js, with everything hand-made for it: main stations, towns, levels,
-// starting counties, city maps, mountain passes, bridges, bays, and where the forests and
-// deserts are. PACKS.md explains every field. This file collects the packs into the lists
-// the rest of the game uses (NR.CITIES, NR.TOWNS, NR.METROS...).
+// National Railways: state packs. Every state in the game (and later every Canadian province)
+// has a folder, packs/<code>/, with:
+//   map.js   its county regions, land, coast and borders (made by tools/build-map.js)
+//   pack.js  everything hand-made for it: main stations, towns, levels, starting counties,
+//            city maps, mountain passes, bridges, bays, and where the forests and deserts are
+// packs/index.js has every state (and Mexico and Canada) as a rough outline, for the clouds
+// and the land outside the game. PACKS.md explains every field. This file collects the packs
+// into what the rest of the game uses (NR.MAP, NR.CITIES, NR.TOWNS, NR.METROS...).
 window.NR = window.NR || {};
 (function () {
   "use strict";
@@ -13,11 +16,31 @@ window.NR = window.NR || {};
   NR.addPack = (pack) => {
     NR.PACKS[pack.code] = pack;
   };
+  NR.PACK_MAPS = {};
+  NR.addPackMap = (map) => {
+    NR.PACK_MAPS[map.code] = map;
+  };
+  // Every state and country on the map (packs/index.js), by code
+  NR.AREAS = {};
+  NR.addAreas = (list) => list.forEach((a) => (NR.AREAS[a.code] = a));
   // Where every game starts: this pack's starting counties and levels are used.
   NR.HOME_PACK = "CA";
 
   NR.assemblePacks = function () {
     const packs = NR.PACK_LIST.map((code) => NR.PACKS[code]).filter(Boolean);
+    // The map: every state's regions, land, coast and borders, joined
+    const maps = NR.PACK_LIST.map((code) => NR.PACK_MAPS[code]).filter(Boolean);
+    const seen = new Set();
+    NR.MAP = {
+      states: maps.map((m) => ({ code: m.code, name: NR.AREAS[m.code] ? NR.AREAS[m.code].name : m.code })),
+      regions: maps.flatMap((m) => m.regions),
+      land: maps.flatMap((m) => m.land),
+      stateLand: Object.fromEntries(maps.map((m) => [m.code, m.land])),
+      coast: maps.flatMap((m) => m.coast),
+      borders: maps.flatMap((m) => m.borders),
+      // A border between two states is in both their packs: keep one copy
+      stateBorders: maps.flatMap((m) => m.stateBorders.filter((b) => !seen.has(b.id) && seen.add(b.id)).map((b) => b.line)),
+    };
     const home = NR.PACKS[NR.HOME_PACK];
     NR.CITIES = packs.flatMap((p) => p.stations || []);
     NR.TOWNS = packs.flatMap((p) => p.towns || []);

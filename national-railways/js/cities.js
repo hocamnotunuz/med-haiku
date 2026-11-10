@@ -1,5 +1,5 @@
 // National Railways: kinds of place and line names, shared by every state.
-// The land, county borders and county names come from js/map.js; each state's stations from its pack.
+// Each state's map, stations and towns come from its pack (packs/<code>/, see js/packs.js).
 window.NR = window.NR || {};
 
 // The five kinds of place. In "type of place" mode a passenger wants to reach

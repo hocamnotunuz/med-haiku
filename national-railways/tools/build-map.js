@@ -1,20 +1,30 @@
-// National Railways map builder.
-// Makes js/map.js (land, state and county borders, county regions) from U.S. Census Bureau
-// county boundaries (the us-atlas package), for one or more states on one connected map.
+// National Railways map builder. From U.S. Census Bureau county boundaries (the us-atlas
+// package) and Natural Earth country outlines, it makes:
+//   packs/<code>/map.js  for each state in the game: its county regions (merged where small),
+//                        land, coast, county borders and borders with the other states in the game
+//   packs/index.js       every state (and Mexico and Canada): a rough outline, its neighbors and
+//                        its name, for the clouds and the land outside the game
 //
-// Usage (from the national-railways folder):
+// Usage (from the national-railways folder), listing every state in the game:
 //   cd tools && npm install && cd ..
-//   node tools/build-map.js tools/node_modules CA NV AZ OR
+//   node tools/build-map.js tools/node_modules <cache folder> CA NV AZ OR
+// The cache folder keeps the downloaded country outlines (the same one build-terrain.js uses).
 //
 // To add a state: add it to STATES below (FIPS code, name, and either a hand-made `merge`
-// list or `pop` so small counties are merged automatically), run the script with it,
-// then list its main stations and towns in js/cities.js.
+// list or `pop` so small counties are merged automatically), run the script with it, then
+// make its pack (see PACKS.md).
 "use strict";
 const fs = require("fs");
 const path = require("path");
 
+const { execFileSync } = require("child_process");
 const MODULES = path.resolve(process.argv[2] || path.join(__dirname, "node_modules"));
-const CODES = (process.argv.length > 3 ? process.argv.slice(3) : ["CA"]).map((c) => c.toUpperCase());
+const CACHE = process.argv[3] && path.resolve(process.argv[3]);
+const CODES = process.argv.slice(4).map((c) => c.toUpperCase());
+if (!CACHE || !CODES.length) {
+  console.error("Usage: node tools/build-map.js <node_modules> <cache folder> CA NV AZ OR ...");
+  process.exit(1);
+}
 const SMALL = 50; // counties under 50,000 people may be merged (up to 3 neighbors per region)
 
 const STATES = {
@@ -164,17 +174,47 @@ const flat = (ring) => {
 };
 const collection = (geoms) => ({ type: "GeometryCollection", geometries: geoms });
 
-// Land: all counties joined into one shape; also each state's own shape (to fit the view).
-const land = tc.merge(topo, counties).coordinates.flatMap((poly) => poly.map(flat));
+// Each state's own land, county borders between its regions, borders with the other states
+// in the game, and its coast (with the borders of land that isn't in the game: other states,
+// Mexico, Canada), drawn as the outer edge of the map.
+const indexOf = new Map(counties.map((g, i) => [g, i]));
+const allCounties = topo.objects.counties.geometries;
+const fipsOf = (g) => String(g.id).slice(0, 2);
+const inGame = new Set(CODES.map((c) => STATES[c].fips));
 const stateLand = Object.fromEntries(
   CODES.map((code) => [code, tc.merge(topo, counties.filter((g) => stateOf(g) === code)).coordinates.flatMap((poly) => poly.map(flat))])
 );
-// County borders between different regions of the same state, and borders between states.
-const indexOf = new Map(counties.map((g, i) => [g, i]));
-const borders = tc
-  .mesh(topo, collection(counties), (a, b) => a !== b && stateOf(a) === stateOf(b) && regionKey.get(indexOf.get(a)) !== regionKey.get(indexOf.get(b)))
-  .coordinates.map(flat);
-const stateBorders = CODES.length > 1 ? tc.mesh(topo, collection(counties), (a, b) => a !== b && stateOf(a) !== stateOf(b)).coordinates.map(flat) : [];
+const borders = Object.fromEntries(
+  CODES.map((code) => [
+    code,
+    tc
+      .mesh(topo, collection(counties), (a, b) => a !== b && stateOf(a) === code && stateOf(b) === code && regionKey.get(indexOf.get(a)) !== regionKey.get(indexOf.get(b)))
+      .coordinates.map(flat),
+  ])
+);
+const coast = Object.fromEntries(
+  CODES.map((code) => {
+    const fips = STATES[code].fips;
+    const lines = tc.mesh(topo, collection(allCounties), (a, b) => {
+      const fa = fipsOf(a), fb = fipsOf(b);
+      if (a === b) return fa === fips;
+      return (fa === fips && !inGame.has(fb)) || (fb === fips && !inGame.has(fa));
+    });
+    return [code, lines.coordinates.map(flat)];
+  })
+);
+// Borders between two states in the game: listed in both states' packs, with the same id.
+const stateBorders = Object.fromEntries(CODES.map((code) => [code, []]));
+for (let i = 0; i < CODES.length; i++)
+  for (let j = i + 1; j < CODES.length; j++) {
+    const [A, B] = [CODES[i], CODES[j]].sort();
+    const lines = tc.mesh(topo, collection(counties), (a, b) => (stateOf(a) === A && stateOf(b) === B) || (stateOf(a) === B && stateOf(b) === A)).coordinates;
+    lines.forEach((line, k) => {
+      const item = { id: `${A}-${B}-${k}`, line: flat(line) };
+      stateBorders[A].push(item);
+      stateBorders[B].push(item);
+    });
+  }
 
 // One label point per region: the centroid of its largest piece.
 const cosLat = Math.cos((40 * Math.PI) / 180);
@@ -218,35 +258,131 @@ const regions = [...regionInfo.entries()]
     };
   });
 
-const header = [
-  `// Map for National Railways: ${CODES.map((c) => STATES[c].name).join(", ")}.`,
-  "// Land, state borders, county borders and county regions.",
-  "// Generated by tools/build-map.js from U.S. Census Bureau county boundaries (us-atlas 3.0.1).",
-  "// Do not edit by hand: change tools/build-map.js and run it again.",
-  "// Rings and borders are flat lists of longitude, latitude pairs.",
-].join("\n");
-const body = `window.NR = window.NR || {};
-NR.MAP = {
-  states: ${JSON.stringify(CODES.map((code) => ({ code, name: STATES[code].name })))},
+// ---------- Every state (and Mexico and Canada): rough outlines, for packs/index.js ----------
+const POSTAL = {
+  "01": "AL", "02": "AK", "04": "AZ", "05": "AR", "06": "CA", "08": "CO", "09": "CT", "10": "DE", "11": "DC", "12": "FL", "13": "GA", "15": "HI", "16": "ID",
+  "17": "IL", "18": "IN", "19": "IA", "20": "KS", "21": "KY", "22": "LA", "23": "ME", "24": "MD", "25": "MA", "26": "MI", "27": "MN", "28": "MS", "29": "MO",
+  "30": "MT", "31": "NE", "32": "NV", "33": "NH", "34": "NJ", "35": "NM", "36": "NY", "37": "NC", "38": "ND", "39": "OH", "40": "OK", "41": "OR", "42": "PA",
+  "44": "RI", "45": "SC", "46": "SD", "47": "TN", "48": "TX", "49": "UT", "50": "VT", "51": "VA", "53": "WA", "54": "WV", "55": "WI", "56": "WY",
+};
+// Douglas-Peucker on one ring of [x, y] points (the ring is closed: first point = last).
+function simplify(pts, tol) {
+  if (pts.length < 4) return pts;
+  const keep = new Uint8Array(pts.length);
+  keep[0] = keep[pts.length - 1] = 1;
+  // Split a closed ring at its farthest point from the start, so both halves simplify well.
+  let far = 0;
+  for (let i = 1; i < pts.length - 1; i++) if (Math.hypot(pts[i][0] - pts[0][0], pts[i][1] - pts[0][1]) > Math.hypot(pts[far][0] - pts[0][0], pts[far][1] - pts[0][1])) far = i;
+  keep[far] = 1;
+  const stack = [
+    [0, far],
+    [far, pts.length - 1],
+  ];
+  while (stack.length) {
+    const [a, b] = stack.pop();
+    let best = -1, dist = 0;
+    const [ax, ay] = pts[a], [bx, by] = pts[b];
+    const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy);
+    for (let i = a + 1; i < b; i++) {
+      const d = len ? Math.abs(dx * (ay - pts[i][1]) - dy * (ax - pts[i][0])) / len : Math.hypot(pts[i][0] - ax, pts[i][1] - ay);
+      if (d > dist) (dist = d), (best = i);
+    }
+    if (dist > tol) {
+      keep[best] = 1;
+      stack.push([a, best], [best, b]);
+    }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+// Rough outlines: simplified, leaving out islands smaller than about 0.01 square degrees
+// (roughly 30 square miles), which don't matter for clouds or for telling land from sea.
+const roughRings = (polys, tol) =>
+  polys
+    .flat()
+    .filter((ring) => {
+      const xs = ring.map((p) => p[0]), ys = ring.map((p) => p[1]);
+      return (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys)) >= 0.01;
+    })
+    .map((ring) => simplify(ring, tol))
+    .filter((ring) => ring.length >= 4)
+    .map((ring) => flat(ring.map(([x, y]) => [Math.round(x * 100) / 100, Math.round(y * 100) / 100])))
+    .filter((ring) => ring.length >= 8);
+const boxOf = (rings) => {
+  const b = [Infinity, Infinity, -Infinity, -Infinity];
+  rings.forEach((ring) => {
+    for (let i = 0; i < ring.length; i += 2) {
+      b[0] = Math.min(b[0], ring[i]);
+      b[1] = Math.min(b[1], ring[i + 1]);
+      b[2] = Math.max(b[2], ring[i]);
+      b[3] = Math.max(b[3], ring[i + 1]);
+    }
+  });
+  return b.map((v) => Math.round(v * 100) / 100);
+};
+const statesTopo = JSON.parse(fs.readFileSync(path.join(MODULES, "us-atlas", "states-10m.json"), "utf8"));
+const stateGeoms = statesTopo.objects.states.geometries.filter((g) => POSTAL[g.id]);
+const stateNear = tc.neighbors(stateGeoms);
+const areas = stateGeoms.map((g, i) => {
+  const geom = tc.feature(statesTopo, g).geometry;
+  const outline = roughRings(geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates, POSTAL[g.id] === "AK" ? 0.03 : 0.01);
+  return { code: POSTAL[g.id], name: g.properties.name, country: "US", box: boxOf(outline), neighbors: stateNear[i].map((j) => POSTAL[stateGeoms[j].id]).sort(), outline };
+});
+// Mexico and Canada, from Natural Earth (public domain), 1:50m
+const neFile = path.join(CACHE, "ne", "ne_50m_admin_0_countries.geojson");
+if (!fs.existsSync(neFile)) {
+  fs.mkdirSync(path.dirname(neFile), { recursive: true });
+  execFileSync("curl", ["-sS", "-f", "-m", "120", "--retry", "3", "-o", neFile, "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson"]);
+}
+for (const f of JSON.parse(fs.readFileSync(neFile, "utf8")).features) {
+  const code = { MEX: "MEX", CAN: "CAN" }[f.properties.ADM0_A3];
+  if (!code) continue;
+  const outline = roughRings(f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates, code === "CAN" ? 0.03 : 0.02);
+  areas.push({ code, name: f.properties.NAME, country: code, box: boxOf(outline), neighbors: [], outline });
+}
+areas.sort((a, b) => a.code.localeCompare(b.code));
+
+// ---------- Write ----------
+const header = (what) =>
+  [
+    `// National Railways: ${what}.`,
+    "// Generated by tools/build-map.js from U.S. Census Bureau county boundaries (us-atlas 3.0.1)",
+    "// and Natural Earth country outlines. Do not edit by hand: change the tool and run it again.",
+    "// Rings and lines are flat lists of longitude, latitude pairs.",
+  ].join("\n");
+const lines = (list, indent) => list.map((x) => indent + JSON.stringify(x)).join(",\n");
+for (const code of CODES) {
+  const mine = regions.filter((r) => r.state === code);
+  const text = `${header(`map of ${STATES[code].name} (its county regions, land, coast and borders)`)}
+NR.addPackMap({
+  code: "${code}",
   regions: [
-${regions.map((r) => "    " + JSON.stringify(r)).join(",\n")}
+${lines(mine, "    ")}
   ],
   land: [
-${land.map((r) => "    " + JSON.stringify(r)).join(",\n")}
+${lines(stateLand[code], "    ")}
   ],
-  stateLand: {
-${CODES.map((code) => `    ${code}: [\n${stateLand[code].map((r) => "      " + JSON.stringify(r)).join(",\n")}\n    ]`).join(",\n")}
-  },
+  coast: [
+${lines(coast[code], "    ")}
+  ],
   borders: [
-${borders.map((r) => "    " + JSON.stringify(r)).join(",\n")}
+${lines(borders[code], "    ")}
   ],
   stateBorders: [
-${stateBorders.map((r) => "    " + JSON.stringify(r)).join(",\n")}
+${lines(stateBorders[code], "    ")}
   ],
-};
+});
 `;
-const out = path.join(__dirname, "..", "js", "map.js");
-fs.writeFileSync(out, `${header}\n${body}`);
-const perState = CODES.map((code) => `${code} ${counties.filter((g) => stateOf(g) === code).length}→${regions.filter((r) => r.state === code).length}`).join(", ");
-console.log(`Wrote ${path.relative(process.cwd(), out)}: counties→regions ${perState}; ${Math.round(fs.statSync(out).size / 1024)} KB`);
+  const out = path.join(__dirname, "..", "packs", code, "map.js");
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, text);
+  console.log(`Wrote packs/${code}/map.js: ${counties.filter((g) => stateOf(g) === code).length} counties → ${mine.length} regions, ${Math.round(fs.statSync(out).size / 1024)} KB`);
+}
+const indexText = `${header("every state, and Mexico and Canada: rough outlines, neighbors and names")}
+// Used for the clouds over land that isn't open, and to tell land from sea outside the game.
+NR.addAreas([
+${lines(areas, "  ")}
+]);
+`;
+fs.writeFileSync(path.join(__dirname, "..", "packs", "index.js"), indexText);
+console.log(`Wrote packs/index.js: ${areas.length} areas, ${Math.round(Buffer.byteLength(indexText) / 1024)} KB`);
 for (const r of regions) if (r.fips.length > 1 && r.state !== "CA") console.log(`  merged: ${r.name}`);

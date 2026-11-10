@@ -1,6 +1,6 @@
 // National Railways pack: Arizona.
 // Everything hand-made for one state: main stations, towns, city maps, mountain passes,
-// bridges, bays, and where the forests and deserts are. The county borders come from js/map.js
+// bridges, bays, and where the forests and deserts are. The county borders come from map.js
 // and the mountains, lakes and rivers from js/terrain.js. What each field means: PACKS.md.
 NR.addPack({
   code: "AZ",
@@ -8,7 +8,7 @@ NR.addPack({
   // A game that starts here begins owning these counties (Phoenix, Casa Grande and Tucson).
   start: ["az-maricopa", "az-pinal", "az-pima"],
   // Main stations: one per county region, at its biggest city (exceptions are explained).
-  // id = the short code shown on passengers. county = region id in js/map.js.
+  // id = the short code shown on passengers. county = region id in this folder's map.js.
   // pop = county population in thousands (2020 census). size = how busy (1 to 5).
   // level = which level unlocks it in Levels mode. port, airport = their names, if it has one.
   // scenic = a place tourists travel to.

@@ -17,11 +17,12 @@ const ctx = {};
 ctx.window = ctx;
 vm.createContext(ctx);
 const load = (f) => vm.runInContext(fs.readFileSync(path.join(GAME, f), "utf8"), ctx, { filename: f });
-load("js/map.js");
-load("js/terrain.js");
 load("js/packs.js");
+load("packs/index.js");
 const NR = ctx.NR;
-const missing = NR.PACK_LIST.filter((code) => !fs.existsSync(path.join(GAME, "packs", code, "pack.js")));
+const missing = NR.PACK_LIST.filter((code) => !fs.existsSync(path.join(GAME, "packs", code, "pack.js")) || !fs.existsSync(path.join(GAME, "packs", code, "map.js")));
+NR.PACK_LIST.filter((code) => !missing.includes(code)).forEach((code) => load(`packs/${code}/map.js`));
+load("js/terrain.js");
 NR.PACK_LIST.filter((code) => !missing.includes(code)).forEach((code) => load(`packs/${code}/pack.js`));
 for (const f of ["js/cities.js", "js/game.js", "js/metro.js"]) load(f);
 const T = NR.TERRAIN;
@@ -93,7 +94,7 @@ function check(code) {
   const p = NR.PACKS[code];
   if (!p) return { errors: [`packs/${code}/pack.js is missing or didn't call NR.addPack`], warnings };
   const state = NR.MAP.states.find((s) => s.code === code);
-  if (!state) err(`${code} is not a state in js/map.js (run tools/build-map.js with it first)`);
+  if (!state) err(`${code} has no packs/${code}/map.js (run tools/build-map.js with it first)`);
   if (p.code !== code) err(`code is "${p.code}" but the folder is ${code}`);
   if (state && p.name !== state.name) err(`name is "${p.name}" but the map calls it "${state.name}"`);
   for (const field of ["stations", "towns", "passes", "bridges"]) if (!Array.isArray(p[field])) err(`${field} must be a list`);
@@ -115,7 +116,7 @@ function check(code) {
     if (!Number.isInteger(x.size) || x.size < 1 || x.size > 5) err(`${label}: size must be a whole number from 1 to 5`);
     if (typeof x.lat !== "number" || typeof x.lon !== "number") return err(`${label}: needs lat and lon numbers`);
     const r = regionById[x.county];
-    if (!r) return err(`${label}: county "${x.county}" is not a region in js/map.js`);
+    if (!r) return err(`${label}: county "${x.county}" is not a region in packs/${code}/map.js`);
     if (r.state !== code) err(`${label}: county ${x.county} is in ${r.state}, not ${code}`);
     if (!inRings(r.rings, x.lon, x.lat)) {
       const d = milesToEdges(r.rings, x, true);

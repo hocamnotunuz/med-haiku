@@ -4,7 +4,8 @@ Every state (and later every Canadian province) has a **pack**: `packs/<code>/pa
 
 | Comes from | What |
 | --- | --- |
-| `js/map.js` (made by `tools/build-map.js`) | Land, state and county borders, county regions and their neighbors |
+| `packs/<code>/map.js` (made by `tools/build-map.js`) | The state's county regions and their neighbors, land, coast and borders |
+| `packs/index.js` (made by `tools/build-map.js`) | Every state, Mexico and Canada as rough outlines, with neighbors (for clouds and the land outside the game) |
 | `js/terrain.js` (made by `tools/build-terrain.js`) | Mountains grid, lakes, rivers, city hills and water |
 | **the pack** (hand-made) | Main stations, towns, levels, starting counties, city maps, passes, bridges, bays, biomes |
 
@@ -27,8 +28,8 @@ A pack is one call: `NR.addPack({ ... })`.
 
 | Field | Needed | What it is |
 | --- | --- | --- |
-| `code` | yes | Two-letter code, the same as the folder and as in `js/map.js` (`"CA"`) |
-| `name` | yes | The name, exactly as in `js/map.js` (`"California"`) |
+| `code` | yes | Two-letter code, the same as the folder (`"CA"`) |
+| `name` | yes | The name, exactly as in `packs/index.js` (`"California"`) |
 | `stations` | yes | Main stations: **exactly one per county region** (see below) |
 | `towns` | yes | Towns that appear over time inside counties you own |
 | `passes` | yes (may be empty) | Real mountain passes, canyons and gaps: `[name, latitude, longitude]` |
@@ -51,7 +52,7 @@ One per county region, at the region's biggest city. Where you pick another city
 | --- | --- |
 | `id` | 2–4 capital letters or digits, starting with a letter. Shown on passengers, so make it recognizable (`SF`, `FRE` for Fresno). **Unique across all packs.** |
 | `name` | The city's name |
-| `county` | The region id from `js/map.js` (`"los-angeles"`, `"nv-clark"`) |
+| `county` | The region id from the state's `map.js` (`"los-angeles"`, `"nv-clark"`) |
 | `lat`, `lon` | The city center, 2 decimals. Must be inside its county |
 | `type` | `metro`, `coast`, `mountain`, `farm` or `desert`: what the place is mostly like |
 | `size` | 1 to 5, how busy (guide below) |
@@ -100,7 +101,7 @@ Keyed by a main station id. Each has a `name`, a `size` and 10–12 `stops` (the
 
 ## Adding a state
 
-1. **Map:** add the state to `tools/build-map.js` (its FIPS code, and either a merge list or populations so small counties merge automatically). Run it with every state's code.
+1. **Map:** add the state to `tools/build-map.js` (its FIPS code, and either a merge list or populations so small counties merge automatically). Run it with every state's code: it writes the state's `map.js` (and rewrites its neighbors', whose borders change).
 2. **Pack:** create `packs/<code>/pack.js` with the fields above. Add the code to `NR.PACK_LIST` in `js/packs.js` and a `<script>` tag in `index.html`.
 3. **Terrain:** run `tools/build-terrain.js` (it reads the passes from the packs, and makes hills and water for city maps).
 4. **Check:** run `node tools/check-pack.js <code>` until it passes with no errors.

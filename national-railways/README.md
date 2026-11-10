@@ -204,14 +204,15 @@ Tap the **clipboard** on the bottom bar.
 | --- | --- |
 | `index.html` | The page: screens, buttons and the map area. |
 | `style.css` | Colors, fonts and layout (light and dark themes, Arcade and Classic looks). |
-| `js/map.js` | The land, state and county borders, and county regions of all four states. Generated: do not edit by hand. |
+| `packs/index.js` | Every state (and Mexico and Canada) as a rough outline, with its neighbors: for the clouds and the land outside the game. Generated: do not edit by hand. |
+| `packs/<code>/map.js` | One per state in the game: its county regions, land, coast and borders. Generated: do not edit by hand. |
 | `js/terrain.js` | Real geography: the mountains grid, lakes, rivers, passes, bridges, and each city's hills and water. Generated: do not edit by hand. |
 | `img/relief*.png` | Shaded relief (mountain shading) for the state map and each city map. Generated. |
 | `js/geography.js` | The geography rules: passes, tunnels, bridges, prices and train speeds, Gentle and Tough. |
 | `js/packs.js` | Lists the state packs and collects them into the game's lists. |
 | `packs/<code>/pack.js` | One per state: its main stations, towns, levels, starting counties, city maps, mountain passes, bridges, bays and biomes (hand-made). See `PACKS.md`. |
 | `js/cities.js` | The kinds of place and line names shared by every state. |
-| `tools/build-map.js` | Rebuilds the map file from Census data (see below). |
+| `tools/build-map.js` | Rebuilds `packs/index.js` and each state's `map.js` from Census data and Natural Earth outlines (see below). |
 | `tools/build-terrain.js` | Rebuilds the geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. It reads the passes from the packs. |
 | `tools/check-pack.js` | Checks the state packs for mistakes (`node tools/check-pack.js`). Every pack must pass. |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
@@ -228,7 +229,7 @@ The map file is generated from U.S. Census Bureau county boundaries (the `us-atl
 cd national-railways/tools
 npm install
 cd ..
-node tools/build-map.js tools/node_modules CA NV AZ OR
+node tools/build-map.js tools/node_modules <cache folder> CA NV AZ OR
 node tools/build-terrain.js tools/node_modules .terrain-cache
 ```
 

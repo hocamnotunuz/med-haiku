@@ -574,7 +574,7 @@
     ctx.setLineDash([]);
     // Coastline, then the borders between states (thicker; dashed in the cartoon look)
     ctx.beginPath();
-    NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
+    NR.MAP.coast.forEach((line) => tracePath(ctx, line, false));
     ctx.strokeStyle = colors.coast;
     ctx.lineWidth = toon ? 2.2 : 1.5;
     ctx.stroke();
@@ -1481,7 +1481,7 @@
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.beginPath();
-    NR.MAP.land.forEach((ring) => traceCity(ctx, ring, true));
+    NR.MAP.coast.forEach((line) => traceCity(ctx, line, false));
     ctx.strokeStyle = colors.coast;
     ctx.lineWidth = 1.5;
     ctx.stroke();
