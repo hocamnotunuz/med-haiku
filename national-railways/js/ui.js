@@ -302,7 +302,7 @@
       $("level-title").textContent = `${lv.name} is connected`;
       $("level-text").textContent =
         `You finished every goal on the checklist and earned a ${NR.money(T.levelReward)} bonus. ` +
-        `Next up: ${nextLv.name}, where ${plural(NR.CITIES.filter((c) => nextLv.areas.includes(c.level)).length, "county")} can now be unlocked. ` +
+        `Next up: ${nextLv.name}, where ${plural(NR.CITIES.filter((c) => nextLv.areas.includes(c.level) && NR.countyById[c.county].state === game.home).length, "county")} can now be unlocked. ` +
         "Your new checklist:";
       nextLv.goals.forEach((g) => {
         const li = document.createElement("li");

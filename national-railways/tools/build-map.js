@@ -68,9 +68,28 @@ const STATES = {
       Apache: 66, Gila: 53, "Santa Cruz": 48, Graham: 39, "La Paz": 17, Greenlee: 10,
     },
   },
-  // San Juan County is islands with no bridge: track could never reach its station, so it
-  // joins the mainland county across the water
-  WA: { fips: "53", name: "Washington", pop: "census", join: [["San Juan", "Skagit"]] },
+  // Merged by real metro and economic areas (the pilot pack agent's review of the automatic
+  // merge, which had put Pasco with Pullman): the Tri-Cities' Franklin stays whole, the
+  // Lewiston–Clarkston and Pullman area and the Wenatchee metro (Chelan and Douglas) are kept
+  // together. San Juan County is islands with no bridge, so it joins Skagit across the water.
+  // Whidbey Island (Island County) reaches Skagit over the Deception Pass Bridge.
+  WA: {
+    fips: "53",
+    name: "Washington",
+    join: [["San Juan", "Skagit"]],
+    merge: [
+      ["Whitman", "Asotin", "Garfield"],
+      ["Columbia", "Walla Walla"],
+      ["Chelan", "Douglas"],
+      ["Okanogan", "Ferry"],
+      ["Adams", "Lincoln"],
+      ["Pend Oreille", "Stevens"],
+      ["Pacific", "Wahkiakum"],
+      ["Jefferson", "Mason"],
+      ["Klickitat", "Skamania"],
+    ],
+    bridges: [["Island", "Skagit"]],
+  },
   OR: {
     fips: "41",
     name: "Oregon",
@@ -120,6 +139,12 @@ const groupOf = new Map(); // county index -> list of county indexes in its regi
 for (const code of CODES) {
   const cfg = STATES[code];
   const mine = counties.map((g, i) => i).filter((i) => stateOf(counties[i]) === code);
+  // Islands with no bridge first: each joins the mainland county named with it (across water,
+  // so they don't share a border)
+  for (const [island, mainland] of cfg.join || []) {
+    const members = [find(code, island), find(code, mainland)];
+    members.forEach((i) => groupOf.set(i, members));
+  }
   if (cfg.merge) {
     for (const names of cfg.merge) {
       const members = names.map((n) => find(code, n));
@@ -131,11 +156,6 @@ for (const code of CODES) {
       members.forEach((i) => groupOf.set(i, members));
     }
   } else if (cfg.pop) {
-    // Islands with no bridge first: each joins the mainland county named with it
-    for (const [island, mainland] of cfg.join || []) {
-      const members = [find(code, island), find(code, mainland)];
-      members.forEach((i) => groupOf.set(i, members));
-    }
     // Automatic: smallest counties first, each joined by its smallest small neighbors (at most 3 per region).
     const pop = (i) => {
       const p = cfg.pop === "census" ? censusPop()[String(counties[i].id)] : cfg.pop[counties[i].properties.name];

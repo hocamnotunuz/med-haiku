@@ -264,3 +264,17 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 > Use facts from those files. When you must add something by hand (a pass, a bridge, a scenic place), write its source in `packs/{CODE}/NOTES.md`.
 > Finish only when `node tools/check-pack.js {CODE}` and the pack test both pass.
 > Report: what you chose, every judgment call and why, anything you were unsure of, and the checker output.
+
+**Before the agent starts (main agent):**
+1. Add the state to `STATES` in `tools/build-map.js` with `pop: "census"` (or `merge` lists) and `join` for island counties no bridge reaches; run `build-map.js` with every state, then `build-terrain.js`, then `node tools/make-raw.js <cache> {CODE}`.
+2. Add `{CODE}` to `NR.PACK_LIST` and a `<script>` tag for `packs/{CODE}/pack.js` in `index.html`, with an empty starter `pack.js`, so the pack test can run.
+3. Check the raw data: islands, rivers and ranges the terrain tool doesn't name yet (add them to `RIVERS` and `RANGE_NAMES` in `build-terrain.js`).
+
+**Learned from the Washington pilot (add to every brief):**
+- Never run the map, terrain or raw tools: they rewrite other states. Propose merge changes in the report instead (Washington's automatic merges put Pasco with Pullman; the user chose real metro areas).
+- `start` needs two types of place; also make the **two biggest neighboring cities** different types where it's honest (Tacoma became Coast so Seattle–Tacoma carries riders from the start).
+- Ids must be unique across all packs, and should leave obvious codes free for big cities still to come (reserved so far: VAN, VIC for British Columbia).
+- Bridges across a border river (the Columbia between Washington and Oregon) belong to whichever pack is built later, which then lists them all.
+- Puget Sound-style inland seas are already water on the map; check with a few points before adding `bays`.
+- Websites like Wikipedia may refuse automated requests: coordinates for passes and bridges can come from memory, but the checker's terrain tests must pass and the source goes in NOTES.md for a reviewer to spot-check.
+- Levels in a non-home state are ignored (they count only in a game that starts there), so every state may have its own levels.

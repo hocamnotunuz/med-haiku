@@ -589,7 +589,9 @@
     const code = NR.countyById[id].state;
     if (!s.states[code].open) return { ok: false, reason: `Opens once you own all of ${NR.opensAfter(s, code)}` };
     if (NR.stateFrozen(s, code)) return { ok: false, reason: `Frozen while ${NR.STATE_NAMES[code]} is managed` };
-    if (countyArea(id) && !s.areas.includes(countyArea(id))) {
+    // Levels open the home state's counties step by step. (Other states' packs can have levels
+    // of their own: those count only in a game that starts there.)
+    if (code === s.home && countyArea(id) && !s.areas.includes(countyArea(id))) {
       const lv = NR.LEVELS.findIndex((l) => l.areas.includes(countyArea(id)));
       return { ok: false, reason: `Opens in level ${lv + 1}` };
     }
@@ -1784,7 +1786,8 @@
   NR.save = (s) => JSON.stringify(s);
   NR.load = (text) => {
     const s = JSON.parse(text);
-    NR.setHome(s.home || "CA"); // games saved before you could choose started in California
+    s.home = s.home || "CA"; // games saved before you could choose started in California
+    NR.setHome(s.home);
     if (!s.nations) {
       // Saved before each country had its own national money (version 13): it was all the US's
       s.nations = { USA: { money: s.money || 0, income: s.nationalIncome || 0, tax: s.nationalTax || 0, upkeep: s.nationalUpkeep || 0, lastWeek: s.nationalLastWeek || null } };
