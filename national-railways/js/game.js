@@ -271,15 +271,15 @@
   NR.trackPrice = (a, b, grade) => NR.trackMiles(a, b) * (T.trackPrice + (grade === "high" ? T.highSpeedPrice : 0));
 
   // ---------- States and budgets ----------
-  // Each state (or province) has its own budget. Fares and cargo fees for trips inside the state
-  // go in, and it pays for track, trains and counties inside the state. Each country has its own
-  // national money (US national money in Freedom Bucks, Canadian federal money in Maple Coins).
-  // It gets fares for trips that cross a state border, its states' taxes, contract rewards,
-  // grants and level bonuses; it pays for track and trains that cross a state border, and covers
-  // any of its states that runs short (a state spends its own budget first). Across the
-  // US–Canada border each country pays half and gets half. If a country's national money ends a
-  // week below zero, its richest state covers it. Money never moves between countries, and
-  // can't be moved between budgets by hand.
+  // Each state (or province) has its own budget. Fares and cargo fees come in, and it pays for
+  // its track, trains and counties. Across a border (between two states, or the US and Canada)
+  // the states share: track by how much of it lies on each one's land, trains by how much of
+  // their line does, and each fare by the miles the trip rode on each one's land. Each country
+  // has its own national money (US national money in Freedom Bucks, Canadian federal money in
+  // Maple Coins): it gets a 10% tax on its states' fares, contract rewards, grants and level
+  // bonuses, and covers any of its states that runs short (a state spends its own budget first).
+  // If a country's national money ends a week below zero, its richest state covers it. Money
+  // never moves between countries, and can't be moved between budgets by hand.
   NR.STATE_NAMES = Object.fromEntries(Object.values(NR.AREAS).map((a) => [a.code, a.name]));
   // The home state: where a game starts, with its pack's starting counties and levels.
   // Any state whose pack lists starting counties can be home (California is the default).
@@ -303,28 +303,89 @@
     const c = NR.countryOf(country);
     return s.nations[c] || (s.nations[c] = { money: 0, income: 0, tax: 0, upkeep: 0, lastWeek: null });
   };
-  // Who pays for the track between two stations, as [payer, share] pairs: their state; national
-  // money across a state border; half from each country across the US–Canada border.
+  // ---- How much of a stretch of track lies on each state's land ----
+  // Track runs straight between two stations. Points along it (about every 2 miles) are tested
+  // against each state's land; points over water don't count. Worked out once per stretch.
+  const ringBoxes = new WeakMap();
+  const boxedRings = (rings) => {
+    if (!ringBoxes.has(rings))
+      ringBoxes.set(
+        rings,
+        rings.map((ring) => {
+          const b = [Infinity, Infinity, -Infinity, -Infinity];
+          for (let i = 0; i < ring.length; i += 2) {
+            b[0] = Math.min(b[0], ring[i]);
+            b[1] = Math.min(b[1], ring[i + 1]);
+            b[2] = Math.max(b[2], ring[i]);
+            b[3] = Math.max(b[3], ring[i + 1]);
+          }
+          return { ring, b };
+        })
+      );
+    return ringBoxes.get(rings);
+  };
+  function inRing(x, y, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) {
+      const xi = ring[i], yi = ring[i + 1], xj = ring[j], yj = ring[j + 1];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  // The state whose land this point is on (of the states loaded so far), or null (water)
+  NR.stateAt = (lon, lat) => {
+    for (const st of NR.MAP.states) {
+      const rings = boxedRings(NR.MAP.stateLand[st.code]);
+      if (rings.reduce((n, o) => (lon >= o.b[0] && lon <= o.b[2] && lat >= o.b[1] && lat <= o.b[3] && inRing(lon, lat, o.ring) ? !n : n), false)) return st.code;
+    }
+    return null;
+  };
+  const landCache = new Map();
+  function landOn(a, b) {
+    const key = (a < b ? `${a}|${b}` : `${b}|${a}`) + `|${NR.packVersion}`;
+    if (landCache.has(key)) return landCache.get(key);
+    const A = city(a), B = city(b);
+    const n = Math.max(8, Math.min(240, Math.round(miles(A, B) / 2)));
+    const land = {};
+    for (let k = 0; k < n; k++) {
+      const f = (k + 0.5) / n;
+      const code = NR.stateAt(A.lon + (B.lon - A.lon) * f, A.lat + (B.lat - A.lat) * f);
+      if (code) land[code] = (land[code] || 0) + 1;
+    }
+    landCache.set(key, land);
+    return land;
+  }
+  // Who pays for the track between two stations, as [state, share] pairs: their state, or across
+  // a border the states it runs through (open ones only), by how much of it is on each one's land.
   NR.segmentShares = (a, b) => {
     const sa = NR.stateOf(a), sb = NR.stateOf(b);
     if (sa === sb) return [[sa, 1]];
-    const ca = NR.countryOf(sa), cb = NR.countryOf(sb);
-    return ca === cb ? [[ca, 1]] : [[ca, 0.5], [cb, 0.5]];
+    const open = NR.runtime.openStates;
+    let parts = Object.entries(landOn(a, b)).filter(([code]) => !open || open.has(code));
+    if (!parts.length) parts = [[sa, 1], [sb, 1]]; // all water: the two states share equally
+    const total = parts.reduce((n, [, k]) => n + k, 0);
+    return parts.map(([code, k]) => [code, k / total]).sort((p, q) => q[1] - p[1]);
   };
-  // Who pays for a line's trains: its state if the whole line is in one state, otherwise national
-  // money (shared equally by the countries it runs through).
+  // Who pays for a line's trains (price and running costs): the states it runs through, by how
+  // many of its miles are on each one's land.
   NR.lineShares = (l) => {
-    const states = [...new Set(l.stops.map((id) => NR.stateOf(id)))];
-    if (states.length === 1) return [[states[0], 1]];
-    const countries = [...new Set(states.map((code) => NR.countryOf(code)))];
-    return countries.map((c) => [c, 1 / countries.length]);
+    const by = {};
+    for (let i = 0; i + 1 < l.stops.length; i++) {
+      const mi = Math.max(1, NR.trackMiles(l.stops[i], l.stops[i + 1]));
+      for (const [code, share] of NR.segmentShares(l.stops[i], l.stops[i + 1])) by[code] = (by[code] || 0) + mi * share;
+    }
+    const total = Object.values(by).reduce((n, v) => n + v, 0) || 1;
+    return Object.entries(by)
+      .map(([code, v]) => [code, v / total])
+      .sort((p, q) => q[1] - p[1]);
   };
-  // One payer (the first, when two countries share)
+  // One payer (the one with the biggest share)
   NR.segmentPayer = (a, b) => NR.segmentShares(a, b)[0][0];
   NR.linePayer = (l) => NR.lineShares(l)[0][0];
   NR.payerName = (p) => (isNation(p) ? NR.nationalName(p) : `the ${NR.STATE_NAMES[p]} budget`);
-  // "the Oregon budget", "national money", or "US national money and Canadian federal money"
-  NR.sharesName = (shares) => NR.listWords(shares.map(([p]) => NR.payerName(p)));
+  // "the Oregon budget", or "the California (67%) and Nevada (33%) budgets"
+  NR.sharesName = (shares) =>
+    shares.length === 1 ? NR.payerName(shares[0][0]) : `the ${NR.listWords(shares.map(([p, share]) => `${NR.STATE_NAMES[p] || p} (${Math.round(share * 100)}%)`))} budgets`;
   // Add an amount to a bill, split as the shares say
   NR.addShares = (bill, shares, amount) => {
     shares.forEach(([p, share]) => NR.addToBill(bill, p, amount * share));
@@ -418,6 +479,8 @@
       set: (v) => (NR.nation(s, s.home).money = v),
     });
   }
+  // The states open in this game (only their land counts when track crosses a border)
+  const syncOpen = (s) => (NR.runtime.openStates = new Set(Object.keys(s.states).filter((code) => s.states[code].open)));
   NR.newGame = function (mode, style, geo, home) {
     NR.setHome(home || NR.HOME_STATE);
     if (mode === "levels" && !NR.LEVELS.length) mode = "endless"; // only some states have levels
@@ -469,6 +532,7 @@
     };
     attachMoney(s);
     s.money = T.nationalStart; // the home country's national money
+    syncOpen(s);
     NR.START_COUNTIES.forEach((id) => ownCounty(s, id, true));
     rt.dirty = true;
     rt.events.length = 0;
@@ -578,7 +642,10 @@
       s.states[code].open = true;
       s.states[code].budget += T.newStateBudget;
     });
-    if (opened.length) emit("statesOpen", { codes: opened });
+    if (opened.length) {
+      syncOpen(s);
+      emit("statesOpen", { codes: opened });
+    }
   }
 
   // A passenger delivered here counts toward the goals of locked neighboring counties.
@@ -732,28 +799,25 @@
     if (p.tourist) fare *= p.scenic ? 2.4 : 1.2; // tourists pay more, double on a Scenic train
     return fare;
   }
-  // Fares and cargo fees go into the budget of the state where the trip happened, less a 10%
-  // tax that goes to its country's national money. A trip from one state to another pays
-  // national money (half to each country across the US–Canada border).
-  function earn(s, amount, here, from) {
+  // Fares and cargo fees go to the states the trip rode through, by the miles it rode on each
+  // one's land (rode: { CA: 80, NV: 40 }, counted train by train); a trip that never left one
+  // state pays all to it. Each state keeps its part less a 10% tax to its country's national money.
+  function earn(s, amount, here, rode) {
     s.weekIncome += amount;
-    if (from && NR.cityById[from] && NR.stateOf(from) !== NR.stateOf(here)) {
-      for (const [c, share] of NR.segmentShares(from, here)) {
-        const nation = NR.nation(s, c);
-        nation.money += amount * share;
-        nation.income += amount * share;
-      }
-      return;
+    let parts = rode ? Object.entries(rode).filter(([code, mi]) => mi > 0 && s.states[code]) : [];
+    if (!parts.length) parts = [[NR.stateOf(here), 1]];
+    const total = parts.reduce((n, [, mi]) => n + mi, 0);
+    for (const [code, mi] of parts) {
+      const part = (amount * mi) / total;
+      const st = s.states[code];
+      const tax = part * T.stateTax;
+      st.budget += part - tax;
+      st.weekIncome += part - tax; // a head of transportation splits what's left after tax
+      st.weekTax += tax;
+      const nation = NR.nation(s, code);
+      nation.money += tax;
+      nation.tax += tax;
     }
-    const code = NR.stateOf(here);
-    const st = s.states[code];
-    const tax = amount * T.stateTax;
-    st.budget += amount - tax;
-    st.weekIncome += amount - tax; // a head of transportation splits what's left after tax
-    st.weekTax += tax;
-    const nation = NR.nation(s, code);
-    nation.money += tax;
-    nation.tax += tax;
   }
 
   // A passenger or a load of cargo has arrived: collect the money.
@@ -761,13 +825,13 @@
     goalTick(s, p, here);
     if (p.kind) {
       const fee = NR.CARGO[p.kind].fee;
-      earn(s, fee[0] + miles(city(p.from), city(here)) * fee[1], here, p.from);
+      earn(s, fee[0] + miles(city(p.from), city(here)) * fee[1], here, p.rode);
       s.cargoDelivered[p.kind]++;
       emit("deliver", { at: here, cargo: p.kind });
       return;
     }
     s.delivered++;
-    earn(s, fareFor(p, here), here, p.from);
+    earn(s, fareFor(p, here), here, p.rode);
     emit("deliver", { at: here });
     countGoals(s, here);
     if (NR.onStateDelivery) NR.onStateDelivery(s, p, here);
@@ -859,7 +923,18 @@
     }
     train.t += (dt * s.speed * typeOf(train).speed) / train.segLen;
     if (train.t >= 1) {
+      const from = line.stops[train.i];
       train.i += train.dir;
+      // Everyone on board rode this stretch: count its miles on each state's land (fares are
+      // split that way)
+      if (train.pax.length) {
+        const mi = NR.trackMiles(from, line.stops[train.i]);
+        const shares = NR.segmentShares(from, line.stops[train.i]);
+        for (const p of train.pax) {
+          const rode = p.rode || (p.rode = {});
+          for (const [code, share] of shares) rode[code] = (rode[code] || 0) + mi * share;
+        }
+      }
       train.t = 0;
       train.moving = false;
       train.wait = serveStation(s, train, line);
@@ -878,7 +953,7 @@
   // A wildfire in a county with mountain track, or an earthquake somewhere on the network.
   function californiaEvent(s) {
     // Track in a state a head of transportation is managing is looked after for you.
-    const open = allSegments(s).filter((k) => !s.damage[k] && !NR.stateFrozen(s, NR.segmentPayer(...k.split("|"))));
+    const open = allSegments(s).filter((k) => !s.damage[k] && !segFrozen(s, ...k.split("|")));
     if (open.length < 2) return; // not much track yet: nothing happens
     const fireCounties = [...new Set(open.flatMap((k) => k.split("|")).filter((id) => city(id).type === "mountain").map((id) => city(id).county))];
     if (fireCounties.length && Math.random() < 0.5) {
@@ -927,7 +1002,8 @@
     let value = 0;
     s.lines.forEach((l) => {
       value += NR.chainBill(l.stops, l.grade, 1, l)[code] || 0;
-      if (NR.linePayer(l) === code) NR.trainsOn(s, l).forEach((t) => (value += typeOf(t).price));
+      const share = (NR.lineShares(l).find(([p]) => p === code) || [code, 0])[1];
+      NR.trainsOn(s, l).forEach((t) => (value += typeOf(t).price * share));
     });
     return value;
   };
@@ -1024,6 +1100,7 @@
   // ---------- One step of the game ----------
   NR.update = function (s, dt) {
     if (s.over) return;
+    syncOpen(s);
     if (rt.dirty) rebuildRoutes(s);
     s.time += dt;
     updateStates(s, dt);
@@ -1226,7 +1303,9 @@
     return null;
   };
   // Track inside a state that a head of transportation is managing can't change.
-  NR.chainFrozen = (s, chain) => chain.some((id, i) => i > 0 && NR.stateFrozen(s, NR.segmentPayer(chain[i - 1], id)));
+  // (Track across a border stays yours, even when a state it touches is managed.)
+  const segFrozen = (s, a, b) => NR.stateOf(a) === NR.stateOf(b) && NR.stateFrozen(s, NR.stateOf(a));
+  NR.chainFrozen = (s, chain) => chain.some((id, i) => i > 0 && segFrozen(s, chain[i - 1], id));
   NR.lineFrozen = (s, line) => NR.chainFrozen(s, line.stops);
   NR.freeColor = (s) => {
     for (let c = 0; c < s.linesUnlocked; c++) if (!s.lines.some((l) => l.color === c)) return c;
@@ -1713,6 +1792,7 @@
       if (s.v === 13) s.v = NR.SAVE_VERSION;
     }
     attachMoney(s);
+    syncOpen(s);
     rt.geoLevel = s.geo || "gentle";
     rt.dirty = true;
     rt.events.length = 0;

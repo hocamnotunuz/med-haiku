@@ -147,9 +147,10 @@ Tap the money at the bottom (**National** and **California**, or **4 states** on
 
 | Money | What comes in | What it pays for |
 | --- | --- | --- |
-| Each state's budget (California starts with FB400k) | Fares and cargo fees for trips inside the state (less 10% tax), and 10% tax on its cities' fares | Track between two of its own stations, trains on lines entirely inside it, its counties, its head of transportation, FB200k for each city map it opens, and its cities when they run short |
-| National money (starts at FB0) | 10% tax on every state's fares and cargo fees, fares and cargo fees for trips that cross a state border, contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Track that crosses a state border, trains on lines that cross a border, and any state that runs short |
+| Each state's budget (California starts with FB400k) | Fares and cargo fees for trips inside the state, its share of fares for trips that cross a border (by the miles they rode on its land), all less 10% tax, and 10% tax on its cities' fares | Track between two of its own stations, its share of track across a border (by how much of it is on its land), trains on its lines (shared the same way on a line across a border), its counties, its head of transportation, FB200k for each city map it opens, and its cities when they run short |
+| National money (starts at FB0) | 10% tax on every state's fares and cargo fees, contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Any state that runs short, and new line colors |
 
+- **Across a border, the states share by land.** Track runs straight between two stations: if 80 of its 120 miles are on California's land and 40 on Nevada's, California pays 2/3 and Nevada 1/3. Water and states that aren't open don't count. A line's trains (their price and running costs) are shared by how many of the line's miles are on each state's land. Each passenger's fare is split by the miles they actually rode on each state's land, train by train: a trip from Los Angeles through Las Vegas to Phoenix pays California, Nevada and Arizona. The line panel shows each state's share.
 - A state spends its own budget first; if that isn't enough, national money pays the rest. If a state budget is empty at the end of a week, national money pays its running costs.
 - If national money ends a week below zero, the richest state budget covers it (then the next richest).
 - **Taxes:** a city pays 10% of its fares to its state, and a state pays 10% of its fares and cargo fees to national money, as they are earned. (A state doesn't pay tax again on the tax it gets from its cities.) While a head of transportation runs a city or state, the tax is paid first and management splits what's left. The Budgets panel and the City budget panel show last week's taxes.
@@ -158,7 +159,7 @@ Tap the money at the bottom (**National** and **California**, or **4 states** on
 **Currency.** Money in the US is counted in **Freedom Bucks** (shown as FB400k). Canada, when its provinces join the game, has its own **federal money** in **Maple Coins** (shown as MC400k). The two are always worth the same (1 to 1), so nothing ever needs converting. Every amount is shown in the currency of whoever pays or gets it: a US state's budget in Freedom Bucks, a Canadian province's in Maple Coins.
 
 - Each country's national money is separate and never pays for the other country. If a country's national money ends a week below zero, only its own states (or provinces) cover it.
-- Track and trains on a line that crosses the US–Canada border are paid **half and half** by the two countries' national money, and fares for trips across that border go half to each.
+- The US–Canada border works like a state border: a US state and a Canadian province share track, trains and fares by land, each in its own currency (Washington's share in Freedom Bucks, British Columbia's in Maple Coins).
 - Contract rewards go to the country where the job is (half each if it spans the border). Federal grants and level bonuses go to your home country (where you started). The bottom bar shows your home country's national money; the Budgets panel shows both once a province is open.
 - The line panel says who pays for each line, and the county panel says which budget pays to unlock it.
 

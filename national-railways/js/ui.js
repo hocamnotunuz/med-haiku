@@ -448,14 +448,14 @@
         toast(`The ${NR.STATE_NAMES[ev.code]} budget ran dry: ${NR.nationalName(ev.code)} paid ${NR.money(ev.amount, ev.code)} of its running costs.`);
       } else if (ev.type === "nationalShort") {
         const c = NR.COUNTRIES[NR.countryOf(ev.country)];
-        toast(`${capital(NR.nationalName(ev.country))} is ${NR.money(-ev.amount, ev.country)} and every ${c.unit} budget is empty too. Border lines can't get new track or trains until fares come in.`);
+        toast(`${capital(NR.nationalName(ev.country))} is ${NR.money(-ev.amount, ev.country)} and every ${c.unit} budget is empty too. Nothing more can be built there until fares come in.`);
       } else if (ev.type === "nationalRefill") {
         toast(`${capital(NR.nationalName(ev.country))} ran short: ${ev.paid.map((p) => `the ${NR.STATE_NAMES[p.code]} budget paid ${NR.money(p.amount, p.code)}`).join(", ")}.`);
       } else if (ev.type === "statesOpen") {
         loadNearby(); // the new states' neighbors
         const names = ev.codes.map((code) => NR.STATE_NAMES[code]);
         const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
-        toast(`${list} ${names.length > 1 ? "are" : "is"} open! Each starts with a ${NR.money(T.newStateBudget, ev.codes[0])} budget. Track across a state border is paid from national money.`);
+        toast(`${list} ${names.length > 1 ? "are" : "is"} open! Each starts with a ${NR.money(T.newStateBudget, ev.codes[0])} budget. Track across a border is shared by the states it runs through, by how much of it is on each one's land.`);
       } else if (ev.type === "stateHeadHired") {
         toast(`Head of transportation hired for ${NR.STATE_NAMES[ev.code]} (${NR.money(ev.fee, ev.code)}). Keep the state running for ${plural(T.headSettleWeeks, "week")} while they settle in.`);
       } else if (ev.type === "stateHeadTakesOver") {
@@ -921,14 +921,15 @@
       amount.textContent = NR.money(nation.money, c);
       amount.classList.toggle("negative", nation.money < 0);
       const nw = nation.lastWeek;
-      week.textContent = nw ? `Last week: taxes ${NR.money(nw.tax || 0, c)}, border fares ${NR.money(nw.income, c)}, border trains ${NR.money(nw.upkeep || 0, c)}` : "";
+      week.textContent = nw ? `Last week: taxes ${NR.money(nw.tax || 0, c)}${nw.income ? `, other income ${NR.money(nw.income, c)}` : ""}${nw.upkeep ? `, trains ${NR.money(nw.upkeep, c)}` : ""}` : "";
     });
     setText(
       "bp-national-note",
-      `A 10% tax on every ${NR.COUNTRIES[home].unit}'s fares, fares for trips that cross a ${NR.COUNTRIES[home].unit} border, contract rewards, grants and level bonuses come here. ` +
-        `It pays for track and trains that cross a ${NR.COUNTRIES[home].unit} border, and covers any ${NR.COUNTRIES[home].unit} whose budget runs short. If it ends a week below zero, the richest ${NR.COUNTRIES[home].unit} covers it. ` +
+      `A 10% tax on every ${NR.COUNTRIES[home].unit}'s fares and cargo fees, contract rewards, grants and level bonuses come here. ` +
+        `It covers any ${NR.COUNTRIES[home].unit} whose budget runs short, and pays for new line colors. If it ends a week below zero, the richest ${NR.COUNTRIES[home].unit} covers it. ` +
+        `Track, trains and fares across a border are shared by the ${countries.length > 1 ? "states and provinces" : `${NR.COUNTRIES[home].unit}s`}: track by how much of it is on each one's land, trains by how much of their line is, and fares by the miles each trip rode on each one's land. ` +
         (countries.length > 1
-          ? `Each country has its own: ${countries.map((c) => `${NR.COUNTRIES[c].money} (${NR.COUNTRIES[c].sign})`).join(" and ")}, always worth the same. Money never moves between countries; across the border each pays half and gets half of the fares. `
+          ? `Each country has its own national money: ${countries.map((c) => `${NR.COUNTRIES[c].money} (${NR.COUNTRIES[c].sign})`).join(" and ")}, always worth the same. Money never moves between countries. `
           : "") +
         "Money can't be moved between budgets by hand."
     );
@@ -1223,8 +1224,8 @@
 
     $("lp-dot").style.background = `var(--line-${line.color + 1})`;
     $("lp-name").textContent = lineName(line.color);
-    // Who pays: a line inside one state is paid from its budget; a line across a border from
-    // national money (half from each country across the US–Canada border).
+    // Who pays: a line inside one state is paid from its budget; a line across a border by the
+    // states it runs through, by how much of it is on each one's land.
     const paidBy = NR.STATE_NAMES[shares[0][0]] && shares.length === 1 ? `paid from the ${NR.STATE_NAMES[shares[0][0]]} budget` : `crosses a border: ${NR.sharesName(shares)} ${shares.length > 1 ? "share it" : "pays"}`;
     $("lp-meta").textContent =
       `${plural(line.stops.length, "stop")} · ${NR.lineMiles(line)} mi · ${line.grade === "high" ? "high-speed" : "standard"} track · ${paidBy}` +
@@ -1472,7 +1473,7 @@
         return;
       }
     } else {
-      // Each stretch is paid by its state (national money across a border, or when a state runs short).
+      // Each stretch is paid by its state (shared by land across a border; national money helps when a state runs short).
       if (NR.chainFrozen(game, [lastId, id])) {
         toast(`Track inside ${NR.STATE_NAMES[NR.stateOf(id)]} can't change while its head of transportation manages it.`);
         return;
@@ -1488,7 +1489,9 @@
         const inState = shares.length === 1 && !NR.COUNTRIES[shares[0][0]];
         toast(
           `Not enough money: track from ${placeName(lastId)} to ${placeName(id)} costs ${NR.billMoney(NR.chainBill([lastId, id], draft.grade))}, paid from ${NR.sharesName(shares)}` +
-            (inState ? ` (${NR.nationalName(shares[0][0])} covers what the ${NR.COUNTRIES[NR.countryOf(shares[0][0])].unit} can't).` : shares.length > 1 ? ", half each, because it crosses the border." : " because it crosses a state border.") +
+            (inState && shares.length === 1
+              ? ` (${NR.nationalName(shares[0][0])} covers what the ${NR.COUNTRIES[NR.countryOf(shares[0][0])].unit} can't).`
+              : ", by how much of it is on each one's land (national money covers what each can't).") +
             " Tap the money at the bottom to see your budgets."
         );
         return;
