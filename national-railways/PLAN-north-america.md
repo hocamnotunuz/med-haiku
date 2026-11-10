@@ -10,9 +10,9 @@
 
 | Step | Status |
 | --- | --- |
-| 0. Own repository | Waiting: the empty `national-railways` repository isn't on GitHub yet (or the Claude app can't see it). Everything is ready to move with its full history. |
+| 0. Own repository | **Postponed** (your choice). Everything is ready to move with its full history whenever you want. |
 | 1.1 Packs | **Done for hand-made content:** `packs/<code>/pack.js` for CA, NV, AZ, OR (stations, towns, levels, start, city maps, passes, bridges, bays, biomes). Generated map and terrain data still load all at once; splitting them comes with the speed work (1.6). |
-| 1.2 Map projection | Next |
+| 1.2 Map projection | **Done:** Lambert conformal conic, centered on the open states. Fixed outlines are worked out once per projection (faster), clouds are kept as a picture, and the Classic relief is laid in 64 pieces that follow the curve. |
 | 1.3 California-only shortcuts | **Mostly done:** bays, forests and deserts, cable cars and the bay message now come from packs. Left: the "foreign land" rule in `js/geography.js`, and screen text that names California. |
 | 1.4 Choose where to start | **Half done:** owning all of a state now opens its neighbors. Left: picking the home state on the start screen. |
 | 1.5 Two countries' money | Not started |

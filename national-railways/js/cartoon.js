@@ -42,6 +42,7 @@
       land: get("--land"),
     };
     cache.key = "";
+    fogCache.key = "";
   };
 
   // ---------- What grows where (by county, from the state packs' biomes) ----------
@@ -304,6 +305,10 @@
       if (cull && !cull(ring.box)) continue;
       const p = coarse ? ring.coarse : ring.pts;
       if (!p) continue;
+      if (project === NR.toScreen) {
+        NR.traceList(ctx, p, true); // the state map: fast, with remembered positions
+        continue;
+      }
       let q = project(p[0], p[1]);
       ctx.moveTo(q[0], q[1]);
       for (let i = 2; i < p.length; i += 2) {
@@ -314,6 +319,7 @@
     }
   }
   function traceFlat(ctx, list, project, close) {
+    if (project === NR.toScreen) return NR.traceList(ctx, list, close);
     let q = project(list[0], list[1]);
     ctx.moveTo(q[0], q[1]);
     for (let i = 2; i < list.length; i += 2) {
@@ -516,48 +522,54 @@
     }
   }
 
-  // ---------- The state map, drawn once per camera position and kept in a picture ----------
-  // While the map is being moved or zoomed, the last picture is moved and stretched to match,
-  // and it is drawn again properly once the map has been still for a moment.
-  const cache = { canvas: null, key: "", seen: "", since: 0, a: null, b: null };
-  // Everything under the counties, borders and the network: sea and waves, the coast's
-  // shallow water, land, deserts, hills and mountains, rivers, lakes, trees and cacti.
-  C.drawState = function (ctx) {
+  // ---------- Pictures kept between frames ----------
+  // The cartoon map and the clouds are drawn into pictures that are only redrawn when the view
+  // (or what they show) changes. While the map is being moved or zoomed, the last picture is
+  // moved and stretched to match, and drawn again properly once the map has been still a moment.
+  const cache = { canvas: null, key: "", cam: "", seen: "", since: 0, a: null, b: null };
+  const fogCache = { canvas: null, key: "", cam: "", seen: "", since: 0, a: null, b: null };
+  function keptPicture(store, ctx, key, paint, dx = 0, dy = 0) {
     const view = NR.view;
     const a = NR.toScreen(-120, 37), b = NR.toScreen(-118, 35);
-    const key = [view.w, view.h, view.dpr, a[0].toFixed(2), a[1].toFixed(2), b[0].toFixed(2), b[1].toFixed(2)].join("|");
-    if (!cache.canvas) cache.canvas = document.createElement("canvas");
-    const cv = cache.canvas;
+    const cam = [view.w, view.h, view.dpr, a[0].toFixed(2), a[1].toFixed(2), b[0].toFixed(2), b[1].toFixed(2)].join("|");
+    const full = cam + "#" + key;
+    if (!store.canvas) store.canvas = document.createElement("canvas");
+    const cv = store.canvas;
     const now = performance.now();
-    if (key !== cache.seen) {
-      cache.seen = key;
-      cache.since = now;
+    if (cam !== store.seen) {
+      store.seen = cam;
+      store.since = now;
     }
     const sameSize = cv.width === Math.round(view.w * view.dpr) && cv.height === Math.round(view.h * view.dpr);
-    if (cache.key !== key && cache.key && sameSize && now - cache.since < 150) {
+    if (store.key !== full && store.key && store.cam !== cam && sameSize && now - store.since < 150) {
       // Moving: the old picture, moved and scaled so its two marks land where they are now
-      const k = Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.hypot(cache.b[0] - cache.a[0], cache.b[1] - cache.a[1]);
+      const k = Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.hypot(store.b[0] - store.a[0], store.b[1] - store.a[1]);
       ctx.save();
-      ctx.setTransform(k, 0, 0, k, (a[0] - cache.a[0] * k) * view.dpr, (a[1] - cache.a[1] * k) * view.dpr);
+      ctx.setTransform(k, 0, 0, k, (a[0] - store.a[0] * k + dx) * view.dpr, (a[1] - store.a[1] * k + dy) * view.dpr);
       ctx.drawImage(cv, 0, 0);
       ctx.restore();
       return;
     }
-    if (cache.key !== key) {
+    if (store.key !== full) {
       cv.width = Math.max(1, Math.round(view.w * view.dpr));
       cv.height = Math.max(1, Math.round(view.h * view.dpr));
       const g = cv.getContext("2d");
       g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-      paintState(g, view);
-      cache.key = key;
-      cache.a = a;
-      cache.b = b;
+      store.empty = paint(g, view) === false; // nothing to show: skip drawing the picture
+      store.key = full;
+      store.cam = cam;
+      store.a = a;
+      store.b = b;
     }
+    if (store.empty) return;
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, dx * view.dpr, dy * view.dpr);
     ctx.drawImage(cv, 0, 0);
     ctx.restore();
-  };
+  }
+  // Everything under the counties, borders and the network: sea and waves, the coast's
+  // shallow water, land, deserts, hills and mountains, rivers, lakes, trees and cacti.
+  C.drawState = (ctx) => keptPicture(cache, ctx, "", paintState);
 
   function paintState(ctx, view) {
     const g = prepare();
@@ -732,11 +744,43 @@
       ctx.fill();
     }
   }
+  // The puffs over these areas ("outside" or state codes). clearing: state code -> 0..1 while
+  // its clouds swell and drift apart as they fade.
+  function cloudPuffs(g, codes, closed, clearing, view) {
+    const P = NR.toScreen;
+    const a = P(-119, 37), b = P(-119, 38);
+    const ppd = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const STEPS = [3.2, 1.6, 0.8, 0.4, 0.2, 0.1, 0.05];
+    const step = STEPS.find((st) => st * ppd < 46 * 2) || 0.05; // about 46 pixels apart
+    let lon0 = Infinity, lon1 = -Infinity, lat0 = Infinity, lat1 = -Infinity;
+    for (const [x, y] of [
+      [0, 0],
+      [view.w, 0],
+      [0, view.h],
+      [view.w, view.h],
+    ]) {
+      const [lon, lat] = NR.fromScreen(x, y);
+      lon0 = Math.min(lon0, lon);
+      lon1 = Math.max(lon1, lon);
+      lat0 = Math.min(lat0, lat);
+      lat1 = Math.max(lat1, lat);
+    }
+    const puffs = [];
+    for (let j = Math.floor(lat0 / step) - 1; j <= Math.ceil(lat1 / step) + 1; j++)
+      for (let i = Math.floor(lon0 / step) - 1; i <= Math.ceil(lon1 / step) + 1; i++) {
+        const lon = (i + 0.15 + 0.7 * hash(i, j, 61)) * step, lat = (j + 0.15 + 0.7 * hash(i, j, 62)) * step;
+        const code = fogAt(g, lon, lat, closed);
+        if (!code || !codes.includes(code)) continue;
+        const t = clearing[code] || 0;
+        const [x, y] = P(lon, lat);
+        const r = step * ppd * 0.42 * (0.85 + 0.35 * hash(i, j, 64)) * (1 + t * 0.6);
+        puffs.push({ code, x: x + t * (x - view.w / 2) * 0.4, y, r });
+      }
+    return puffs.sort((p, q) => p.y - q.y);
+  }
   C.drawFog = function (ctx, s, now) {
     const g = prepare();
     const view = NR.view;
-    const P = NR.toScreen;
-    const cull = culler(P, view.w, view.h);
     // Which states are closed, and which opened a moment ago (their fog is clearing)
     const closed = new Set();
     const clearing = {};
@@ -754,42 +798,16 @@
         }
       }
     }
-    // Puffy clouds on a jittered grid about 46 pixels apart, at the fog's edge and all over it
-    const a = P(-119, 37), b = P(-119, 38);
-    const ppd = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const STEPS = [3.2, 1.6, 0.8, 0.4, 0.2, 0.1, 0.05];
-    const step = STEPS.find((st) => st * ppd < 46 * 2) || 0.05;
-    let lon0 = Infinity, lon1 = -Infinity, lat0 = Infinity, lat1 = -Infinity;
-    for (const [x, y] of [
-      [0, 0],
-      [view.w, 0],
-      [0, view.h],
-      [view.w, view.h],
-    ]) {
-      const [lon, lat] = NR.fromScreen(x, y);
-      lon0 = Math.min(lon0, lon);
-      lon1 = Math.max(lon1, lon);
-      lat0 = Math.min(lat0, lat);
-      lat1 = Math.max(lat1, lat);
-    }
-    const puffs = [];
+    // The whole cloud bank drifts gently back and forth
     const time = now / 1000;
-    for (let j = Math.floor(lat0 / step) - 1; j <= Math.ceil(lat1 / step) + 1; j++)
-      for (let i = Math.floor(lon0 / step) - 1; i <= Math.ceil(lon1 / step) + 1; i++) {
-        const lon = (i + 0.15 + 0.7 * hash(i, j, 61)) * step, lat = (j + 0.15 + 0.7 * hash(i, j, 62)) * step;
-        const code = fogAt(g, lon, lat, closed);
-        if (!code) continue;
-        const t = clearing[code] || 0;
-        const [x, y] = P(lon, lat);
-        const ph = hash(i, j, 63) * 6.28;
-        // Clearing clouds swell and drift apart as they fade
-        const r = step * ppd * 0.42 * (0.85 + 0.35 * hash(i, j, 64)) * (1 + t * 0.6);
-        puffs.push({ code, x: x + Math.sin(time * 0.35 + ph) * 3 + t * (x - view.w / 2) * 0.4, y: y + Math.cos(time * 0.27 + ph) * 1.5, r });
-      }
-    puffs.sort((p, q) => p.y - q.y);
-    // The fog that stays, drawn straight onto the map
+    const dx = Math.sin(time * 0.35) * 3, dy = Math.cos(time * 0.27) * 1.5;
+    // The fog that stays: a kept picture, redrawn only when the view or the closed states change
     const staying = ["outside", ...[...closed].filter((c) => clearing[c] === undefined)];
-    paintFog(ctx, g, staying, puffs.filter((p) => staying.includes(p.code)), view, cull);
+    keptPicture(fogCache, ctx, staying.join(","), (c, v) => {
+      const puffs = cloudPuffs(g, staying, closed, {}, v);
+      if (!puffs.length) return false; // no fog anywhere on screen
+      paintFog(c, g, staying, puffs, v, culler(NR.toScreen, v.w, v.h));
+    }, dx, dy);
     // Fog that is clearing: drawn whole on a separate layer, then laid over the map see-through,
     // so it fades evenly instead of turning grey
     const fading = Object.keys(clearing);
@@ -804,9 +822,9 @@
     lc.setTransform(1, 0, 0, 1, 0, 0);
     lc.clearRect(0, 0, fogLayer.width, fogLayer.height);
     lc.setTransform(ctx.getTransform());
-    paintFog(lc, g, fading, puffs.filter((p) => fading.includes(p.code)), view, cull);
+    paintFog(lc, g, fading, cloudPuffs(g, fading, closed, clearing, view), view, culler(NR.toScreen, view.w, view.h));
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, dx * view.dpr, dy * view.dpr);
     ctx.globalAlpha = 1 - t;
     ctx.drawImage(fogLayer, 0, 0);
     ctx.restore();

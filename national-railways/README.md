@@ -216,7 +216,7 @@ Tap the **clipboard** on the bottom bar.
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
 | `js/metro.js` | City maps: neighborhoods, trams, metro and cable cars. |
 | `js/cartoon.js` | The Arcade look's cartoon map: hills, peaks, trees, cacti, waves, rivers and lakes, drawn from the terrain file. |
-| `js/draw.js` | Draws the map, lines, stations and trains. |
+| `js/draw.js` | Draws the map, lines, stations and trains. The map uses a Lambert conformal conic projection centered on the open states (the usual one for maps of the US and Canada). |
 | `js/ui.js` | Menus, buttons, touch/mouse input and the game loop. |
 
 ## Rebuilding the map (or adding a state)

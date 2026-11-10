@@ -5,7 +5,6 @@
   // Fonts for text on the map: from the --font-display and --font-mono tokens (they change with the look).
   let DISPLAY = '"Overpass", "Segoe UI", system-ui, sans-serif';
   let MONO = '"Overpass Mono", ui-monospace, Menlo, monospace';
-  const COS = Math.cos((37.2 * Math.PI) / 180); // shrink longitude to match miles at California's latitude
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const ease = (t) => t * t * (3 - 2 * t);
   const backOut = (t) => 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2);
@@ -50,8 +49,68 @@
   };
   NR.lineColor = (i) => colors.lines[i] || colors.ink;
 
+  // ---------- Map projection ----------
+  // Lambert conformal conic, the usual projection for maps of the US and Canada: shapes stay
+  // true, and north is straight up in the middle of the map. It is centered on the open states,
+  // with its two standard parallels a sixth of the way in from their south and north edges.
+  // Units are degrees of latitude (one is about 69 miles); y grows downward, like the screen.
+  const RAD = Math.PI / 180;
+  const proj = { lon0: -119.5, n: 0.6, F: 1, rho0: 0 };
+  const rhoOf = (phi) => ((180 / Math.PI) * proj.F) / Math.pow(Math.tan(Math.PI / 4 + phi / 2), proj.n);
+  function setProjection(lon0, latS, latN) {
+    const p1 = (latS + (latN - latS) / 6) * RAD, p2 = (latN - (latN - latS) / 6) * RAD;
+    const t = (p) => Math.tan(Math.PI / 4 + p / 2);
+    proj.n = Math.abs(p2 - p1) < 1e-6 ? Math.sin(p1) : Math.log(Math.cos(p1) / Math.cos(p2)) / Math.log(t(p2) / t(p1));
+    proj.F = (Math.cos(p1) * Math.pow(t(p1), proj.n)) / proj.n;
+    proj.lon0 = lon0;
+    proj.rho0 = rhoOf(((latS + latN) / 2) * RAD);
+  }
+  const base = (lon, lat) => {
+    const rho = rhoOf(lat * RAD);
+    const th = proj.n * (lon - proj.lon0) * RAD;
+    return [rho * Math.sin(th), rho * Math.cos(th) - proj.rho0];
+  };
+  // The opposite of base: longitude and latitude from map units.
+  const unbase = (x, y) => {
+    const yy = y + proj.rho0;
+    const rho = Math.hypot(x, yy);
+    const lon = proj.lon0 + Math.atan2(x, yy) / proj.n / RAD;
+    const lat = (2 * Math.atan(Math.pow(((180 / Math.PI) * proj.F) / rho, 1 / proj.n)) - Math.PI / 2) / RAD;
+    return [lon, lat];
+  };
+
+  // Borders, coasts, rivers and other fixed outlines: their map units are worked out once per
+  // projection and kept, so each frame only has to move and scale them onto the screen.
+  let projVersion = 0;
+  const projCache = new WeakMap();
+  function projected(list) {
+    let c = projCache.get(list);
+    if (!c || c.v !== projVersion) {
+      const xy = new Float64Array(list.length);
+      for (let i = 0; i < list.length; i += 2) {
+        const p = base(list[i], list[i + 1]);
+        xy[i] = p[0];
+        xy[i + 1] = p[1];
+      }
+      c = { v: projVersion, xy };
+      projCache.set(list, c);
+    }
+    return c.xy;
+  }
+  // Adds a flat list of longitude, latitude pairs to the current path, on the state map.
+  NR.traceList = function (ctx, list, close) {
+    if (list.length < 2) return;
+    const xy = projected(list);
+    // Screen = camera(offset(scale(tilt(map units - middle)))), as one linear step
+    const k = view.scale * cam.zoom, c = view.cos * k, s = view.sin * k;
+    const ex = cam.x + view.ox * cam.zoom - MID[0] * c + MID[1] * s;
+    const ey = cam.y + view.oy * cam.zoom - MID[0] * s - MID[1] * c;
+    ctx.moveTo(xy[0] * c - xy[1] * s + ex, xy[0] * s + xy[1] * c + ey);
+    for (let i = 2; i < xy.length; i += 2) ctx.lineTo(xy[i] * c - xy[i + 1] * s + ex, xy[i] * s + xy[i + 1] * c + ey);
+    if (close) ctx.closePath();
+  };
+
   // ---------- Fitting the open states on the screen ----------
-  const base = (lon, lat) => [lon * COS, -lat];
   const ringPoints = (ring) => {
     const pts = [];
     for (let i = 0; i < ring.length; i += 2) pts.push(base(ring[i], ring[i + 1]));
@@ -67,6 +126,20 @@
     if (key === fitted) return false;
     fitted = key;
     maxTilt = codes.length === 1 ? 12 : 0; // only long, diagonal California on its own may tilt
+    // Center the projection on these states
+    let lon0 = Infinity, lon1 = -Infinity, lat0 = Infinity, lat1 = -Infinity;
+    codes.forEach((code) =>
+      NR.MAP.stateLand[code].forEach((ring) => {
+        for (let i = 0; i < ring.length; i += 2) {
+          lon0 = Math.min(lon0, ring[i]);
+          lon1 = Math.max(lon1, ring[i]);
+          lat0 = Math.min(lat0, ring[i + 1]);
+          lat1 = Math.max(lat1, ring[i + 1]);
+        }
+      })
+    );
+    setProjection((lon0 + lon1) / 2, lat0, lat1);
+    projVersion++;
     ALL = codes.flatMap((code) => NR.MAP.stateLand[code].flatMap(ringPoints));
     MID = ALL.reduce((m, p) => [m[0] + p[0] / ALL.length, m[1] + p[1] / ALL.length], [0, 0]);
     return true;
@@ -182,7 +255,7 @@
     const ry = ((sy - cam.y) / cam.zoom - view.oy) / view.scale;
     const dx = rx * view.cos + ry * view.sin; // undo the tilt
     const dy = -rx * view.sin + ry * view.cos;
-    return [(dx + MID[0]) / COS, -(dy + MID[1])];
+    return unbase(dx + MID[0], dy + MID[1]);
   };
   // Is a point inside a flat ring of longitude, latitude pairs?
   function inRing(x, y, ring) {
@@ -337,18 +410,19 @@
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let lat = 30; lat <= 48; lat++) {
-      const a = NR.toScreen(-128, lat);
-      const b = NR.toScreen(-107, lat);
-      ctx.moveTo(a[0], a[1]);
-      ctx.lineTo(b[0], b[1]);
-    }
-    for (let lon = -128; lon <= -107; lon++) {
-      const a = NR.toScreen(lon, 30);
-      const b = NR.toScreen(lon, 48);
-      ctx.moveTo(a[0], a[1]);
-      ctx.lineTo(b[0], b[1]);
-    }
+    // Parallels curve in this projection, so each line is drawn a degree at a time
+    for (let lat = 30; lat <= 48; lat++)
+      for (let lon = -128; lon <= -107; lon++) {
+        const p = NR.toScreen(lon, lat);
+        if (lon === -128) ctx.moveTo(p[0], p[1]);
+        else ctx.lineTo(p[0], p[1]);
+      }
+    for (let lon = -128; lon <= -107; lon++)
+      for (let lat = 30; lat <= 48; lat++) {
+        const p = NR.toScreen(lon, lat);
+        if (lat === 30) ctx.moveTo(p[0], p[1]);
+        else ctx.lineTo(p[0], p[1]);
+      }
     ctx.stroke();
     ctx.font = `500 10px ${MONO}`;
     ctx.textAlign = "center";
@@ -360,14 +434,7 @@
   }
 
   // Adds a flat list of longitude, latitude pairs to the current path.
-  function tracePath(ctx, list, close) {
-    for (let i = 0; i < list.length; i += 2) {
-      const p = NR.toScreen(list[i], list[i + 1]);
-      if (i) ctx.lineTo(p[0], p[1]);
-      else ctx.moveTo(p[0], p[1]);
-    }
-    if (close) ctx.closePath();
-  }
+  const tracePath = (ctx, list, close) => NR.traceList(ctx, list, close);
 
   // ---------- Real geography: shaded mountains, lakes, rivers, passes and bridges ----------
   // Shaded relief pictures (js/terrain.js says which part of the map each one covers).
@@ -382,16 +449,31 @@
     return img.complete && img.naturalWidth ? img : null;
   }
   // Draw a relief picture stretched over its longitude/latitude box, through `project`.
+  // The state map's projection curves, so there it is laid down in 8 x 8 pieces that follow it.
   function drawRelief(ctx, info, project, alpha) {
     const img = reliefImage(info);
     if (!img) return;
     const [x0, y0, x1, y1] = info.box;
-    const tl = project(x0, y1), tr = project(x1, y1), bl = project(x0, y0);
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const n = project === NR.toScreen ? 8 : 1;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.imageSmoothingEnabled = true;
-    ctx.transform((tr[0] - tl[0]) / img.naturalWidth, (tr[1] - tl[1]) / img.naturalWidth, (bl[0] - tl[0]) / img.naturalHeight, (bl[1] - tl[1]) / img.naturalHeight, tl[0], tl[1]);
-    ctx.drawImage(img, 0, 0);
+    for (let i = 0; i < n; i++)
+      for (let j = 0; j < n; j++) {
+        const sx = (W * i) / n, sy = (H * j) / n, sw = W / n, sh = H / n;
+        const lonA = x0 + ((x1 - x0) * i) / n, lonB = x0 + ((x1 - x0) * (i + 1)) / n;
+        const latA = y1 - ((y1 - y0) * j) / n, latB = y1 - ((y1 - y0) * (j + 1)) / n;
+        const tl = project(lonA, latA), tr = project(lonB, latA), bl = project(lonA, latB);
+        // Each piece reaches half a screen pixel into the next, which hides the seams
+        // (a wider overlap would show as a lighter or darker strip).
+        const ex = n > 1 ? (0.5 * sw) / (Math.hypot(tr[0] - tl[0], tr[1] - tl[1]) || 1) : 0;
+        const ey = n > 1 ? (0.5 * sh) / (Math.hypot(bl[0] - tl[0], bl[1] - tl[1]) || 1) : 0;
+        ctx.save();
+        ctx.transform((tr[0] - tl[0]) / sw, (tr[1] - tl[1]) / sw, (bl[0] - tl[0]) / sh, (bl[1] - tl[1]) / sh, tl[0], tl[1]);
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw + ex, sh + ey);
+        ctx.restore();
+      }
     ctx.restore();
   }
   NR.drawRelief = drawRelief;
