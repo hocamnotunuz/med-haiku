@@ -16,7 +16,7 @@
 | 1.3 California-only shortcuts | **Done, but one item moved to 1.6:** bays, forests and deserts, cable cars, messages and screen text are general now. The rule for where the sea ends at the Mexican and Washington borders needs real outlines of the land outside the game; a general rule changed 544 routes, so it waits for the terrain rebuild in 1.6. |
 | 1.4 Choose where to start | **Done:** Settings → Start in (California, Nevada, Arizona, Oregon), from each pack's starting counties. Neighbors open once you own all of a state. Levels mode only where a pack has levels. Best scores per home state. |
 | 1.5 Two countries' money | Not started |
-| 1.6 Speed and memory | Not started. Also here: real outlines of the land outside the game (from 1.3). |
+| 1.6 Speed and memory | **In progress.** Done: map and terrain data per state (`packs/<code>/map.js`, `terrain.js`, relief pictures), and real outlines of every state, Mexico and Canada (`packs/index.js`), now used to tell land from sea outside the game and for the cartoon map and clouds. Left: load packs only when needed, and a speed test with all 50 states. |
 | 1.7 Pack checker | **Done (first version):** `tools/check-pack.js`, explained in `PACKS.md`. |
 | 1.8 Pack test | Not started |
 | 1.9 Pilot (WA, then BC) | Not started |

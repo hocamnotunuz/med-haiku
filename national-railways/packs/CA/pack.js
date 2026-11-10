@@ -1,7 +1,7 @@
 // National Railways pack: California.
 // Everything hand-made for one state: main stations, towns, city maps, mountain passes,
 // bridges, bays, and where the forests and deserts are. The county borders come from map.js
-// and the mountains, lakes and rivers from js/terrain.js. What each field means: PACKS.md.
+// and the mountains, lakes and rivers from terrain.js. What each field means: PACKS.md.
 NR.addPack({
   code: "CA",
   name: "California",

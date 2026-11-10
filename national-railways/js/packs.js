@@ -1,8 +1,10 @@
 // National Railways: state packs. Every state in the game (and later every Canadian province)
 // has a folder, packs/<code>/, with:
-//   map.js   its county regions, land, coast and borders (made by tools/build-map.js)
-//   pack.js  everything hand-made for it: main stations, towns, levels, starting counties,
-//            city maps, mountain passes, bridges, bays, and where the forests and deserts are
+//   map.js      its county regions, land, coast and borders (made by tools/build-map.js)
+//   terrain.js  its mountains grid, lakes, rivers, ranges and city hills and water
+//               (made by tools/build-terrain.js, with relief.png and city-<key>.png)
+//   pack.js     everything hand-made for it: main stations, towns, levels, starting counties,
+//               city maps, mountain passes, bridges, bays, and where the forests and deserts are
 // packs/index.js has every state (and Mexico and Canada) as a rough outline, for the clouds
 // and the land outside the game. PACKS.md explains every field. This file collects the packs
 // into what the rest of the game uses (NR.MAP, NR.CITIES, NR.TOWNS, NR.METROS...).
@@ -20,6 +22,35 @@ window.NR = window.NR || {};
   NR.addPackMap = (map) => {
     NR.PACK_MAPS[map.code] = map;
   };
+  NR.PACK_TERRAIN = {};
+  NR.addPackTerrain = (terrain) => {
+    NR.PACK_TERRAIN[terrain.code] = terrain;
+  };
+  // A grid's letters ("A12C3": A flat or sea, B hills, C mountains, D high mountains) as numbers 0-3
+  const decodeGrid = (t) => {
+    const cells = new Uint8Array(t.cols * t.rows);
+    let i = 0;
+    for (const m of t.grid.matchAll(/([A-D])(\d*)/g)) {
+      const n = m[2] ? +m[2] : 1;
+      cells.fill(m[1].charCodeAt(0) - 65, i, i + n);
+      i += n;
+    }
+    return cells;
+  };
+  // Mountains at a place: 0 flat (or sea), 1 hills, 2 mountains, 3 high mountains (0 off every grid).
+  // The grids line up and agree where they overlap, so the first one that covers the place answers.
+  // Cells are counted from 0° (not from each grid's corner), so a place exactly on the edge
+  // between two cells gets the same cell in every grid.
+  NR.heightAt = (lon, lat) => {
+    for (const g of NR.TERRAIN.grids) {
+      const c = Math.floor(lon / g.step + 1e-9) - Math.round(g.box[0] / g.step);
+      const r = Math.round(g.box[3] / g.step) + Math.floor(-lat / g.step + 1e-9);
+      if (c >= 0 && r >= 0 && c < g.cols && r < g.rows) return g.cells[r * g.cols + c];
+    }
+    return 0;
+  };
+  // Land outside the game: every state and country on the map that isn't one of the packs.
+  NR.outsideAreas = () => Object.values(NR.AREAS).filter((a) => !NR.PACK_MAPS[a.code]);
   // Every state and country on the map (packs/index.js), by code
   NR.AREAS = {};
   NR.addAreas = (list) => list.forEach((a) => (NR.AREAS[a.code] = a));
@@ -54,10 +85,22 @@ window.NR = window.NR || {};
     // County region id -> "forest", "wooded" or "dry" (others: farmland and grassland)
     NR.BIOMES = {};
     packs.forEach((p) => Object.entries(p.biomes || {}).forEach(([kind, ids]) => ids.forEach((id) => (NR.BIOMES[id] = kind))));
-    // The geography code reads passes and bridges with the rest of the terrain
-    if (NR.TERRAIN) {
-      NR.TERRAIN.passes = NR.PASSES;
-      NR.TERRAIN.bridges = NR.BRIDGES;
-    }
+    // Terrain: each state's grid and relief picture; lakes, rivers and ranges that touch two
+    // states are in both packs, so keep one copy of each
+    const terrain = NR.PACK_LIST.map((code) => NR.PACK_TERRAIN[code]).filter(Boolean);
+    const unique = (list) => {
+      const ids = new Set();
+      return list.filter((x) => !ids.has(x.id) && ids.add(x.id));
+    };
+    NR.TERRAIN = {
+      grids: terrain.map((t) => ({ code: t.code, box: t.box, step: t.step, cols: t.cols, rows: t.rows, cells: t.cells || (t.cells = decodeGrid(t)) })),
+      reliefs: terrain.map((t) => ({ code: t.code, src: t.relief.src, box: t.relief.box })),
+      lakes: unique(terrain.flatMap((t) => t.lakes)),
+      rivers: unique(terrain.flatMap((t) => t.rivers)),
+      ranges: unique(terrain.flatMap((t) => t.ranges)),
+      cities: Object.assign({}, ...terrain.map((t) => t.cities)),
+      passes: NR.PASSES,
+      bridges: NR.BRIDGES,
+    };
   };
 })();

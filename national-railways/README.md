@@ -206,14 +206,14 @@ Tap the **clipboard** on the bottom bar.
 | `style.css` | Colors, fonts and layout (light and dark themes, Arcade and Classic looks). |
 | `packs/index.js` | Every state (and Mexico and Canada) as a rough outline, with its neighbors: for the clouds and the land outside the game. Generated: do not edit by hand. |
 | `packs/<code>/map.js` | One per state in the game: its county regions, land, coast and borders. Generated: do not edit by hand. |
-| `js/terrain.js` | Real geography: the mountains grid, lakes, rivers, passes, bridges, and each city's hills and water. Generated: do not edit by hand. |
-| `img/relief*.png` | Shaded relief (mountain shading) for the state map and each city map. Generated. |
+| `packs/<code>/terrain.js` | One per state: real geography (the mountains grid, lakes, rivers, named ranges, and its city maps' hills and water). Generated: do not edit by hand. |
+| `packs/<code>/relief.png`, `city-<key>.png` | Shaded relief (mountain shading) for the state and each of its city maps (Classic look). Generated. |
 | `js/geography.js` | The geography rules: passes, tunnels, bridges, prices and train speeds, Gentle and Tough. |
 | `js/packs.js` | Lists the state packs and collects them into the game's lists. |
 | `packs/<code>/pack.js` | One per state: its main stations, towns, levels, starting counties, city maps, mountain passes, bridges, bays and biomes (hand-made). See `PACKS.md`. |
 | `js/cities.js` | The kinds of place and line names shared by every state. |
 | `tools/build-map.js` | Rebuilds `packs/index.js` and each state's `map.js` from Census data and Natural Earth outlines (see below). |
-| `tools/build-terrain.js` | Rebuilds the geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. It reads the passes from the packs. |
+| `tools/build-terrain.js` | Rebuilds every state's geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. It reads the city maps and passes from the packs. |
 | `tools/check-pack.js` | Checks the state packs for mistakes (`node tools/check-pack.js`). Every pack must pass. |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
 | `js/metro.js` | City maps: neighborhoods, trams, metro and cable cars. |

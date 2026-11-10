@@ -305,7 +305,8 @@ const roughRings = (polys, tol) =>
     })
     .map((ring) => simplify(ring, tol))
     .filter((ring) => ring.length >= 4)
-    .map((ring) => flat(ring.map(([x, y]) => [Math.round(x * 100) / 100, Math.round(y * 100) / 100])))
+    // Alaska's westernmost islands lie past the date line: put them just west of -180°
+    .map((ring) => flat(ring.map(([x, y]) => [Math.round((x > 0 ? x - 360 : x) * 100) / 100, Math.round(y * 100) / 100])))
     .filter((ring) => ring.length >= 8);
 const boxOf = (rings) => {
   const b = [Infinity, Infinity, -Infinity, -Infinity];

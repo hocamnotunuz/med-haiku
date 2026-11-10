@@ -1,5 +1,5 @@
 // National Railways: real geography on the state map.
-// Mountains, bays, lakes and rivers (from js/terrain.js) make track cost more, slow trains
+// Mountains, bays, lakes and rivers (from each state's terrain.js) make track cost more, slow trains
 // down, or need a tunnel or a bridge. Two settings: Gentle (the default) and Tough.
 (function () {
   "use strict";
@@ -82,24 +82,8 @@
   NR.geoSetting = L;
 
   // ---- Reading the terrain ----
-  // The mountains grid: 0 flat, 1 hills, 2 mountains, 3 high mountains;
-  // 4 to 7 the same for land outside the four states (Mexico, Utah...).
-  const grid = new Uint8Array(G.cols * G.rows);
-  {
-    let i = 0;
-    G.grid.replace(/([A-H])(\d*)/g, (_, ch, n) => {
-      const len = n ? Number(n) : 1;
-      grid.fill("ABCDEFGH".indexOf(ch), i, i + len);
-      i += len;
-      return "";
-    });
-  }
-  const cellAt = (lon, lat) => {
-    const c = Math.floor((lon - G.box[0]) / G.step);
-    const r = Math.floor((G.box[3] - lat) / G.step);
-    return c < 0 || r < 0 || c >= G.cols || r >= G.rows ? 0 : grid[r * G.cols + c];
-  };
-  NR.terrainAt = (lon, lat) => cellAt(lon, lat) & 3;
+  // The mountains grid (each state's, from its pack): 0 flat, 1 hills, 2 mountains, 3 high mountains.
+  NR.terrainAt = (lon, lat) => NR.heightAt(lon, lat);
   function inRing(x, y, ring) {
     let inside = false;
     for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) {
@@ -124,11 +108,9 @@
   // Bays (from the state packs): water inside one needs a bridge. Elsewhere, sea between two
   // coastal stations just means track follows the coast.
   const bays = (NR.BAYS || []).map((b) => ({ name: b.name, ring: b.ring, box: boxOf(b.ring) }));
-  // Land in a neighboring state or country. The Pacific is only to the west: anything east of
-  // San Diego's coast (or north of Oregon's coast) that isn't ours is someone else's land.
-  // To do (plan step 1.6): real outlines of the land outside the game, from the terrain tool,
-  // instead of these two California and Oregon coast numbers.
-  const foreignLand = (lon, lat) => lon > -117.13 || (lat > 46.1 && lon > -123.95) || cellAt(lon, lat) >= 4;
+  // Land in a state or country outside the game, from the rough outlines in packs/index.js.
+  const outsideLand = NR.outsideAreas().map((a) => ({ box: a.box, rings: a.outline.map((ring) => ({ ring, box: boxOf(ring) })) }));
+  const foreignLand = (lon, lat) => outsideLand.some((a) => lon >= a.box[0] && lon <= a.box[2] && lat >= a.box[1] && lat <= a.box[3] && inside(a.rings, lon, lat));
   function waterAt(lon, lat) {
     const lake = lakes.find((l) => lon >= l.box[0] && lon <= l.box[2] && lat >= l.box[1] && lat <= l.box[3] && inRing(lon, lat, l.ring));
     if (lake) return { kind: "lake", name: lake.name };

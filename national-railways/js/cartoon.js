@@ -131,21 +131,17 @@
     return { pts: flat, box };
   }
 
-  // ---------- The state map's grid: height, county kind, lakes ----------
-  let G = null;
-  function prepare() {
-    if (G) return G;
-    const T = NR.TERRAIN;
-    const { cols, rows, step } = T;
-    const lon0 = T.box[0], lat1 = T.box[3];
-    const code = new Uint8Array(cols * rows); // 0-3 heights in the four states, 4-7 outside them
-    let i = 0;
-    for (const m of T.grid.matchAll(/([A-H])(\d*)/g)) {
-      const n = m[2] ? +m[2] : 1;
-      code.fill(m[1].charCodeAt(0) - 65, i, i + n);
-      i += n;
-    }
-    // One pixel per cell: the kind of county (red) and lakes (green)
+  // ---------- Each state's grid: height, county kind, lakes ----------
+  // Worked out once per state (and again if its terrain changes): the kind of county under
+  // each cell, the lakes, the sand and hill shapes, and where the icons go.
+  const packPrep = {};
+  function prepPack(code) {
+    const t = NR.TERRAIN.grids.find((x) => x.code === code);
+    if (!t) return null;
+    if (packPrep[code] && packPrep[code].t === t) return packPrep[code];
+    const { cols, rows, step } = t;
+    const lon0 = t.box[0], lat1 = t.box[3];
+    // One pixel per cell: the kind of county (red, this state's counties only) and lakes (green)
     const cv = document.createElement("canvas");
     cv.width = cols;
     cv.height = rows;
@@ -157,6 +153,7 @@
       g.closePath();
     };
     for (const r of NR.MAP.regions) {
+      if (r.state !== code) continue;
       g.beginPath();
       r.rings.forEach(trace);
       g.fillStyle = `rgb(${kindOf(r.id) * 50},0,0)`;
@@ -164,7 +161,7 @@
     }
     g.globalCompositeOperation = "lighter";
     g.beginPath();
-    T.lakes.forEach((l) => trace(l.ring));
+    NR.TERRAIN.lakes.forEach((l) => trace(l.ring));
     g.fillStyle = "rgb(0,255,0)";
     g.fill("evenodd");
     const px = g.getImageData(0, 0, cols, rows).data;
@@ -174,25 +171,7 @@
       kind[k] = Math.round(px[k * 4] / 50);
       lake[k] = px[k * 4 + 1] > 127 ? 1 : 0;
     }
-    // Which of the four states each cell is in (1-4, 0 = none), for the fog
-    const codes = Object.keys(NR.MAP.stateLand);
-    g.globalCompositeOperation = "source-over";
-    g.save();
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.clearRect(0, 0, cols, rows);
-    g.restore();
-    codes.forEach((st, i) => {
-      g.beginPath();
-      NR.MAP.stateLand[st].forEach(trace);
-      g.fillStyle = `rgb(${(i + 1) * 50},0,0)`;
-      g.fill("evenodd");
-    });
-    const px2 = g.getImageData(0, 0, cols, rows).data;
-    const sid = new Uint8Array(cols * rows);
-    for (let k = 0; k < cols * rows; k++) sid[k] = Math.round(px2[k * 4] / 50);
-    const level = (k) => code[k] & 3;
-    const outside = (k) => code[k] >= 4;
-    // Land outside the four states (Mexico, Utah, Idaho...), grown by a cell so it meets their borders.
+    const level = (k) => t.cells[k];
     const near = (k, f) => {
       const c = k % cols, r = (k - c) / cols;
       for (let dr = -1; dr <= 1; dr++)
@@ -202,29 +181,23 @@
         }
       return false;
     };
-    const grown = new Uint8Array(cols * rows);
-    for (let k = 0; k < cols * rows; k++) grown[k] = near(k, outside) ? 1 : 0;
-    G = {
+    const p = {
+      code,
+      t,
       cols,
       rows,
       step,
       lon0,
-      lat0: T.box[1],
       lat1,
-      code,
       kind,
       lake,
       level,
-      codes,
-      sid,
-      grown,
-      outside: outlines((k) => grown[k], cols, rows, lon0, lat1, step, 8, 400),
-      dry: outlines((k) => kind[k] === 4 || (kind[k] === 0 && !outside(k) && near(k, (j) => kind[j] === 4)), cols, rows, lon0, lat1, step, 8),
-      terraces: [1, 2, 3].map((t) => outlines((k) => !outside(k) && level(k) >= t, cols, rows, lon0, lat1, step, t === 1 ? 14 : t === 2 ? 8 : 4)),
+      // Shapes are drawn clipped to the state, so they may run a little past its borders
+      dry: outlines((k) => kind[k] === 4 || (kind[k] === 0 && near(k, (j) => kind[j] === 4)), cols, rows, lon0, lat1, step, 8),
+      terraces: [1, 2, 3].map((lv) => outlines((k) => level(k) >= lv, cols, rows, lon0, lat1, step, lv === 1 ? 14 : lv === 2 ? 8 : 4)),
     };
-    G.icons = placeIcons(G);
-    G.waves = placeWaves(G);
-    return G;
+    p.icons = placeIcons(p);
+    return (packPrep[code] = p);
   }
 
   // A steady random number for each place, so the trees don't jump around.
@@ -235,15 +208,19 @@
   };
 
   // Icons on a jittered grid, in five sizes of grid (16, 8, 4, 2 and 1 cells apart):
-  // the map uses whichever keeps them about 26 pixels apart at the current zoom.
+  // the map uses whichever keeps them about 26 pixels apart at the current zoom. The grid is
+  // counted from 0° (not from each state's corner), so icons sit in the same places whichever
+  // states are loaded, and each state only places icons on its own land.
   const BLOCKS = [16, 8, 4, 2, 1];
   function placeIcons(g) {
+    const ac0 = Math.round(g.lon0 / g.step), ar0 = Math.round(-g.lat1 / g.step); // the grid's corner, counted from 0°
     return BLOCKS.map((n, li) => {
       const list = [];
-      for (let br = 0; br * n < g.rows; br++)
-        for (let bc = 0; bc * n < g.cols; bc++) {
-          const c = Math.min(g.cols - 1, bc * n + Math.floor(hash(bc, br, li * 7 + 1) * n));
-          const r = Math.min(g.rows - 1, br * n + Math.floor(hash(bc, br, li * 7 + 2) * n));
+      for (let br = Math.floor(ar0 / n); br * n < ar0 + g.rows; br++)
+        for (let bc = Math.floor(ac0 / n); bc * n < ac0 + g.cols; bc++) {
+          const c = bc * n + Math.floor(hash(bc, br, li * 7 + 1) * n) - ac0;
+          const r = br * n + Math.floor(hash(bc, br, li * 7 + 2) * n) - ar0;
+          if (c < 0 || r < 0 || c >= g.cols || r >= g.rows) continue;
           const k = r * g.cols + c;
           const kind = g.kind[k];
           if (!kind || g.lake[k]) continue;
@@ -269,33 +246,81 @@
     });
   }
 
-  // Little waves out at sea, away from the coast, in four spacings (like the icons).
-  const WAVE_STEPS = [1.4, 0.7, 0.35, 0.175];
-  function placeWaves(g) {
-    return WAVE_STEPS.map((step) => wavesAt(g, step));
-  }
-  function wavesAt(g, step) {
-    const list = [];
-    for (let lat = 28; lat < 49.5; lat += step)
-      for (let lon = -131; lon < -114; lon += step) {
-        const i = Math.round(lon / step), j = Math.round(lat / step);
-        const x = lon + step * (0.15 + 0.7 * hash(i, j, 91)), y = lat + step * (0.15 + 0.7 * hash(i, j, 92));
-        const c = Math.floor((x - g.lon0) / g.step), r = Math.floor((g.lat1 - y) / g.step);
-        if (c >= -2 && r >= -2 && c < g.cols + 2 && r < g.rows + 2) {
-          // Inside the grid: open sea only, two cells clear of any land
-          let clear = true;
-          for (let dr = -2; dr <= 2 && clear; dr++)
-            for (let dc = -2; dc <= 2 && clear; dc++) {
-              const cc = c + dc, rr = r + dr;
-              if (cc < 0 || rr < 0 || cc >= g.cols || rr >= g.rows) continue;
-              const k = rr * g.cols + cc;
-              if (g.kind[k] || g.code[k] >= 4) clear = false;
-            }
-          if (!clear) continue;
-        } else if (!(x < g.lon0 || (y < g.lat0 && x < -117.3))) continue; // outside the grid: only the open Pacific
-        list.push({ lon: x, lat: y, w: 0.8 + 0.4 * hash(i, j, 93) });
+  // ---------- The whole map: where the land is (for waves) ----------
+  // A coarse picture of all land on the map (every state, Mexico and Canada, from
+  // packs/index.js), 0.1° a cell, grown by two cells: waves only go on open sea.
+  const WORLD = { lon0: -190, lat1: 85, step: 0.1, cols: 1400, rows: 720 };
+  let openSea = null;
+  function seaMask() {
+    if (openSea) return openSea;
+    const { lon0, lat1, step, cols, rows } = WORLD;
+    const cv = document.createElement("canvas");
+    cv.width = cols;
+    cv.height = rows;
+    const g = cv.getContext("2d", { willReadFrequently: true });
+    g.setTransform(1 / step, 0, 0, -1 / step, -lon0 / step, lat1 / step);
+    g.beginPath();
+    for (const a of Object.values(NR.AREAS))
+      for (const ring of a.outline) {
+        g.moveTo(ring[0], ring[1]);
+        for (let k = 2; k < ring.length; k += 2) g.lineTo(ring[k], ring[k + 1]);
+        g.closePath();
       }
-    return list;
+    g.fillStyle = "#fff";
+    g.fill("evenodd");
+    const px = g.getImageData(0, 0, cols, rows).data;
+    const land = new Uint8Array(cols * rows);
+    for (let k = 0; k < cols * rows; k++) land[k] = px[k * 4 + 3] > 20 ? 1 : 0;
+    openSea = new Uint8Array(cols * rows);
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) {
+        let clear = true;
+        for (let dr = -2; dr <= 2 && clear; dr++)
+          for (let dc = -2; dc <= 2 && clear; dc++) {
+            const rr = r + dr, cc = c + dc;
+            if (rr >= 0 && cc >= 0 && rr < rows && cc < cols && land[rr * cols + cc]) clear = false;
+          }
+        openSea[r * cols + c] = clear ? 1 : 0;
+      }
+    return openSea;
+  }
+  const isOpenSea = (lon, lat) => {
+    const c = Math.floor((lon - WORLD.lon0) / WORLD.step), r = Math.floor((WORLD.lat1 - lat) / WORLD.step);
+    return c < 0 || r < 0 || c >= WORLD.cols || r >= WORLD.rows ? true : !!seaMask()[r * WORLD.cols + c];
+  };
+  // The longitude and latitude the screen covers (with a margin)
+  function screenBox(view) {
+    let lon0 = Infinity, lon1 = -Infinity, lat0 = Infinity, lat1 = -Infinity;
+    for (const [x, y] of [
+      [0, 0],
+      [view.w, 0],
+      [0, view.h],
+      [view.w, view.h],
+      [view.w / 2, 0],
+      [view.w / 2, view.h],
+    ]) {
+      const [lon, lat] = NR.fromScreen(x, y);
+      lon0 = Math.min(lon0, lon);
+      lon1 = Math.max(lon1, lon);
+      lat0 = Math.min(lat0, lat);
+      lat1 = Math.max(lat1, lat);
+    }
+    return [lon0, lat0, lon1, lat1];
+  }
+  // Little waves out at sea, on a jittered grid in four spacings (about 50 pixels apart).
+  const WAVE_STEPS = [1.4, 0.7, 0.35, 0.175];
+  function wavesOnScreen(view, ppd) {
+    let wl = WAVE_STEPS.findIndex((st) => st * ppd < 50);
+    wl = wl < 0 ? WAVE_STEPS.length - 1 : Math.max(0, wl - 1);
+    const step = WAVE_STEPS[wl];
+    const [lon0, lat0, lon1, lat1] = screenBox(view);
+    const list = [];
+    for (let j = Math.floor(lat0 / step) - 1; j <= Math.ceil(lat1 / step); j++)
+      for (let i = Math.floor(lon0 / step) - 1; i <= Math.ceil(lon1 / step); i++) {
+        const x = (i + 0.15 + 0.7 * hash(i, j, 91)) * step, y = (j + 0.15 + 0.7 * hash(i, j, 92)) * step;
+        if (isOpenSea(x, y)) list.push({ lon: x, lat: y, w: 0.8 + 0.4 * hash(i, j, 93) });
+      }
+    return { list, step };
   }
 
   // ---------- Drawing helpers ----------
@@ -572,35 +597,33 @@
   C.drawState = (ctx) => keptPicture(cache, ctx, "", paintState);
 
   function paintState(ctx, view) {
-    const g = prepare();
     const P = NR.toScreen;
     const cull = culler(P, view.w, view.h);
-    const a = P(-119, 37), b = P(-119, 38);
-    const ppd = Math.hypot(b[0] - a[0], b[1] - a[1]); // pixels per degree of latitude
-    coarse = g.step * ppd < 9; // a grid cell is under 9 pixels
+    const [clon, clat] = NR.fromScreen(view.w / 2, view.h / 2);
+    const a = P(clon, clat), b = P(clon, clat + 1);
+    const ppd = Math.hypot(b[0] - a[0], b[1] - a[1]); // pixels per degree of latitude, mid-screen
+    const packs = NR.MAP.states.map((st) => prepPack(st.code)).filter(Boolean);
+    coarse = 0.05 * ppd < 9; // a grid cell is under 9 pixels
     // Waves
+    const waves = wavesOnScreen(view, ppd);
     ctx.lineCap = "round";
     ctx.strokeStyle = K.wave;
     ctx.lineWidth = 1.6;
     ctx.beginPath();
-    let wl = WAVE_STEPS.findIndex((st) => st * ppd < 50);
-    wl = wl < 0 ? WAVE_STEPS.length - 1 : Math.max(0, wl - 1);
-    for (const wv of g.waves[wl]) {
+    for (const wv of waves.list) {
       const [x, y] = P(wv.lon, wv.lat);
       if (x < -20 || y < -20 || x > view.w + 20 || y > view.h + 20) continue;
-      const w = Math.min(10, Math.max(5, WAVE_STEPS[wl] * ppd * 0.12)) * wv.w;
+      const w = Math.min(10, Math.max(5, waves.step * ppd * 0.12)) * wv.w;
       ctx.moveTo(x - w, y);
       ctx.quadraticCurveTo(x - w / 2, y - w * 0.6, x, y);
       ctx.quadraticCurveTo(x + w / 2, y - w * 0.6, x + w, y);
     }
     ctx.stroke();
-    // Shallow water along every coast: two bands under the land
-    const landPath = () => {
-      ctx.beginPath();
-      NR.MAP.land.forEach((ring) => traceFlat(ctx, ring, P, true));
-      traceRings(ctx, g.outside, P, cull);
-    };
-    landPath();
+    // Shallow water along every coast (the game's states and the land outside them): two bands under the land
+    const outside = NR.outsideAreas().filter((ar) => cull(ar.box));
+    ctx.beginPath();
+    NR.MAP.land.forEach((ring) => traceFlat(ctx, ring, P, true));
+    outside.forEach((ar) => ar.outline.forEach((ring) => traceFlat(ctx, ring, P, true)));
     ctx.lineJoin = "round";
     ctx.strokeStyle = K.shallow;
     ctx.lineWidth = 18;
@@ -608,33 +631,40 @@
     ctx.strokeStyle = K.foam;
     ctx.lineWidth = 7;
     ctx.stroke();
-    // Land outside the four states, then the states' own land
-    ctx.beginPath();
-    traceRings(ctx, g.outside, P, cull);
+    // Land outside the game, then the states' own land
     ctx.fillStyle = K.outside;
-    ctx.fill();
+    for (const ar of outside) {
+      ctx.beginPath();
+      ar.outline.forEach((ring) => traceFlat(ctx, ring, P, true));
+      ctx.fill("evenodd");
+    }
     ctx.beginPath();
     NR.MAP.land.forEach((ring) => traceFlat(ctx, ring, P, true));
     ctx.fillStyle = K.land;
     ctx.fill("evenodd");
-    ctx.save();
-    ctx.clip("evenodd");
-    // Deserts: sand
-    ctx.beginPath();
-    traceRings(ctx, g.dry, P, cull);
-    ctx.fillStyle = K.sand;
-    ctx.fill("evenodd");
-    // Hills, mountains and the high peaks: layers of see-through color with a soft edge
-    for (let t = 1; t <= 3; t++) {
+    // Each state: sand in the deserts, then hills, mountains and the high peaks as layers of
+    // see-through color with a soft edge, kept inside the state
+    for (const p of packs) {
+      if (!cull(p.t.box)) continue;
+      ctx.save();
       ctx.beginPath();
-      traceRings(ctx, g.terraces[t - 1], P, cull);
-      ctx.fillStyle = K.tint[t];
+      NR.MAP.stateLand[p.code].forEach((ring) => traceFlat(ctx, ring, P, true));
+      ctx.clip("evenodd");
+      ctx.beginPath();
+      traceRings(ctx, p.dry, P, cull);
+      ctx.fillStyle = K.sand;
       ctx.fill("evenodd");
-      ctx.strokeStyle = K.edge;
-      ctx.lineWidth = t === 1 ? 1 : 1.4;
-      ctx.stroke();
+      for (let t = 1; t <= 3; t++) {
+        ctx.beginPath();
+        traceRings(ctx, p.terraces[t - 1], P, cull);
+        ctx.fillStyle = K.tint[t];
+        ctx.fill("evenodd");
+        ctx.strokeStyle = K.edge;
+        ctx.lineWidth = t === 1 ? 1 : 1.4;
+        ctx.stroke();
+      }
+      ctx.restore();
     }
-    ctx.restore();
     // Rivers: blue with a darker edge
     const zoomW = Math.min(3.6, Math.max(1.6, ppd / 40));
     ctx.beginPath();
@@ -650,16 +680,19 @@
     // Lakes: blue, a lighter band along the shore inside, and an outline
     lakes(ctx, NR.TERRAIN.lakes.map((l) => l.ring), P);
     // Mountains, trees and cacti, back to front
-    const sizes = BLOCKS.map((n) => n * g.step * ppd);
+    const sizes = BLOCKS.map((n) => n * 0.05 * ppd);
     let li = sizes.findIndex((px) => px < 24);
     li = li < 0 ? BLOCKS.length - 1 : Math.max(0, li - 1);
     const spacing = sizes[li];
     const s = Math.min(34, Math.max(12, spacing * 1.05));
     const shown = [];
-    for (const it of g.icons[li]) {
-      const [x, y] = P(it.lon, it.lat);
-      if (x < -40 || y < -10 || x > view.w + 40 || y > view.h + 50) continue;
-      shown.push([y, x, it]);
+    for (const p of packs) {
+      if (!cull(p.t.box)) continue;
+      for (const it of p.icons[li]) {
+        const [x, y] = P(it.lon, it.lat);
+        if (x < -40 || y < -10 || x > view.w + 40 || y > view.h + 50) continue;
+        shown.push([y, x, it]);
+      }
     }
     shown.sort((p, q) => p[0] - q[0]);
     for (const [y, x, it] of shown) icon(ctx, it, x, y, s * it.size);
@@ -687,32 +720,63 @@
   const fogOpenedAt = {};
   C.fogColor = () => K.fog;
   // Is this place under fog? (closed: the states not open yet)
-  function fogAt(g, lon, lat, closed) {
-    let c = Math.floor((lon - g.lon0) / g.step), r = Math.floor((g.lat1 - lat) / g.step);
-    if (c < -400 || r < -400 || c >= g.cols + 400 || r >= g.rows + 400) return null;
-    c = Math.min(g.cols - 1, Math.max(0, c));
-    r = Math.min(g.rows - 1, Math.max(0, r));
-    const k = r * g.cols + c;
-    if (g.sid[k]) return closed.has(g.codes[g.sid[k] - 1]) ? g.codes[g.sid[k] - 1] : null;
-    return g.grown[k] ? "outside" : null;
+  function inRing(x, y, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) {
+      const xi = ring[i], yi = ring[i + 1], xj = ring[j], yj = ring[j + 1];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  // Rings with their boxes, for quick "is this place inside?" tests
+  const ringSet = (rings) =>
+    rings.map((ring) => {
+      const b = [Infinity, Infinity, -Infinity, -Infinity];
+      for (let i = 0; i < ring.length; i += 2) {
+        b[0] = Math.min(b[0], ring[i]);
+        b[1] = Math.min(b[1], ring[i + 1]);
+        b[2] = Math.max(b[2], ring[i]);
+        b[3] = Math.max(b[3], ring[i + 1]);
+      }
+      return { ring, b };
+    });
+  const inSet = (set, lon, lat) => set.reduce((n, o) => (lon >= o.b[0] && lon <= o.b[2] && lat >= o.b[1] && lat <= o.b[3] && inRing(lon, lat, o.ring) ? !n : n), false);
+  const landSets = new WeakMap();
+  const setOf = (rings) => landSets.get(rings) || (landSets.set(rings, ringSet(rings)), landSets.get(rings));
+  // Is this place under fog? Returns a closed state's code, "outside" (land outside the game), or null.
+  function fogAt(lon, lat, closed) {
+    for (const st of NR.MAP.states) {
+      const set = setOf(NR.MAP.stateLand[st.code]);
+      if (inSet(set, lon, lat)) return closed.has(st.code) ? st.code : null;
+    }
+    for (const ar of NR.outsideAreas())
+      if (lon >= ar.box[0] && lon <= ar.box[2] && lat >= ar.box[1] && lat <= ar.box[3] && inSet(setOf(ar.outline), lon, lat)) return "outside";
+    return null;
   }
   let fogLayer = null;
   // Paints fog over these areas ("outside" or state codes): a solid base, then the clouds.
-  function paintFog(ctx, g, codes, puffs, view, cull) {
+  function paintFog(ctx, codes, puffs, view, cull) {
     const P = NR.toScreen;
+    ctx.fillStyle = K.fog;
     for (const code of codes) {
       ctx.save();
-      ctx.beginPath();
       if (code === "outside") {
-        // The land outside the four states, never inside them
-        ctx.rect(-50, -50, view.w + 100, view.h + 100);
-        Object.values(NR.MAP.stateLand).forEach((rings) => rings.forEach((ring) => traceFlat(ctx, ring, P, true)));
-        ctx.clip("evenodd");
+        // The land outside the game (its rough outlines), never over the game's own states
         ctx.beginPath();
-        traceRings(ctx, g.outside, P, cull);
-      } else NR.MAP.stateLand[code].forEach((ring) => traceFlat(ctx, ring, P, true));
-      ctx.fillStyle = K.fog;
-      ctx.fill(code === "outside" ? "nonzero" : "evenodd");
+        ctx.rect(-50, -50, view.w + 100, view.h + 100);
+        NR.MAP.land.forEach((ring) => traceFlat(ctx, ring, P, true));
+        ctx.clip("evenodd");
+        for (const ar of NR.outsideAreas()) {
+          if (!cull(ar.box)) continue;
+          ctx.beginPath();
+          ar.outline.forEach((ring) => traceFlat(ctx, ring, P, true));
+          ctx.fill("evenodd");
+        }
+      } else {
+        ctx.beginPath();
+        NR.MAP.stateLand[code].forEach((ring) => traceFlat(ctx, ring, P, true));
+        ctx.fill("evenodd");
+      }
       ctx.restore();
     }
     if (!puffs.length) return;
@@ -746,9 +810,10 @@
   }
   // The puffs over these areas ("outside" or state codes). clearing: state code -> 0..1 while
   // its clouds swell and drift apart as they fade.
-  function cloudPuffs(g, codes, closed, clearing, view) {
+  function cloudPuffs(codes, closed, clearing, view) {
     const P = NR.toScreen;
-    const a = P(-119, 37), b = P(-119, 38);
+    const [clon, clat] = NR.fromScreen(view.w / 2, view.h / 2);
+    const a = P(clon, clat), b = P(clon, clat + 1);
     const ppd = Math.hypot(b[0] - a[0], b[1] - a[1]);
     const STEPS = [3.2, 1.6, 0.8, 0.4, 0.2, 0.1, 0.05];
     const step = STEPS.find((st) => st * ppd < 46 * 2) || 0.05; // about 46 pixels apart
@@ -769,7 +834,7 @@
     for (let j = Math.floor(lat0 / step) - 1; j <= Math.ceil(lat1 / step) + 1; j++)
       for (let i = Math.floor(lon0 / step) - 1; i <= Math.ceil(lon1 / step) + 1; i++) {
         const lon = (i + 0.15 + 0.7 * hash(i, j, 61)) * step, lat = (j + 0.15 + 0.7 * hash(i, j, 62)) * step;
-        const code = fogAt(g, lon, lat, closed);
+        const code = fogAt(lon, lat, closed);
         if (!code || !codes.includes(code)) continue;
         const t = clearing[code] || 0;
         const [x, y] = P(lon, lat);
@@ -779,7 +844,6 @@
     return puffs.sort((p, q) => p.y - q.y);
   }
   C.drawFog = function (ctx, s, now) {
-    const g = prepare();
     const view = NR.view;
     // Which states are closed, and which opened a moment ago (their fog is clearing)
     const closed = new Set();
@@ -804,9 +868,9 @@
     // The fog that stays: a kept picture, redrawn only when the view or the closed states change
     const staying = ["outside", ...[...closed].filter((c) => clearing[c] === undefined)];
     keptPicture(fogCache, ctx, staying.join(","), (c, v) => {
-      const puffs = cloudPuffs(g, staying, closed, {}, v);
+      const puffs = cloudPuffs(staying, closed, {}, v);
       if (!puffs.length) return false; // no fog anywhere on screen
-      paintFog(c, g, staying, puffs, v, culler(NR.toScreen, v.w, v.h));
+      paintFog(c, staying, puffs, v, culler(NR.toScreen, v.w, v.h));
     }, dx, dy);
     // Fog that is clearing: drawn whole on a separate layer, then laid over the map see-through,
     // so it fades evenly instead of turning grey
@@ -822,7 +886,7 @@
     lc.setTransform(1, 0, 0, 1, 0, 0);
     lc.clearRect(0, 0, fogLayer.width, fogLayer.height);
     lc.setTransform(ctx.getTransform());
-    paintFog(lc, g, fading, cloudPuffs(g, fading, closed, clearing, view), view, culler(NR.toScreen, view.w, view.h));
+    paintFog(lc, fading, cloudPuffs(fading, closed, clearing, view), view, culler(NR.toScreen, view.w, view.h));
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, dx * view.dpr, dy * view.dpr);
     ctx.globalAlpha = 1 - t;

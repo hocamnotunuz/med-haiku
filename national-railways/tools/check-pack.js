@@ -22,7 +22,7 @@ load("packs/index.js");
 const NR = ctx.NR;
 const missing = NR.PACK_LIST.filter((code) => !fs.existsSync(path.join(GAME, "packs", code, "pack.js")) || !fs.existsSync(path.join(GAME, "packs", code, "map.js")));
 NR.PACK_LIST.filter((code) => !missing.includes(code)).forEach((code) => load(`packs/${code}/map.js`));
-load("js/terrain.js");
+NR.PACK_LIST.filter((code) => !missing.includes(code) && fs.existsSync(path.join(GAME, "packs", code, "terrain.js"))).forEach((code) => load(`packs/${code}/terrain.js`));
 NR.PACK_LIST.filter((code) => !missing.includes(code)).forEach((code) => load(`packs/${code}/pack.js`));
 for (const f of ["js/cities.js", "js/game.js", "js/metro.js"]) load(f);
 const T = NR.TERRAIN;
@@ -55,24 +55,11 @@ function milesToEdges(lists, p, closed) {
     }
   return best;
 }
-// Terrain height class at a point: 0 flat, 1 hills, 2 mountains, 3 high mountains
-const heights = (() => {
-  const out = new Uint8Array(T.cols * T.rows);
-  let i = 0;
-  for (const m of T.grid.matchAll(/([A-H])(\d*)/g)) {
-    const n = m[2] ? +m[2] : 1;
-    out.fill((m[1].charCodeAt(0) - 65) & 3, i, i + n);
-    i += n;
-  }
-  return out;
-})();
+// The highest terrain class (0 flat, 1 hills, 2 mountains, 3 high mountains) within some grid cells
+const STEP = 0.05;
 function heightNear(lon, lat, cells) {
   let most = 0;
-  for (let dx = -cells; dx <= cells; dx++)
-    for (let dy = -cells; dy <= cells; dy++) {
-      const c = Math.floor((lon + dx * T.step - T.box[0]) / T.step), r = Math.floor((T.box[3] - (lat + dy * T.step)) / T.step);
-      if (c >= 0 && r >= 0 && c < T.cols && r < T.rows) most = Math.max(most, heights[r * T.cols + c]);
-    }
+  for (let dx = -cells; dx <= cells; dx++) for (let dy = -cells; dy <= cells; dy++) most = Math.max(most, NR.heightAt(lon + dx * STEP, lat + dy * STEP));
   return most;
 }
 const B64 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-";

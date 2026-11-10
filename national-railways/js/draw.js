@@ -437,7 +437,7 @@
   const tracePath = (ctx, list, close) => NR.traceList(ctx, list, close);
 
   // ---------- Real geography: shaded mountains, lakes, rivers, passes and bridges ----------
-  // Shaded relief pictures (js/terrain.js says which part of the map each one covers).
+  // Shaded relief pictures (each state's terrain.js says which part of the map each one covers).
   const reliefImages = {};
   function reliefImage(info) {
     if (!reliefImages[info.src]) {
@@ -538,11 +538,15 @@
       NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
       ctx.fillStyle = colors.land;
       ctx.fill("evenodd");
-      // Shaded mountains, only on land
-      ctx.save();
-      ctx.clip("evenodd");
-      drawRelief(ctx, NR.TERRAIN.relief, NR.toScreen, colors.relief);
-      ctx.restore();
+      // Shaded mountains: each state's picture, kept inside the state
+      for (const r of NR.TERRAIN.reliefs) {
+        ctx.save();
+        ctx.beginPath();
+        NR.MAP.stateLand[r.code].forEach((ring) => tracePath(ctx, ring, true));
+        ctx.clip("evenodd");
+        drawRelief(ctx, r, NR.toScreen, colors.relief);
+        ctx.restore();
+      }
     }
     if (s) {
       // Counties you don't own yet are shaded.

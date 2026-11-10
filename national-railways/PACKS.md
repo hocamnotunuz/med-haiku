@@ -6,7 +6,7 @@ Every state (and later every Canadian province) has a **pack**: `packs/<code>/pa
 | --- | --- |
 | `packs/<code>/map.js` (made by `tools/build-map.js`) | The state's county regions and their neighbors, land, coast and borders |
 | `packs/index.js` (made by `tools/build-map.js`) | Every state, Mexico and Canada as rough outlines, with neighbors (for clouds and the land outside the game) |
-| `js/terrain.js` (made by `tools/build-terrain.js`) | Mountains grid, lakes, rivers, city hills and water |
+| `packs/<code>/terrain.js` (made by `tools/build-terrain.js`) | The state's mountains grid, lakes, rivers, named ranges, and its city maps' hills and water (with `relief.png` and `city-<key>.png`) |
 | **the pack** (hand-made) | Main stations, towns, levels, starting counties, city maps, passes, bridges, bays, biomes |
 
 `js/packs.js` lists the packs (`NR.PACK_LIST`, in load order) and collects them into the lists the game uses. `index.html` loads each pack with a `<script>` tag.
@@ -103,6 +103,6 @@ Keyed by a main station id. Each has a `name`, a `size` and 10–12 `stops` (the
 
 1. **Map:** add the state to `tools/build-map.js` (its FIPS code, and either a merge list or populations so small counties merge automatically). Run it with every state's code: it writes the state's `map.js` (and rewrites its neighbors', whose borders change).
 2. **Pack:** create `packs/<code>/pack.js` with the fields above. Add the code to `NR.PACK_LIST` in `js/packs.js` and a `<script>` tag in `index.html`.
-3. **Terrain:** run `tools/build-terrain.js` (it reads the passes from the packs, and makes hills and water for city maps).
+3. **Terrain:** run `tools/build-terrain.js`: it writes the state's `terrain.js` and relief pictures (and hills and water for its city maps), and warns about passes with no mountains nearby.
 4. **Check:** run `node tools/check-pack.js <code>` until it passes with no errors.
 5. **Test:** run the game's browser tests, and play it in both looks (Arcade and Classic).

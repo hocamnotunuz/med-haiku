@@ -106,7 +106,7 @@
     return m;
   };
 
-  // ---------- Real geography in the city: hills and water (js/terrain.js) ----------
+  // ---------- Real geography in the city: hills and water (its state's terrain.js) ----------
   const B64 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-";
   const ground = {}; // per city: { data, elev(lon, lat) in meters, water(lon, lat) }
   function groundOf(key) {
