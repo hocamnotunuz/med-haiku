@@ -35,103 +35,13 @@
       seats: 6,
       speed: 1.2,
       fare: 2,
-      onlyIn: "SF",
       maxMiles: 3.5,
       about: "San Francisco's famous cable cars: slow, but riders pay double. Only between cable car stops.",
     },
   };
 
-  // Metro cities, keyed by their main station on the state map. hub = the main station's
-  // own stop in the city, where riders change to and from trains across California.
-  // cable = a stop on San Francisco's cable car lines.
-  NR.METROS = {
-    LA: {
-      name: "Los Angeles",
-      size: 5,
-      stops: [
-        { id: "UNS", name: "Union Station", lat: 34.056, lon: -118.236, hub: true },
-        { id: "HWD", name: "Hollywood", lat: 34.098, lon: -118.329 },
-        { id: "SMC", name: "Santa Monica", lat: 34.019, lon: -118.491 },
-        { id: "PAS", name: "Pasadena", lat: 34.148, lon: -118.145 },
-        { id: "LBC", name: "Long Beach", lat: 33.768, lon: -118.195 },
-        { id: "LAX", name: "LAX", lat: 33.943, lon: -118.408 },
-        { id: "KTN", name: "Koreatown", lat: 34.058, lon: -118.3 },
-        { id: "CUL", name: "Culver City", lat: 34.021, lon: -118.396 },
-        { id: "BUR", name: "Burbank", lat: 34.181, lon: -118.309 },
-        { id: "ELA", name: "East LA", lat: 34.024, lon: -118.172 },
-        { id: "ING", name: "Inglewood", lat: 33.962, lon: -118.353 },
-        { id: "UCL", name: "Westwood/UCLA", lat: 34.068, lon: -118.445 },
-      ],
-    },
-    SF: {
-      name: "San Francisco",
-      size: 5,
-      stops: [
-        { id: "TTC", name: "Transit Center", lat: 37.789, lon: -122.396, hub: true, cable: true },
-        { id: "USQ", name: "Union Square", lat: 37.788, lon: -122.407, cable: true },
-        { id: "NOB", name: "Nob Hill", lat: 37.793, lon: -122.416, cable: true },
-        { id: "FWF", name: "Fisherman's Wharf", lat: 37.808, lon: -122.417, cable: true },
-        { id: "MIS", name: "Mission", lat: 37.76, lon: -122.414 },
-        { id: "CAS", name: "Castro", lat: 37.762, lon: -122.435 },
-        { id: "HAI", name: "Haight-Ashbury", lat: 37.77, lon: -122.447 },
-        { id: "GGP", name: "Golden Gate Park", lat: 37.769, lon: -122.483 },
-        { id: "SUN", name: "Sunset", lat: 37.753, lon: -122.495 },
-        { id: "PRE", name: "Presidio", lat: 37.799, lon: -122.466 },
-        { id: "BAY", name: "Bayview", lat: 37.729, lon: -122.392 },
-        { id: "BAL", name: "Balboa Park", lat: 37.721, lon: -122.447 },
-      ],
-    },
-    SD: {
-      name: "San Diego",
-      size: 4,
-      stops: [
-        { id: "SFD", name: "Santa Fe Depot", lat: 32.716, lon: -117.17, hub: true },
-        { id: "OTN", name: "Old Town", lat: 32.755, lon: -117.199 },
-        { id: "LJA", name: "La Jolla", lat: 32.842, lon: -117.274 },
-        { id: "MVL", name: "Mission Valley", lat: 32.77, lon: -117.15 },
-        { id: "PBH", name: "Pacific Beach", lat: 32.797, lon: -117.24 },
-        { id: "CHV", name: "Chula Vista", lat: 32.64, lon: -117.084 },
-        { id: "ECJ", name: "El Cajon", lat: 32.795, lon: -116.962 },
-        { id: "SDU", name: "SDSU", lat: 32.775, lon: -117.071 },
-        { id: "BPK", name: "Balboa Park", lat: 32.731, lon: -117.146 },
-        { id: "SYS", name: "San Ysidro", lat: 32.556, lon: -117.045 },
-        { id: "UTC", name: "UTC", lat: 32.871, lon: -117.211 },
-      ],
-    },
-    SAC: {
-      name: "Sacramento",
-      size: 3,
-      stops: [
-        { id: "SVS", name: "Valley Station", lat: 38.584, lon: -121.501, hub: true },
-        { id: "MID", name: "Midtown", lat: 38.574, lon: -121.478 },
-        { id: "WSA", name: "West Sacramento", lat: 38.58, lon: -121.53 },
-        { id: "NAT", name: "Natomas", lat: 38.646, lon: -121.519 },
-        { id: "EXP", name: "Cal Expo", lat: 38.596, lon: -121.438 },
-        { id: "CSU", name: "Sac State", lat: 38.561, lon: -121.424 },
-        { id: "RCO", name: "Rancho Cordova", lat: 38.589, lon: -121.303 },
-        { id: "FOL", name: "Folsom", lat: 38.678, lon: -121.176 },
-        { id: "EKG", name: "Elk Grove", lat: 38.409, lon: -121.372 },
-        { id: "SMF", name: "Airport", lat: 38.695, lon: -121.59 },
-      ],
-    },
-    SJ: {
-      name: "San Jose",
-      size: 4,
-      stops: [
-        { id: "DIR", name: "Diridon", lat: 37.329, lon: -121.903, hub: true },
-        { id: "STC", name: "Santa Clara", lat: 37.354, lon: -121.955 },
-        { id: "MTV", name: "Mountain View", lat: 37.394, lon: -122.078 },
-        { id: "SNV", name: "Sunnyvale", lat: 37.369, lon: -122.036 },
-        { id: "MIL", name: "Milpitas", lat: 37.428, lon: -121.906 },
-        { id: "CAM", name: "Campbell", lat: 37.287, lon: -121.95 },
-        { id: "EVG", name: "Evergreen", lat: 37.316, lon: -121.785 },
-        { id: "JTN", name: "Japantown", lat: 37.349, lon: -121.894 },
-        { id: "SJC", name: "Airport", lat: 37.363, lon: -121.929 },
-        { id: "LEV", name: "Levi's Stadium", lat: 37.403, lon: -121.97 },
-        { id: "ALM", name: "Almaden", lat: 37.25, lon: -121.88 },
-      ],
-    },
-  };
+  // The metro cities (their neighborhoods and stops) come from the state packs: NR.METROS,
+  // keyed by the main station on the state map (packs/<code>/pack.js, see PACKS.md).
 
   const rt = NR.runtime;
   rt.cityRoutes = {}; // worked out from the city's lines, not saved
@@ -144,6 +54,9 @@
     return 2 * 3959 * Math.asin(Math.sqrt(h));
   }
   const stopOf = (key, id) => NR.METROS[key].stops.find((x) => x.id === id);
+  // Cable cars run only in cities with cable car stops (San Francisco).
+  NR.cityHasMode = (key, mode) => mode !== "cable" || NR.METROS[key].stops.some((x) => x.cable);
+  const cableCities = () => Object.keys(NR.METROS).filter((k) => NR.cityHasMode(k, "cable")).map((k) => NR.METROS[k].name);
   const hubOf = (key) => NR.METROS[key].stops.find((x) => x.hub);
   NR.cityStop = stopOf;
 
@@ -338,7 +251,7 @@
   // Can this kind of line run through these stops? Returns the reason it can't, or null.
   NR.cityModeProblem = function (key, mode, stops) {
     const m = NR.CITY_MODES[mode];
-    if (m.onlyIn && m.onlyIn !== key) return `${m.name}s only run in San Francisco`;
+    if (!NR.cityHasMode(key, mode)) return `${m.name}s only run in ${cableCities().join(", ")}`;
     for (let i = 0; i + 1 < stops.length; i++) {
       const g = NR.cityLegGeo(key, stops[i], stops[i + 1]);
       const between = `${stopOf(key, stops[i]).name} and ${stopOf(key, stops[i + 1]).name}`;

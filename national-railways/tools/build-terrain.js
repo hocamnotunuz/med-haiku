@@ -1,6 +1,6 @@
 // Builds the real geography for National Railways:
 //   js/terrain.js      mountains (a grid worked out from real elevation), lakes, rivers,
-//                      real mountain passes and bridges, and city water and hills
+//                      and city water and hills (the real passes and bridges are in the packs)
 //   img/relief.png     shaded relief (hillshade) for the state map
 //   img/relief-XX.png  shaded relief for each city map (LA, SF, SD, SAC, SJ)
 //
@@ -13,7 +13,8 @@
 //   - Lakes and rivers: Natural Earth (public domain), 1:10m scale
 //   - Coastlines and water for the city maps: U.S. Census Bureau county shapes (1:500,000)
 //     and TIGER area water
-// Needs curl and unzip. The passes and bridges below are written by hand: edit them and run again.
+// Needs curl and unzip. The real passes and bridges are hand-made in each state's pack
+// (packs/<code>/pack.js); this tool warns about any pass with no mountains nearby.
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -28,160 +29,7 @@ if (!MODS || !CACHE) {
 const { PNG } = require(path.resolve(MODS, "pngjs"));
 const GAME = path.join(__dirname, "..");
 
-// ---------- Real mountain passes, canyons and gaps ----------
-// Track that crosses mountains near one of these (see TUNING.passRadius in js/game.js)
-// goes over the pass: it costs more and trains slow down on the climb. Anywhere else,
-// mountains need a tunnel. [name, latitude, longitude]
-const PASSES = [
-  // California: Southern California
-  ["Tejon Pass (the Grapevine)", 34.8, -118.88],
-  ["Tehachapi Pass", 35.1, -118.32],
-  ["Cajon Pass", 34.32, -117.45],
-  ["San Gorgonio Pass", 33.93, -116.8],
-  ["Soledad Pass", 34.44, -118.13],
-  ["Newhall Pass", 34.33, -118.52],
-  ["Santa Susana Pass", 34.27, -118.63],
-  ["Sepulveda Pass", 34.12, -118.47],
-  ["Conejo Grade", 34.2, -118.94],
-  ["Santa Ana Canyon", 33.86, -117.7],
-  ["Rainbow Gap (I-15)", 33.41, -117.15],
-  ["Tecate Divide", 32.7, -116.33],
-  ["In-Ko-Pah Gorge", 32.67, -116.11],
-  ["Rim of the World Highway", 34.22, -117.03],
-  ["Afton Canyon", 35.04, -116.38],
-  ["Mountain Pass", 35.47, -115.54],
-  // California: Central Coast and Bay Area
-  ["Gaviota Pass", 34.5, -120.21],
-  ["Cuesta Grade", 35.34, -120.63],
-  ["Cholame Pass", 35.72, -120.29],
-  ["Highway 1 (Big Sur coast)", 36.27, -121.81],
-  ["Pacheco Pass", 37.07, -121.22],
-  ["Hecker Pass", 36.99, -121.69],
-  ["Highway 17 summit", 37.12, -121.97],
-  ["Altamont Pass", 37.73, -121.65],
-  ["Caldecott Tunnel", 37.86, -122.2],
-  // California: Sierra Nevada
-  ["Walker Pass", 35.66, -118.03],
-  ["Highway 168 (Shaver Lake)", 37.05, -119.4],
-  ["Merced River Canyon", 37.66, -119.85],
-  ["Wawona Road", 37.62, -119.68],
-  ["Tioga Pass", 37.91, -119.26],
-  ["Sonora Pass", 38.33, -119.64],
-  ["Monitor Pass", 38.67, -119.62],
-  ["Carson Pass", 38.69, -119.99],
-  ["Echo Summit", 38.81, -120.03],
-  ["Emigrant Gap", 39.3, -120.67],
-  ["Donner Pass", 39.32, -120.33],
-  ["Yuba Pass", 39.62, -120.49],
-  ["Beckwourth Pass", 39.79, -120.11],
-  ["Feather River Canyon", 39.92, -121.3],
-  ["Fredonyer Pass", 40.37, -120.86],
-  ["Sherwin Summit", 37.55, -118.66],
-  ["Conway Summit", 38.09, -119.18],
-  ["Towne Pass", 36.39, -117.29],
-  ["Daylight Pass", 36.77, -116.87],
-  // California: the north
-  ["Sacramento River Canyon", 41.2, -122.27],
-  ["Sacramento River Canyon (Lakehead)", 40.95, -122.38],
-  ["Siskiyou Summit", 42.07, -122.6],
-  ["Buckhorn Summit", 40.67, -122.66],
-  ["Berry Summit", 40.92, -123.76],
-  ["Ridgewood Summit", 39.33, -123.33],
-  ["Eel River Canyon", 40.1, -123.78],
-  ["Smith River Canyon", 41.85, -123.95],
-  // Nevada
-  ["Spooner Summit", 39.1, -119.9],
-  ["Kingsbury Grade", 38.97, -119.88],
-  ["Mount Rose Summit", 39.31, -119.89],
-  ["Geiger Grade", 39.36, -119.7],
-  ["Truckee River Canyon (Verdi)", 39.52, -120.0],
-  ["Truckee River Canyon", 39.55, -119.45],
-  ["Sand Springs Pass", 39.3, -118.36],
-  ["New Pass Summit", 39.58, -117.52],
-  ["Austin Summit", 39.5, -117.09],
-  ["Hickison Summit", 39.44, -116.75],
-  ["Pancake Summit", 39.28, -115.64],
-  ["Robinson Summit", 39.37, -115.04],
-  ["Connors Pass", 39.04, -114.66],
-  ["Great Basin park road", 39.01, -114.12],
-  ["Golconda Summit", 40.96, -117.47],
-  ["Emigrant Pass", 40.66, -116.29],
-  ["Palisade Canyon", 40.62, -116.2],
-  ["Carlin Canyon", 40.72, -116.03],
-  ["Pequop Summit", 41.04, -114.53],
-  ["Oak Springs Summit", 37.63, -114.7],
-  ["Mountain Springs Summit", 36.02, -115.5],
-  ["Kyle Canyon", 36.27, -115.55],
-  ["Black Canyon (Hoover Dam)", 36.01, -114.74],
-  // Arizona
-  ["Sitgreaves Pass", 35.03, -114.38],
-  ["Ash Fork Hill", 35.22, -112.48],
-  ["Yarnell Hill", 34.22, -112.75],
-  ["Black Canyon (I-17)", 34.17, -112.13],
-  ["Mingus Mountain", 34.71, -112.11],
-  ["Mogollon Rim (I-17)", 34.85, -111.7],
-  ["Oak Creek Canyon", 34.95, -111.75],
-  ["Beeline Highway", 33.86, -111.48],
-  ["Mogollon Rim (Highway 260)", 34.3, -110.95],
-  ["Salt River Canyon", 33.8, -110.5],
-  ["Queen Creek Canyon", 33.29, -111.08],
-  ["Picacho Pass", 32.65, -111.4],
-  ["Catalina Highway", 32.36, -110.73],
-  ["Texas Canyon", 32.05, -110.08],
-  ["Telegraph Pass", 32.66, -114.32],
-  ["Navajo Bridge (Marble Canyon)", 36.82, -111.63],
-  // Oregon
-  ["Sexton Summit", 42.6, -123.37],
-  ["Canyon Creek Pass", 42.85, -123.25],
-  ["Pass Creek Canyon", 43.66, -123.2],
-  ["Green Springs Summit", 42.13, -122.48],
-  ["Annie Creek Canyon (Crater Lake)", 42.8, -122.1],
-  ["Willamette Pass", 43.6, -122.04],
-  ["McKenzie Pass", 44.26, -121.81],
-  ["Santiam Pass", 44.42, -121.87],
-  ["Barlow Pass", 45.28, -121.68],
-  ["Columbia River Gorge (west)", 45.56, -122.2],
-  ["Columbia River Gorge (east)", 45.66, -121.5],
-  ["Sunset Highway summit", 45.8, -123.4],
-  ["Wilson River Highway", 45.6, -123.42],
-  ["Van Duzer Corridor", 45.05, -123.75],
-  ["Highway 20 (Coast Range)", 44.62, -123.62],
-  ["Siuslaw River", 44.04, -123.7],
-  ["Umpqua River", 43.65, -123.75],
-  ["Coquille River", 43.1, -123.9],
-  ["Deadman Pass", 45.6, -118.5],
-  ["Ladd Canyon", 45.2, -117.95],
-  ["Minam Grade", 45.62, -117.72],
-  ["Dixie Pass", 44.54, -118.58],
-  ["Quartz Mountain Pass", 42.32, -120.82],
-];
 
-// ---------- Real bridges ----------
-// Water crossed near one of these uses the real bridge (cheaper, and any length).
-// Anywhere else you build a new bridge, if the water is narrow enough.
-const BRIDGES = [
-  ["Golden Gate Bridge", 37.82, -122.48],
-  ["Bay Bridge", 37.8, -122.35],
-  ["San Mateo Bridge", 37.58, -122.2],
-  ["Dumbarton Bridge", 37.5, -122.12],
-  ["Richmond-San Rafael Bridge", 37.93, -122.43],
-  ["Carquinez Bridge", 38.06, -122.23],
-  ["Benicia-Martinez Bridge", 38.04, -122.12],
-  ["Antioch Bridge", 38.02, -121.75],
-  ["Tower Bridge", 38.58, -121.51],
-  ["Pit River Bridge (Shasta Lake)", 40.79, -122.31],
-  ["Vincent Thomas Bridge", 33.75, -118.27],
-  ["Coronado Bridge", 32.69, -117.15],
-  ["Hoover Dam Bridge", 36.01, -114.74],
-  ["Laughlin-Bullhead City Bridge", 35.16, -114.57],
-  ["Topock Bridge (I-40)", 34.72, -114.49],
-  ["Parker Bridge", 34.16, -114.29],
-  ["Blythe-Ehrenberg Bridge (I-10)", 33.6, -114.52],
-  ["Yuma bridges", 32.73, -114.61],
-  ["Navajo Bridge", 36.82, -111.63],
-  ["Steel Bridge (Portland)", 45.53, -122.67],
-  ["Marion Street Bridge (Salem)", 44.94, -123.05],
-];
 
 // Rivers drawn on the map and crossed by bridges (Natural Earth names).
 const RIVERS = [
@@ -193,8 +41,14 @@ const RIVERS = [
 const ctx = {};
 ctx.window = ctx;
 vm.createContext(ctx);
-for (const f of ["js/map.js", "js/cities.js", "js/game.js", "js/metro.js"]) vm.runInContext(fs.readFileSync(path.join(GAME, f), "utf8"), ctx, { filename: f });
+const load = (f) => vm.runInContext(fs.readFileSync(path.join(GAME, f), "utf8"), ctx, { filename: f });
+load("js/map.js");
+load("js/packs.js");
+ctx.NR.PACK_LIST.forEach((code) => load(`packs/${code}/pack.js`));
+for (const f of ["js/cities.js", "js/game.js", "js/metro.js"]) load(f);
 const NR = ctx.NR;
+// Real mountain passes and bridges are hand-made in each state's pack (packs/<code>/pack.js).
+const PASSES = NR.PASSES.map((p) => [p.name, p.lat, p.lon]);
 
 // ---------- Downloads ----------
 fs.mkdirSync(CACHE, { recursive: true });
@@ -604,8 +458,6 @@ buildCities().then(() => {
       rows,
       grid: rle(grid),
       relief: { src: "img/relief.png", box: [box[0], box[3] - rh * RSTEP, box[0] + rw * RSTEP, box[3]].map(round) },
-      passes: PASSES.map(([name, lat, lon]) => ({ name, lat, lon })),
-      bridges: BRIDGES.map(([name, lat, lon]) => ({ name, lat, lon })),
       lakes,
       rivers: riversOut,
       ranges,

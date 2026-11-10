@@ -647,7 +647,7 @@
       awayHintShown = true;
       toast("While you're on this city map, the state map and other cities keep running but can't overflow: their stations stay at most half full until you come back.");
     }
-    if (NR.CITY_MODES[cityMode].onlyIn && NR.CITY_MODES[cityMode].onlyIn !== key) cityMode = "tram";
+    if (!NR.cityHasMode(key, cityMode)) cityMode = "tram";
     chipSig = "";
     renderCityBar();
     const c = game.cities[key];
@@ -676,7 +676,7 @@
     if (!inCity) return;
     document.querySelectorAll(".mode-btn").forEach((b) => {
       const m = NR.CITY_MODES[b.dataset.mode];
-      b.disabled = !!(m.onlyIn && m.onlyIn !== cityKey);
+      b.disabled = !NR.cityHasMode(cityKey, b.dataset.mode);
       b.setAttribute("aria-pressed", String(b.dataset.mode === cityMode));
       b.title = `${m.about} Track ${NR.money(m.track)} per mile, ${m.vehicle} ${NR.money(m.price)}.`;
     });

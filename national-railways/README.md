@@ -207,9 +207,12 @@ Tap the **clipboard** on the bottom bar.
 | `js/terrain.js` | Real geography: the mountains grid, lakes, rivers, passes, bridges, and each city's hills and water. Generated: do not edit by hand. |
 | `img/relief*.png` | Shaded relief (mountain shading) for the state map and each city map. Generated. |
 | `js/geography.js` | The geography rules: passes, tunnels, bridges, prices and train speeds, Gentle and Tough. |
-| `js/cities.js` | The 94 county main stations, the 151 towns, and the levels. |
+| `js/packs.js` | Lists the state packs and collects them into the game's lists. |
+| `packs/<code>/pack.js` | One per state: its main stations, towns, levels, starting counties, city maps, mountain passes, bridges, bays and biomes (hand-made). See `PACKS.md`. |
+| `js/cities.js` | The kinds of place and line names shared by every state. |
 | `tools/build-map.js` | Rebuilds the map file from Census data (see below). |
-| `tools/build-terrain.js` | Rebuilds the geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. The list of passes and bridges is in this file. |
+| `tools/build-terrain.js` | Rebuilds the geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. It reads the passes from the packs. |
+| `tools/check-pack.js` | Checks the state packs for mistakes (`node tools/check-pack.js`). Every pack must pass. |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
 | `js/metro.js` | City maps: neighborhoods, trams, metro and cable cars. |
 | `js/cartoon.js` | The Arcade look's cartoon map: hills, peaks, trees, cacti, waves, rivers and lakes, drawn from the terrain file. |
@@ -228,8 +231,8 @@ node tools/build-map.js tools/node_modules CA NV AZ OR
 node tools/build-terrain.js tools/node_modules .terrain-cache
 ```
 
-`build-terrain.js` downloads its data into the cache folder (about 30 MB, so a second run takes seconds) and needs `curl` and `unzip`. Run it after `build-map.js`, and again after adding cities or editing its lists of passes and bridges.
+`build-terrain.js` downloads its data into the cache folder (about 30 MB, so a second run takes seconds) and needs `curl` and `unzip`. Run it after `build-map.js`, and again after adding city maps or editing the passes in the packs.
 
 Data: county shapes and city coastlines from the U.S. Census Bureau; elevation from [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (SRTM, USGS and other public sources); lakes, rivers and mountain range names from [Natural Earth](https://www.naturalearthdata.com/) (public domain).
 
-To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code, and either a list of which small counties to merge or a table of county populations so small ones merge automatically), add its code to the command above, run it, then list its main stations and towns in `js/cities.js`. Every game starts in the counties listed in `NR.START_COUNTIES` (in `js/cities.js`), and their state is the home state.
+To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code, and either a list of which small counties to merge or a table of county populations so small ones merge automatically), add its code to the command above, run it, then make its pack: `packs/<code>/pack.js` with its main stations, towns, passes and bridges (`PACKS.md` explains every field), and check it with `node tools/check-pack.js <code>`. Every game starts in the `start` counties of the home pack (`NR.HOME_PACK` in `js/packs.js`, California), and owning all of a state opens its neighbors.

@@ -121,9 +121,9 @@
   const landRings = NR.MAP.land.map((ring) => ({ ring, box: boxOf(ring) }));
   const lakes = G.lakes.map((l) => ({ name: l.name, ring: l.ring, box: boxOf(l.ring) }));
   const inside = (list, x, y) => list.reduce((n, o) => (x >= o.box[0] && x <= o.box[2] && y >= o.box[1] && y <= o.box[3] && inRing(x, y, o.ring) ? !n : n), false);
-  // San Francisco Bay (with San Pablo and Suisun bays): water here needs a bridge.
-  // Elsewhere, sea between two coastal stations just means track follows the coast.
-  const SF_BAY = [-122.49, 37.8, -122.49, 37.85, -122.53, 37.9, -122.56, 38.0, -122.55, 38.16, -122.25, 38.16, -121.85, 38.13, -121.55, 38.09, -121.55, 37.98, -122.0, 37.98, -122.28, 37.84, -122.0, 37.45, -121.9, 37.41, -122.16, 37.41, -122.41, 37.6, -122.38, 37.72, -122.39, 37.8];
+  // Bays (from the state packs): water inside one needs a bridge. Elsewhere, sea between two
+  // coastal stations just means track follows the coast.
+  const bays = (NR.BAYS || []).map((b) => ({ name: b.name, ring: b.ring, box: boxOf(b.ring) }));
   // Land in a neighboring state or country. The Pacific is only to the west: anything east of
   // San Diego's coast (or north of Oregon's coast) that isn't ours is someone else's land.
   const foreignLand = (lon, lat) => lon > -117.13 || (lat > 46.1 && lon > -123.95) || cellAt(lon, lat) >= 4;
@@ -131,7 +131,8 @@
     const lake = lakes.find((l) => lon >= l.box[0] && lon <= l.box[2] && lat >= l.box[1] && lat <= l.box[3] && inRing(lon, lat, l.ring));
     if (lake) return { kind: "lake", name: lake.name };
     if (inside(landRings, lon, lat) || foreignLand(lon, lat)) return null; // our land, or a neighbor's
-    return inRing(lon, lat, SF_BAY) ? { kind: "bay", name: "San Francisco Bay" } : { kind: "coast" };
+    const bay = bays.find((b) => lon >= b.box[0] && lon <= b.box[2] && lat >= b.box[1] && lat <= b.box[3] && inRing(lon, lat, b.ring));
+    return bay ? { kind: "bay", name: bay.name } : { kind: "coast" };
   }
 
   // ---- Distances, in miles ----

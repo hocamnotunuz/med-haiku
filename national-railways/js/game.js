@@ -472,12 +472,29 @@
     return true;
   };
 
-  // The neighboring states open once you own every county of the home state (or beat every level).
+  // A state's neighbors (states with a county next to one of its counties) open once you own
+  // every county in it. Beating every level counts as owning the home state.
+  let stateNeighbors = null;
+  NR.stateNeighbors = (code) => {
+    if (!stateNeighbors) {
+      stateNeighbors = {};
+      NR.MAP.regions.forEach((r) =>
+        r.neighbors.forEach((n) => {
+          const other = NR.countyById[n] && NR.countyById[n].state;
+          if (other && other !== r.state) (stateNeighbors[r.state] = stateNeighbors[r.state] || new Set()).add(other);
+        })
+      );
+    }
+    return [...(stateNeighbors[code] || [])];
+  };
   function openMoreStates(s) {
-    const home = NR.HOME_STATE;
-    const ownAll = NR.MAP.regions.every((r) => r.state !== home || s.owned.includes(r.id));
-    if (!ownAll && !s.levelsBeaten) return;
-    const opened = Object.keys(s.states).filter((code) => !s.states[code].open);
+    const opened = [];
+    for (const code of Object.keys(s.states)) {
+      if (!s.states[code].open) continue;
+      const ownAll = NR.MAP.regions.every((r) => r.state !== code || s.owned.includes(r.id));
+      if (!ownAll && !(code === NR.HOME_STATE && s.levelsBeaten)) continue;
+      NR.stateNeighbors(code).forEach((n) => s.states[n] && !s.states[n].open && !opened.includes(n) && opened.push(n));
+    }
     opened.forEach((code) => {
       s.states[code].open = true;
       s.states[code].budget += T.newStateBudget;

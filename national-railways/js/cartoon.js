@@ -44,14 +44,10 @@
     cache.key = "";
   };
 
-  // ---------- What grows where (by county) ----------
-  // Trees even on the flats: the foggy north coast and western Oregon's coast and valleys.
-  const FOREST = new Set(["humboldt", "del-norte-siskiyou-trinity", "mendocino", "or-clatsop-tillamook", "or-lincoln", "or-coos-curry", "or-josephine", "or-douglas"]);
-  // Trees on the hills: the Sierra Nevada, the Cascades, the northern Coast Ranges, the Santa Cruz Mountains.
-  const WOODED = new Set(["shasta", "tehama", "butte", "yuba", "plumas-sierra", "nevada", "placer", "el-dorado", "alpine-amador-calaveras", "mariposa-tuolumne", "madera", "fresno", "tulare", "lake", "colusa-glenn", "sonoma", "marin", "napa", "santa-cruz", "san-mateo"]);
-  // Dry: Nevada, Arizona, the California deserts and Oregon's high desert.
-  const DRY = new Set(["imperial", "inyo-mono", "riverside", "san-bernardino", "lassen-modoc", "or-malheur", "or-grant-harney-lake", "or-crook-deschutes", "or-gilliam-sherman-wheeler", "or-morrow-umatilla"]);
-  const kindOf = (id) => (DRY.has(id) || /^(nv|az)-/.test(id) ? 4 : FOREST.has(id) ? 3 : WOODED.has(id) || /^or-/.test(id) ? 2 : 1);
+  // ---------- What grows where (by county, from the state packs' biomes) ----------
+  // forest: trees even on the flats. wooded: trees on the hills. dry: sand, cacti, sagebrush.
+  const KINDS = { wooded: 2, forest: 3, dry: 4 };
+  const kindOf = (id) => KINDS[NR.BIOMES[id]] || 1;
 
   // ---------- Outlines of grid cells, as smooth rings ----------
   // Marching squares over the squares between cell centers. Each square gives up to two pieces
