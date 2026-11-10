@@ -6,23 +6,24 @@ Pilot pack (WA). Everything here explains `packs/WA/pack.js`.
 - Populations, city and town coordinates: `packs/WA/raw/counties.json` and `packs/WA/raw/places.json` (U.S. Census Bureau, 2020 census base). Station `pop` is the region's population in thousands, exactly as in counties.json. Every station and town that is a census place uses that place's lat/lon rounded to 2 decimals (checked by script: 0 mismatches).
 - Hand-placed points (6 scenic places, 12 passes, 20 bridges): the published coordinates of the named place, from the sources listed below (Wikipedia articles, which mostly cite USGS GNIS; NPS; WSDOT). I could not re-fetch them live in this session (the Wikimedia API refused this sandbox's requests), so a reviewer may want to spot-check them. Each one was checked against the game's own data: every pass has mountains within ~7 miles, every bridge is within 3 miles of water on the map, every scenic point is inside its county region.
 
-**Results:** `node tools/check-pack.js WA`: passed, 0 errors, 0 warnings. `node tools/test-pack.js WA`: PASSED (17 passed, 0 warnings, 0 failed).
+**Results (28 regions):** `node tools/check-pack.js` (all packs): WA passed (28 stations, 43 towns, 12 passes, 20 bridges), 0 errors, 0 warnings; all packs passed. `node tools/test-pack.js WA`: PASSED (17 passed, 0 warnings, 0 failed).
 
 ---
 
-## 1. County merges (from tools/build-map.js): what I'd change
+## 1. County merges (28 regions)
 
-I did not change any merge (not my file); these are recommendations.
+The first version of this pack used the automatic merges (27 regions). I proposed changes, the user approved them, and the main agent rebuilt the map; this pack now follows the new regions:
 
-| Region now | Problem | Suggestion |
+| Was | Now | Why |
 | --- | --- | --- |
-| `wa-franklin-whitman` (Pasco + Pullman) | Franklin County is the Tri-Cities (Columbia Basin, irrigated, dry); Whitman is the Palouse; Pullman is about 100 miles from Pasco. One station, one biome and one level cover both. Franklin (96.7k) is over 50k and didn't need a partner; Whitman (48.0k) did. | Franklin alone (Pasco). Whitman + Asotin + Garfield (72.5k: Pullman as main station, Clarkston a town; the Palouse and the Lewis–Clark Valley). Columbia County (3.9k, Dayton) to Walla Walla (66.5k; Dayton is 25 miles from Walla Walla). Same number of regions (27). |
-| `wa-douglas-kittitas-okanogan` (Ellensburg + East Wenatchee + Omak) | Kittitas and Douglas meet only across the Columbia River. Ellensburg's region reaches the Canadian border, and East Wenatchee (Douglas) is a suburb of Wenatchee in another region. | Chelan + Douglas (122k: the official Wenatchee metro area). Kittitas alone (44.3k, Ellensburg). Okanogan + Ferry (49.3k, Omak). Adams + Lincoln (31.5k, Othello). One more region (28). |
-| `wa-adams-ferry-lincoln` (Othello + Republic) | Ferry County (forested Okanogan Highlands, Republic) is 130 miles from Othello (Columbia Basin farms). Its biome had to be "dry", so Ferry's forests draw as sagebrush (visible in the screenshots). | See above: Ferry with Okanogan, Adams with Lincoln. |
-| `wa-jefferson-mason` (Shelton + Port Townsend) | Acceptable. Mason (65.7k) is over 50k; Jefferson (33k) needed a partner. | Optionally Jefferson + Clallam (110k, the north Olympic Peninsula: Port Angeles and Port Townsend) and Mason alone. Not important. |
-| `wa-san-juan-skagit`, `wa-pend-oreille-stevens`, `wa-klickitat-skamania`, `wa-pacific-wahkiakum`, `wa-asotin-columbia-garfield` | Fine (one coast, valley or gorge each). | Keep, unless the Whitman change above is made. |
+| `wa-franklin-whitman` (Pasco + Pullman) | `wa-franklin` (Pasco, 97k) | Franklin is the Tri-Cities (Columbia Basin); Whitman is the Palouse, about 100 miles away. Franklin is over 50k on its own. |
+| `wa-asotin-columbia-garfield` (Clarkston) | `wa-asotin-garfield-whitman` (Pullman, 73k) | The Palouse and the Lewis–Clark Valley together; Pullman is the biggest city, Clarkston a town. |
+| `wa-walla-walla` | `wa-columbia-walla-walla` (Walla Walla, 67k) | Columbia County (Dayton, 25 miles from Walla Walla) joins Walla Walla. |
+| `wa-chelan` | `wa-chelan-douglas` (Wenatchee, 122k) | The official Wenatchee metro area (East Wenatchee is in Douglas). |
+| `wa-douglas-kittitas-okanogan` (Ellensburg) | `wa-kittitas` (Ellensburg, 44k) and `wa-ferry-okanogan` (Omak, 49k) | Kittitas and Douglas met only across the Columbia; Ellensburg's region had reached the Canadian border. |
+| `wa-adams-ferry-lincoln` (Othello) | `wa-adams-lincoln` (Othello, 31k) | Ferry (forested Okanogan Highlands) was 130 miles from Othello and had to be drawn as dry. |
 
-**Bridges that should count as borders (neighbors):** Island County's only neighbor in the map is Snohomish. The Deception Pass Bridge (SR 20) joins Whidbey Island to Fidalgo Island in Skagit County, so `wa-island` and `wa-san-juan-skagit` should be neighbors. (Kitsap–Pierce over the Tacoma Narrows Bridge and Kitsap–Jefferson over the Hood Canal Bridge are already neighbors by land.) King–Kitsap are joined only by ferries, so they rightly aren't neighbors.
+Also from the proposal: `wa-island` now neighbors `wa-san-juan-skagit` (the Deception Pass Bridge joins Whidbey and Fidalgo islands). Unchanged and fine: `wa-jefferson-mason` (Jefferson + Clallam with Mason alone would also work; not important), `wa-san-juan-skagit`, `wa-pend-oreille-stevens`, `wa-klickitat-skamania`, `wa-pacific-wahkiakum`. King–Kitsap are joined only by ferries, so they rightly aren't neighbors.
 
 ---
 
@@ -31,7 +32,8 @@ I did not change any merge (not my file); these are recommendations.
 One per region, at its biggest city (census 2020), with one exception:
 
 - **Olympia, not Lacey** (`wa-thurston`): Lacey has 56,285 people, Olympia 55,369. Olympia is the state capital, the county seat and the downtown; Lacey is its suburb next door (same reasoning as Oregon City over Lake Oswego in OR).
-- Othello (`wa-adams-ferry-lincoln`) is kept although it sits in its region's southwest corner: at 8,546 people it is nearly five times the next town (Ritzville, 1,752).
+- Othello (`wa-adams-lincoln`) is kept although it sits in its region's southwest corner: at 8,546 people it is nearly five times the next town (Ritzville, 1,752).
+- Omak (`wa-ferry-okanogan`, 4,859) and Pullman (`wa-asotin-garfield-whitman`, 32,905) are their regions' biggest places. Pullman keeps the id PUL it had as a town (it's no longer a town, so the id is still unique); Omak keeps OMK the same way; Clarkston (CLR) became a town.
 - **Shelton vs Port Townsend** (`wa-jefferson-mason`): Shelton is bigger (10,373 vs 10,147), so Shelton; Port Townsend is a town.
 
 **IDs:** checked unique across all packs (the checker confirms). Avoided VAN/VIC (reserved for BC): Washington's Vancouver is **VWA**. I also avoided ids that big future cities will want: CLE (Cleveland) → Cle Elum is CEL; DAY (Dayton, OH) → Dayton WA is DYT; EDM (Edmonton) → Edmonds is EDS; CHY (Cheyenne) → Cheney is CNY; PRO (Provo) → Prosser is PSR. SPV was taken, so Spokane Valley is SVY.
@@ -40,15 +42,17 @@ One per region, at its biggest city (census 2020), with one exception:
 
 | Type | Stations | Why |
 | --- | --- | --- |
-| metro | Seattle, Tacoma, Everett, Vancouver, Olympia, Spokane | The big cities. Olympia is a metro like Salem (OR) |
-| coast | Bremerton, Oak Harbor, Bellingham, Port Angeles, Aberdeen, Raymond | Saltwater towns: navy yard, island, bay, strait, harbor, Willapa Bay |
-| farm | Mount Vernon, Centralia, Yakima, Pasco, Moses Lake, Wenatchee, Goldendale, Walla Walla, Othello | Skagit Valley; Chehalis valley; Yakima Valley (apples, hops); Franklin County irrigation; Columbia Basin Project; "Apple Capital of the World"; Klickitat Valley ranches; wheat and onions; potatoes |
-| mountain | Ellensburg, Longview, Shelton, Colville, Clarkston | DKO region runs from the Cascade crest to the Okanogan Highlands; Cowlitz is timber country up to Mount St. Helens (like Roseburg, OR); Mason/Jefferson are the Olympics; the Selkirks; Clarkston sits at the mouth of Hells Canyon below the Blue Mountains |
+| metro | Seattle, Everett, Vancouver, Olympia, Spokane | The big cities. Olympia is a metro like Salem (OR) |
+| coast | Tacoma, Bremerton, Oak Harbor, Bellingham, Port Angeles, Aberdeen, Raymond | Saltwater towns: port on Commencement Bay, navy yard, island, bay, strait, harbor, Willapa Bay |
+| farm | Mount Vernon, Centralia, Yakima, Pasco, Moses Lake, Wenatchee, Goldendale, Walla Walla, Othello, Pullman | Skagit Valley; Chehalis valley; Yakima Valley (apples, hops); Franklin County irrigation; Columbia Basin Project; "Apple Capital of the World"; Klickitat Valley ranches; wheat and onions; potatoes; the Palouse |
+| mountain | Ellensburg, Omak, Longview, Shelton, Colville | Kittitas runs from the Cascade crest at Snoqualmie Pass and is half national forest; Okanogan and Ferry are the North Cascades' east slope and the Okanogan Highlands; Cowlitz is timber country up to Mount St. Helens (like Roseburg, OR); Mason/Jefferson are the Olympics; the Selkirks |
 | desert | Kennewick | The Tri-Cities get about 7 inches of rain a year (shrub-steppe) |
 
-Unsure calls: **Longview** (mountain or farm; it's really a mill and port town), **Clarkston** (mountain or farm: Garfield and Columbia counties are wheat), **Kennewick** (desert or farm). **Tacoma** could arguably be coast (port city, like Oxnard/Ventura in CA), which would give Seattle–Tacoma riders in the default style; I kept it metro because Pierce County is mostly suburbs.
+**Tacoma is coast (the user's choice):** a big port city on Commencement Bay, like Oxnard/Ventura in California. It also gives Seattle–Tacoma riders in the default style (I had first typed it metro because Pierce County is mostly suburbs). The start is now Seattle (metro) with Tacoma and Bremerton (coast).
 
-**Sizes** follow the PACKS.md guide: Seattle 5 (2.27M); Tacoma, Everett 4 (921k, 828k); **Spokane 4** (539k: the hub of the Inland Northwest, like Reno at 486k); Vancouver 3 (503k); 2 for 140k–300k (Olympia 295k, Bremerton, Yakima, Bellingham, Kennewick, Mount Vernon 147k, Pasco 145k); 1 for the rest (under 130k).
+Unsure calls: **Longview** (mountain or farm; it's really a mill and port town), **Kennewick** (desert or farm), **Ellensburg** (mountain or farm: the town itself is in the Kittitas Valley's hay farms).
+
+**Sizes** follow the PACKS.md guide: Seattle 5 (2.27M); Tacoma, Everett 4 (921k, 828k); **Spokane 4** (539k: the hub of the Inland Northwest, like Reno at 486k); Vancouver 3 (503k); 2 for about 100k–300k cities (Olympia 295k, Bremerton, Yakima, Bellingham, Kennewick, Mount Vernon 147k, **Wenatchee 122k** (the Wenatchee metro), **Pasco 97k** (a 77k city in the Tri-Cities, like Corvallis at 95k in OR)); 1 for the rest, the rural regions (Pullman 73k, Walla Walla 67k, Omak 49k, Ellensburg 44k, Othello 31k and the others).
 
 **Ports** (sparingly, like CA's 5 and OR's 2): Port of Seattle and Port of Tacoma (the two big container ports, the Northwest Seaport Alliance); **Port of Vancouver USA** (a major Columbia River deep-draft seaport: grain, autos, bulk); **Port of Grays Harbor** at Aberdeen (Washington's deep-water port on the open Pacific: autos, grain, logs; the same kind of port as OR's Coos Bay and CA's Humboldt Bay). Left out: Everett (small container port), Longview, Kalama, Anacortes, Port Angeles (bulk or logs only). If four is too many, drop Grays Harbor first.
 
@@ -56,14 +60,14 @@ Unsure calls: **Longview** (mountain or farm; it's really a mill and port town),
 
 ---
 
-## 3. Towns (43, about 1.6 per region)
+## 3. Towns (43, about 1.5 per region)
 
-The next-biggest census towns of each region, skipping ones under about 4 miles from a station (Lacey, Tumwater, Kelso, College Place, East Wenatchee, Hoquiam, Port Orchard, Chehalis), plus real sights. Bigger regions get more (King 4). Walla Walla gets none (its next town, College Place, is 3 miles away; Waitsburg has 1,165 people).
+The next-biggest census towns of each region, skipping ones under about 4 miles from a station (Lacey, Tumwater, Kelso, College Place, East Wenatchee, Hoquiam, Port Orchard, Chehalis, Okanogan), plus real sights. Bigger regions get more (King 4). Columbia-Walla Walla gets Dayton (College Place is 3 miles from Walla Walla). Franklin gets Connell (5,439), its next-biggest town; Asotin-Garfield-Whitman gets Clarkston and Palouse Falls; Ferry-Okanogan gets Republic and Grand Coulee Dam; Kittitas gets Cle Elum.
 
 - **King:** Bellevue (metro, 3: a big edge city, like CA's Irvine or Fremont), Kent (metro, 2), Snoqualmie (mountain: the falls and the foot of the Cascades), Enumclaw (farm: dairy plateau; picked over closer suburbs for spread, and so Level 1 has a farm town near the ports for containers).
 - **Pierce:** Lakewood (metro, 2), Mount Rainier (scenic).
 - **Snohomish:** Marysville (metro, 2), Edmonds (coast: ferry town).
-- **Others:** Yelm (farm), Bainbridge Island (coast), Langley (coast), Anacortes (coast), Friday Harbor (scenic), Lynden (farm), Sequim (farm: lavender), Port Townsend (coast), Ocean Shores (coast), Long Beach (coast), Morton (mountain: gateway to White Pass and Rainier), Woodland (farm), Camas (metro), Battle Ground (farm), Leavenworth (scenic), Cle Elum (mountain), Omak (farm: Okanogan orchards), Sunnyside (farm), Ephrata (farm), Richland (desert, 2: Hanford), Prosser (farm: wine), Pullman (farm: the Palouse), Stevenson (mountain: the Gorge), Spokane Valley (metro, 2), Cheney (farm), Newport (mountain), Ritzville (farm), Republic (mountain), Dayton (farm).
+- **Others:** Yelm (farm), Bainbridge Island (coast), Langley (coast), Anacortes (coast), Friday Harbor (scenic), Lynden (farm), Sequim (farm: lavender), Port Townsend (coast), Ocean Shores (coast), Long Beach (coast), Morton (mountain: gateway to White Pass and Rainier), Woodland (farm), Camas (metro), Battle Ground (farm), Leavenworth (scenic), Cle Elum (mountain), Sunnyside (farm), Ephrata (farm), Richland (desert, 2: Hanford), Prosser (farm: wine), Connell (farm), Stevenson (mountain: the Gorge), Spokane Valley (metro, 2), Cheney (farm), Newport (mountain), Clarkston (mountain: at the mouth of Hells Canyon below the Blue Mountains), Ritzville (farm), Republic (mountain), Dayton (farm).
 
 **Scenic places (9; CA has 8, OR 6).** Hand-placed ones sit at the visitor center or viewpoint:
 
@@ -73,8 +77,8 @@ The next-biggest census towns of each region, skipping ones under about 4 miles 
 | Hurricane Ridge | Hurricane Ridge Visitor Center, Olympic National Park, 47.97, -123.50 | NPS Olympic; Wikipedia: Hurricane Ridge |
 | North Cascades | Diablo Lake Vista Point on SR 20, 48.71, -121.10 (Whatcom County) | NPS North Cascades; WSDOT SR 20; Wikipedia: Diablo Lake |
 | Mount St. Helens | Johnston Ridge Observatory, 46.28, -122.22 (Skamania County) | USFS Mount St. Helens NVM; Wikipedia: Johnston Ridge Observatory |
-| Grand Coulee Dam | the dam, 47.96, -118.98 (falls in the Douglas-Kittitas-Okanogan region) | U.S. Bureau of Reclamation; Wikipedia: Grand Coulee Dam |
-| Palouse Falls | Palouse Falls State Park, 46.66, -118.22 (Franklin-Whitman) | Washington State Parks; Wikipedia: Palouse Falls (the state waterfall) |
+| Grand Coulee Dam | the dam, 47.96, -118.98 (falls in the Ferry-Okanogan region) | U.S. Bureau of Reclamation; Wikipedia: Grand Coulee Dam |
+| Palouse Falls | Palouse Falls State Park, 46.66, -118.22. The falls are on the Palouse River, the Franklin–Whitman line; the map puts this point in Asotin-Garfield-Whitman, so that's its county | Washington State Parks; Wikipedia: Palouse Falls (the state waterfall) |
 | Friday Harbor | San Juan Islands (census town) | places.json |
 | Leavenworth | Bavarian village (census town) | places.json |
 | Lake Chelan | the city of Chelan at the foot of the lake (census town, named for the lake) | places.json |
@@ -87,7 +91,7 @@ Reachability (checked with the game's own terrain code): Mount Rainier is reache
 
 ## 4. Start and levels
 
-**Start:** `wa-king`, `wa-pierce`, `wa-kitsap` (Seattle metro, Tacoma metro, Bremerton coast). King–Pierce and Pierce–Kitsap touch by land. Two types, so the first track has riders: the pack test laid Seattle–Bremerton (21 miles, track follows the Sound's shore) and 6 to 9 passengers arrived in the first week (two runs). The alternatives were worse: King + Pierce + Snohomish are three metros (checker error), and Chelan or the DKO region would put a Cascade crossing in the first track. Note Seattle–Tacoma itself carries no riders in the default style (both metros), the same as Portland–Oregon City in OR.
+**Start:** `wa-king`, `wa-pierce`, `wa-kitsap` (Seattle metro; Tacoma and Bremerton coast). King–Pierce and Pierce–Kitsap touch by land. Two types, so the first track has riders, and since Tacoma became coast, Seattle–Tacoma carries riders too. The pack test laid Seattle–Bremerton (21 miles, track follows the Sound's shore) and 4 to 9 passengers arrived in the first week (three runs). The alternatives were worse: Chelan-Douglas or Kittitas would put a Cascade crossing in the first track.
 
 **Levels** (format and goal kinds as in CA):
 
@@ -95,10 +99,10 @@ Reachability (checked with the game's own terrain code): Mount Rainier is reache
 | --- | --- | --- | --- |
 | 1 Puget Sound | `sound` | King, Pierce, Kitsap, Snohomish, Thurston, Island, San Juan-Skagit (7) | 50 passengers; own 5 counties; 10 containers (from Seattle/Tacoma to Mount Vernon or the farm towns Enumclaw, Yelm) |
 | 2 Western Washington | `west` | Whatcom, Clallam, Jefferson-Mason, Grays Harbor, Pacific-Wahkiakum, Lewis, Cowlitz, Clark (8) | 140 passengers; connect Seattle–Vancouver (the I-5 line); 25 crates of produce |
-| 3 Cascades & Columbia Basin | `central` | Chelan, Douglas-Kittitas-Okanogan, Yakima, Grant, Benton, Franklin-Whitman, Klickitat-Skamania (7) | 280 passengers; connect Seattle–Wenatchee (over the Cascades); 1 high-speed train |
-| 4 Inland Northwest | `east` | Spokane, Walla Walla, Asotin-Columbia-Garfield, Adams-Ferry-Lincoln, Pend Oreille-Stevens (5) | 450 passengers; connect Seattle–Spokane; own 20 of 27 counties |
+| 3 Cascades & Columbia Basin | `central` | Chelan-Douglas, Kittitas, Yakima, Grant, Benton, Franklin, Klickitat-Skamania (7) | 280 passengers; connect Seattle–Wenatchee (over the Cascades); 1 high-speed train |
+| 4 Inland Northwest & the Okanogan | `east` | Spokane, Asotin-Garfield-Whitman, Columbia-Walla Walla, Adams-Lincoln, Pend Oreille-Stevens, Ferry-Okanogan (6) | 450 passengers; connect Seattle–Spokane; own 20 of 28 counties |
 
-Franklin-Whitman is in Level 3 because its station is Pasco (Tri-Cities, next to Kennewick).
+Franklin is in Level 3 with Benton (the Tri-Cities). Ferry-Okanogan is in Level 4 (it borders Level 1–3 regions, so it can be reached when Level 4 opens) to keep the levels about the same size; it could as well be Level 3. The level is still named "Inland Northwest" in the pack.
 
 **Core-code issue for the main agent (not fixable from a pack):** `NR.countyStatus` (js/game.js) locks any county whose main station has a `level` not in `s.areas`, whatever state it's in, and `NR.nextLevel` doesn't widen `s.areas` when the last level is beaten. Until now only CA had levels and its neighbors had none, so it never showed. With WA levels: in a CA Levels game, once Oregon is owned and Washington opens, WA counties would say "Opens in level 0" forever; and in a WA Levels game, CA counties would be locked the same way. Suggested fix: apply the level check only to the home state's counties (`code === NR.HOME_STATE`), or set `s.areas = allAreas()` when the levels are beaten.
 
@@ -169,14 +173,14 @@ Things the main agent should know:
 
 **Biomes**, matching the Oregon pack and the Oregon regions across the border:
 - **forest** (trees on the flats too): Clallam, Jefferson-Mason, Grays Harbor, Pacific-Wahkiakum (across from OR's forest Clatsop-Tillamook), Kitsap.
-- **wooded** (trees on the hills): the Puget Sound counties (King, Pierce, Snohomish, Thurston, Island, San Juan-Skagit, Whatcom), Lewis, Cowlitz, Clark (like OR's Columbia and Multnomah), the east-slope Cascades and highlands (Chelan, Douglas-Kittitas-Okanogan, Klickitat-Skamania, Pend Oreille-Stevens), Spokane (ponderosa pine) and Asotin-Columbia-Garfield (the Blue Mountains, like OR's Baker-Union-Wallowa).
-- **dry**: the Columbia Basin: Grant, Benton, Yakima, Adams-Ferry-Lincoln, Walla Walla (like OR's Morrow-Umatilla next door, and Oregon's wheat country is "dry" too).
-- **farmland** (not listed): Franklin-Whitman, for the Palouse (the brief). With Franklin merged in, the Pasco end looks greener than it is; that goes away if the merge changes (section 1).
+- **wooded** (trees on the hills): the Puget Sound counties (King, Pierce, Snohomish, Thurston, Island, San Juan-Skagit, Whatcom), Lewis, Cowlitz, Clark (like OR's Columbia and Multnomah), the east-slope Cascades and highlands (Chelan-Douglas, Kittitas, Ferry-Okanogan, Klickitat-Skamania, Pend Oreille-Stevens) and Spokane (ponderosa pine). Ferry's forests now draw as forest with Okanogan instead of as sagebrush.
+- **dry**: the Columbia Basin: Grant, Benton, Franklin, Yakima, Adams-Lincoln (scablands, potatoes and dryland wheat), Columbia-Walla Walla (like OR's Morrow-Umatilla next door; Oregon's wheat country is "dry" too).
+- **farmland** (not listed): Asotin-Garfield-Whitman, the Palouse (the brief).
 
-Unsure: Douglas-Kittitas-Okanogan (wooded or dry: its valleys are sagebrush), Adams-Ferry-Lincoln (dry, though Ferry is forest), Yakima (dry, though its west is Cascade forest).
+Unsure: Chelan-Douglas and Kittitas (wooded, though Douglas and eastern Kittitas are sagebrush and wheat), Columbia-Walla Walla (dry or farmland; Columbia County reaches the Blue Mountains), Yakima (dry, though its west is Cascade forest).
 
 ---
 
 ## 8. Screenshots looked at
 
-`WA-arcade-light.png`, `WA-classic-light.png`, `WA-levels.png`, `WA-phone.png`: stations sit at their cities (Seattle, Tacoma, Bremerton, Kent, Snoqualmie, Wenatchee visible), the Cascades read as a wall with pass markers at the crossings, bridge markers sit on the Columbia, the Basin is tan and the Palouse green, Level 1 only offers Puget Sound counties, and the phone view fits. Nothing looked broken. The one visible oddity is Ferry County drawn as dry (the merge, section 1).
+`WA-arcade-light.png`, `WA-classic-light.png`, `WA-levels.png`, `WA-phone.png`: stations sit at their cities (Seattle, Tacoma, Bremerton, Kent, Snoqualmie, Wenatchee visible), the Cascades read as a wall with pass markers at the crossings, bridge markers sit on the Columbia, the Basin is tan and the Palouse green, Level 1 only offers Puget Sound counties, and the phone view fits. Nothing looked broken. After the new merges `WA-arcade-light.png` shows 28 regions, Tacoma with the coast symbol, Ferry-Okanogan wooded, Franklin dry and the Palouse green.

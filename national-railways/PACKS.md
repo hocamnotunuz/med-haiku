@@ -74,7 +74,7 @@ One per county region, at the region's biggest city. Where you pick another city
 | `airport` | The airport's name, if it has a big one (flights) |
 | `scenic` | `true` for a place tourists travel to (a national park, a famous sight) |
 
-**Size guide** (from California, Nevada, Arizona and Oregon):
+**Size guide** (from California, Nevada, Arizona, Oregon and Washington):
 
 | Size | Region population | Example |
 | --- | --- | --- |

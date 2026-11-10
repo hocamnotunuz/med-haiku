@@ -22,8 +22,8 @@ NR.addPack({
     // gives Seattle–Tacoma riders in the default style.
     { id: "TAC", name: "Tacoma", county: "wa-pierce", lat: 47.25, lon: -122.46, port: "Port of Tacoma", type: "coast", size: 4, pop: 921, main: true, level: "sound" },
     { id: "EVT", name: "Everett", county: "wa-snohomish", lat: 47.97, lon: -122.19, type: "metro", size: 4, pop: 828, main: true, level: "sound" },
-    // Olympia rather than Lacey (56,285 people against Olympia's 55,369): Olympia is the state
-    // capital and county seat, and Lacey is its suburb next door.
+    // Olympia rather than the slightly bigger Lacey (Lacey has 56,285 people, Olympia 55,369):
+    // Olympia is the state capital and county seat, and Lacey is its suburb next door.
     { id: "OLY", name: "Olympia", county: "wa-thurston", lat: 47.04, lon: -122.89, type: "metro", size: 2, pop: 295, main: true, level: "sound" },
     { id: "BRM", name: "Bremerton", county: "wa-kitsap", lat: 47.54, lon: -122.72, type: "coast", size: 2, pop: 276, main: true, level: "sound" },
     { id: "MVN", name: "Mount Vernon", county: "wa-san-juan-skagit", lat: 48.42, lon: -122.31, type: "farm", size: 2, pop: 147, main: true, level: "sound" },
