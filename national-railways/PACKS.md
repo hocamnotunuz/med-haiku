@@ -11,14 +11,24 @@ Every state (and later every Canadian province) has a **pack**: `packs/<code>/pa
 
 `js/packs.js` lists the packs (`NR.PACK_LIST`, in load order) and collects them into the lists the game uses. `index.html` loads every `pack.js` with a `<script>` tag (they are small). A state's `map.js` and `terrain.js` load only when needed: the home state when a game starts, and the neighbors of open states in the background, so a state is ready when it opens. Until then it is drawn from its rough outline in `packs/index.js`.
 
-**Every pack must pass the checker before it joins the game:**
+**Every pack must pass the checker and the pack test before it joins the game:**
 
 ```
-node tools/check-pack.js CA        # one pack
-node tools/check-pack.js           # all packs
+node tools/check-pack.js CA        # the checker, one pack
+node tools/check-pack.js           # the checker, all packs
+node tools/test-pack.js CA         # the pack test (one pack at a time)
 ```
 
-Errors must be fixed. Warnings are worth a look but can be fine (for example, a pass in low hills).
+The **checker** reads the pack's data. Errors must be fixed. Warnings are worth a look but can be fine (for example, a pass in low hills).
+
+The **pack test** plays a short game in a real browser, starting in that state:
+- it checks the start (the right counties, their stations on the screen, only this state open)
+- it lays track by dragging between two stations, buys a county and runs one week of game time (passengers must arrive)
+- it saves and loads the game
+- it opens each city map, and starts Levels mode if the pack has levels
+- it takes screenshots: Arcade and Classic looks, light and dark, a phone screen, and every city map, in `test-out/<code>/` (not saved to git)
+
+Any error in the page fails it. Look over the screenshots too: the test can't tell if something looks wrong. It needs Playwright with Chromium (`npm install playwright`, then `npx playwright install chromium`), and serves the game itself.
 
 ---
 
@@ -35,7 +45,7 @@ A pack is one call: `NR.addPack({ ... })`.
 | `passes` | yes (may be empty) | Real mountain passes, canyons and gaps: `[name, latitude, longitude]` |
 | `bridges` | yes (may be empty) | Real bridges: `[name, latitude, longitude]` |
 | `biomes` | recommended | Cartoon look: `{ forest: [...], wooded: [...], dry: [...] }` lists of region ids |
-| `start` | to be a starting state | County region ids a game starting here begins owning: usually the biggest city's county and two neighbors (they should touch each other). States with `start` appear under Settings → Start in |
+| `start` | to be a starting state | County region ids a game starting here begins owning: usually the biggest city's county and two neighbors (they should touch each other). Their main stations need **at least two types of place**: in "A type of place" (the default style) passengers only travel to a different type, so a start with three metros gives the first track no riders. States with `start` appear under Settings → Start in |
 | `levels` | optional | Levels mode campaign (3–4 levels), used when the game starts in this state. Without it, Levels mode isn't offered for this state |
 | `metros` | if it has big cities | City maps, keyed by a main station id |
 | `bays` | if any | Bays where water needs a bridge: `{ name, ring: [lon, lat, lon, lat, ...] }` |
@@ -105,4 +115,4 @@ Keyed by a main station id. Each has a `name`, a `size` and 10–12 `stops` (the
 2. **Pack:** create `packs/<code>/pack.js` with the fields above. Add the code to `NR.PACK_LIST` in `js/packs.js` and a `<script>` tag for its `pack.js` in `index.html` (its `map.js` and `terrain.js` load by themselves when needed).
 3. **Terrain:** run `tools/build-terrain.js`: it writes the state's `terrain.js` and relief pictures (and hills and water for its city maps), and warns about passes with no mountains nearby.
 4. **Check:** run `node tools/check-pack.js <code>` until it passes with no errors.
-5. **Test:** run the game's browser tests, and play it in both looks (Arcade and Classic).
+5. **Test:** run `node tools/test-pack.js <code>` until it passes, and look over its screenshots in `test-out/<code>/`.

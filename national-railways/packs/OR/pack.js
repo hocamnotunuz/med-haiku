@@ -5,8 +5,9 @@
 NR.addPack({
   code: "OR",
   name: "Oregon",
-  // A game that starts here begins owning these counties (Portland, Hillsboro and Oregon City).
-  start: ["or-multnomah", "or-washington", "or-clackamas"],
+  // A game that starts here begins owning these counties (Portland, Oregon City and St. Helens):
+  // two types of place, so the first track has riders (Hillsboro is a metro like Portland).
+  start: ["or-multnomah", "or-clackamas", "or-columbia"],
   // Main stations: one per county region, at its biggest city (exceptions are explained).
   // id = the short code shown on passengers. county = region id in this folder's map.js.
   // pop = county population in thousands (2020 census). size = how busy (1 to 5).

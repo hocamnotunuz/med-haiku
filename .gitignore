@@ -7,3 +7,6 @@ national-railways/tools/node_modules/
 
 # Geography tool downloads
 national-railways/.terrain-cache/
+
+# Pack test screenshots
+national-railways/test-out/

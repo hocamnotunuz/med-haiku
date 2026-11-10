@@ -748,11 +748,13 @@
   const inSet = (set, lon, lat) => set.reduce((n, o) => (lon >= o.b[0] && lon <= o.b[2] && lat >= o.b[1] && lat <= o.b[3] && inRing(lon, lat, o.ring) ? !n : n), false);
   const landSets = new WeakMap();
   const setOf = (rings) => landSets.get(rings) || (landSets.set(rings, ringSet(rings)), landSets.get(rings));
-  // Is this place under fog? Returns a closed state's code, "outside" (land outside the game), or null.
+  // Is this place under fog? Returns a closed state's code, "outside" (land outside the game),
+  // OPEN (an open state's land: no fog) or null (the sea).
+  const OPEN = "@open";
   function fogAt(lon, lat, closed) {
     for (const st of NR.MAP.states) {
       const set = setOf(NR.MAP.stateLand[st.code]);
-      if (inSet(set, lon, lat)) return closed.has(st.code) ? st.code : null;
+      if (inSet(set, lon, lat)) return closed.has(st.code) ? st.code : OPEN;
     }
     for (const code of closed) {
       const ar = NR.AREAS[code];
@@ -843,17 +845,38 @@
       fogMemo.key = memoKey;
       fogMemo.cells = new Map();
     }
+    // Each lattice point sits somewhere in its cell (jittered), and remembers what's under it
+    const spot = (i, j) => [(i + 0.15 + 0.7 * hash(i, j, 61)) * step, (j + 0.15 + 0.7 * hash(i, j, 62)) * step];
+    const areaAt = (i, j) => {
+      const id = (i + 50000) * 100000 + (j + 50000);
+      let code = fogMemo.cells.get(id);
+      if (code === undefined) fogMemo.cells.set(id, (code = fogAt(...spot(i, j), closed)));
+      return code;
+    };
     const puffs = [];
     for (let j = Math.floor(lat0 / step) - 1; j <= Math.ceil(lat1 / step) + 1; j++)
       for (let i = Math.floor(lon0 / step) - 1; i <= Math.ceil(lon1 / step) + 1; i++) {
-        const lon = (i + 0.15 + 0.7 * hash(i, j, 61)) * step, lat = (j + 0.15 + 0.7 * hash(i, j, 62)) * step;
-        const id = (i + 50000) * 100000 + (j + 50000);
-        let code = fogMemo.cells.get(id);
-        if (code === undefined) fogMemo.cells.set(id, (code = fogAt(lon, lat, closed)));
-        if (!code || !codes.includes(code)) continue;
+        const code = areaAt(i, j);
+        if (!code || code === OPEN || !codes.includes(code)) continue;
         const t = clearing[code] || 0;
-        const [x, y] = P(lon, lat);
-        const r = step * ppd * 0.42 * (0.85 + 0.35 * hash(i, j, 64)) * (1 + t * 0.6);
+        const [x, y] = P(...spot(i, j));
+        let r = step * ppd * 0.42 * (0.85 + 0.35 * hash(i, j, 64));
+        // A cloud next to an open state shrinks so it only just crosses the border, and the
+        // state's own land (the counties you play in) stays in view
+        let edge = false;
+        for (let dj = -1; dj <= 1 && !edge; dj++) for (let di = -1; di <= 1 && !edge; di++) edge = areaAt(i + di, j + dj) === OPEN;
+        if (edge) {
+          let near = Infinity;
+          for (const f of [0.4, 0.7, 1, 1.3, 1.6]) {
+            for (let k = 0; k < 8 && near === Infinity; k++) {
+              const q = NR.fromScreen(x + Math.cos((k * Math.PI) / 4) * f * r, y + Math.sin((k * Math.PI) / 4) * f * r);
+              if (fogAt(q[0], q[1], closed) === OPEN) near = f * r;
+            }
+            if (near < Infinity) break;
+          }
+          if (near < Infinity) r = Math.max(r * 0.3, near / 1.5); // its side puffs reach about 1.5 r
+        }
+        r *= 1 + t * 0.6;
         puffs.push({ code, x: x + t * (x - view.w / 2) * 0.4, y, r });
       }
     return puffs.sort((p, q) => p.y - q.y);

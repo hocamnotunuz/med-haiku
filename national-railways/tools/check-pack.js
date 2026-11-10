@@ -163,6 +163,10 @@ function check(code) {
     for (const id of p.start) if (!regionById[id] || regionById[id].state !== code) err(`start county ${id} is not a region of ${code}`);
     const ok = p.start.every((id, i) => i === 0 || p.start.slice(0, i).some((o) => (regionById[id] ? regionById[id].neighbors : []).includes(o)));
     if (!ok) warn("the starting counties should join up (each next to an earlier one)");
+    // In "A type of place" (the default style) passengers only travel to a different type of
+    // place, so a start where every station is the same type gives the first track no riders
+    const startTypes = new Set(p.stations.filter((x) => x.main && p.start.includes(x.county)).map((x) => x.type));
+    if (startTypes.size < 2) err(`the starting counties' main stations are all "${[...startTypes][0]}": they need at least two types of place, or the first track carries nobody`);
   }
 
   // City maps

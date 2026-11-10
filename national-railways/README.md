@@ -215,6 +215,7 @@ Tap the **clipboard** on the bottom bar.
 | `tools/build-map.js` | Rebuilds `packs/index.js` and each state's `map.js` from Census data and Natural Earth outlines (see below). |
 | `tools/build-terrain.js` | Rebuilds every state's geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. It reads the city maps and passes from the packs. |
 | `tools/check-pack.js` | Checks the state packs for mistakes (`node tools/check-pack.js`). Every pack must pass. |
+| `tools/test-pack.js` | Plays a short game in one state in a real browser and takes screenshots (`node tools/test-pack.js CA`). Every pack must pass. |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
 | `js/metro.js` | City maps: neighborhoods, trams, metro and cable cars. |
 | `js/cartoon.js` | The Arcade look's cartoon map: hills, peaks, trees, cacti, waves, rivers and lakes, drawn from the terrain file. |
@@ -237,4 +238,4 @@ node tools/build-terrain.js tools/node_modules .terrain-cache
 
 Data: county shapes and city coastlines from the U.S. Census Bureau; elevation from [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (SRTM, USGS and other public sources); lakes, rivers and mountain range names from [Natural Earth](https://www.naturalearthdata.com/) (public domain).
 
-To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code, and either a list of which small counties to merge or a table of county populations so small ones merge automatically), add its code to the command above, run it, then make its pack: `packs/<code>/pack.js` with its main stations, towns, passes and bridges (`PACKS.md` explains every field), and check it with `node tools/check-pack.js <code>`. Every game starts in the `start` counties of the home pack (`NR.HOME_PACK` in `js/packs.js`, California), and owning all of a state opens its neighbors.
+To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code, and either a list of which small counties to merge or a table of county populations so small ones merge automatically), add its code to the command above, run it, then make its pack: `packs/<code>/pack.js` with its main stations, towns, passes and bridges (`PACKS.md` explains every field), and check it with `node tools/check-pack.js <code>` and `node tools/test-pack.js <code>`. Every game starts in the `start` counties of the home pack (`NR.HOME_PACK` in `js/packs.js`, California), and owning all of a state opens its neighbors.

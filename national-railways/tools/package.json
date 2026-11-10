@@ -3,8 +3,10 @@
   "private": true,
   "description": "Builds map and geography data for National Railways from U.S. Census Bureau, AWS Terrain Tiles and Natural Earth data.",
   "scripts": {
-    "build-map": "node build-map.js node_modules CA NV AZ OR",
-    "build-terrain": "node build-terrain.js node_modules ../.terrain-cache"
+    "build-map": "cd .. && node tools/build-map.js tools/node_modules .terrain-cache CA NV AZ OR",
+    "build-terrain": "cd .. && node tools/build-terrain.js tools/node_modules .terrain-cache",
+    "check-pack": "cd .. && node tools/check-pack.js",
+    "test-pack": "cd .. && node tools/test-pack.js"
   },
   "devDependencies": {
     "d3-contour": "4.0.2",
