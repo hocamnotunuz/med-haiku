@@ -16,6 +16,10 @@ Five states share one map: **California, Nevada, Arizona, Oregon and Washington*
 
 Every region has one main station at its biggest city, with a few exceptions to keep stations apart or names clear: Yuba County uses Wheatland (its larger towns sit across the river from Yuba City), Clackamas County uses Oregon City (Lake Oswego is right next to Portland), Pinal County uses Casa Grande (the city of Maricopa shares its name with Maricopa County), and Thurston County uses Olympia, the capital, over the slightly bigger Lacey. Washington's small counties are merged by their real metro areas (Chelan and Douglas around Wenatchee; Whitman, Asotin and Garfield around Pullman), and the San Juan Islands, which no bridge reaches, are part of Skagit's region. Regions outside California are named with their state, like "Clark County, Nevada".
 
+### Test mode
+
+**Settings → Test mode → On** starts games where nothing can be lost: when a station or a city neighborhood overflows, its riders give up and leave (a message says so) and the game carries on. Everything else plays as usual. The top bar says "Test mode", and these games don't count for best scores. The setting is remembered for your next game.
+
 ### Two looks: Arcade and Classic
 
 **Settings → Look** on the start screen switches between two ways of drawing the game. The choice changes the picture only, never the rules, and is remembered in your browser.
@@ -131,7 +135,8 @@ Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own ci
 - Riders appear in the neighborhoods: most cross town, some (orange tags) head for the main station to catch a train and then join the trains across California.
 - **Hills and water:** each city map shows its real hills and water (San Francisco's hills, the Hollywood Hills, San Diego Bay and Mission Bay, the Sacramento and American rivers). Trams slow down on hills (Castro to Haight-Ashbury is a 6% climb). Metro tunnels under hills cost more but don't slow down. Cable cars climb at full speed but can't cross water. Water needs a bridge (or a tube for the metro): cheaper at a real bridge like the Coronado Bridge or Tower Bridge, and impossible if too wide. Lines can run along a shore.
 - Half of the train passengers arriving at the city's main station ride the metro home.
-- A city keeps running once opened. A neighborhood that stays overcrowded ends the game, like a station, but **only the map you're looking at can be lost**: while you're on a city map, the state map and the other cities keep running (trains, passengers, money, weeks) with their stations kept at most half full, and while you're on the state map, every city is kept that way. When you come back to a map, it's live again.
+- A city keeps running once opened. **Only the map you're looking at can overflow**: while you're on a city map, the state map and the other cities keep running (trains, passengers, money, weeks) with their stations kept at most half full, and while you're on the state map, every city is kept that way. When you come back to a map, it's live again.
+- **An overwhelmed city doesn't end the game.** If a neighborhood on the city map you're looking at stays overcrowded, a head of transportation takes the city over at once and charges the usual fee (the state, then national money, cover it if the city budget is short). You're sent back to the state map; the head runs the city safely for 100 weeks, with its lines frozen, and the game carries on. (A station on the state map that stays overcrowded still ends the game.)
 - Up to 5 lines per city. Sell vehicles or delete lines to get half the price back.
 
 #### City budget and head of transportation

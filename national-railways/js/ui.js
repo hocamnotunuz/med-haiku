@@ -49,7 +49,7 @@
       }
     },
   };
-  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle", look: "arcade", home: "CA" }, store.get("nr-settings", {}));
+  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle", look: "arcade", home: "CA", test: "off" }, store.get("nr-settings", {}));
   const best = store.get("nr-best", {});
 
   // ---------- What is happening right now ----------
@@ -158,6 +158,7 @@
     const mode = checkedValue("mode") || settings.mode;
     const style = checkedValue("style") || settings.style;
     const b = best[bestKey(mode, style, checkedValue("home") || settings.home)];
+    if ((checkedValue("test") || settings.test) === "on") return ($("best-line").textContent = "Test mode is on: nothing can be lost, and best scores aren't kept.");
     $("best-line").textContent = b ? `Your best with these settings: ${plural(b, "passenger")}.` : "";
   }
 
@@ -168,6 +169,8 @@
     const style = document.querySelector(`input[name="style"][value="${settings.style}"]`);
     const geo = document.querySelector(`input[name="geo"][value="${settings.geo}"]`);
     const look = document.querySelector(`input[name="look"][value="${settings.look}"]`);
+    const test = document.querySelector(`input[name="test"][value="${settings.test === "on" ? "on" : "off"}"]`);
+    if (test) test.checked = true;
     const home = document.querySelector(`input[name="home"][value="${settings.home}"]`) || document.querySelector('input[name="home"]');
     if (home) home.checked = true;
     if (mode) mode.checked = true;
@@ -177,7 +180,7 @@
     updateLevelsChoice();
     updateBestLine();
   }
-  // Levels mode only exists in states whose pack has levels (California for now).
+  // Levels mode only exists in states whose pack has levels (California and Washington so far).
   function updateLevelsChoice() {
     const home = checkedValue("home") || settings.home;
     const ok = NR.hasLevels(home);
@@ -228,6 +231,7 @@
     settings.style = checkedValue("style") || "type";
     settings.geo = checkedValue("geo") || "gentle";
     settings.home = checkedValue("home") || settings.home;
+    settings.test = checkedValue("test") || "off";
     store.set("nr-settings", settings);
     // The home state's map must be loaded first (usually it already is)
     const button = $("btn-start");
@@ -245,7 +249,7 @@
   }
   function beginGame() {
     leaveCity();
-    game = NR.newGame(settings.mode, settings.style, settings.geo, settings.home);
+    game = NR.newGame(settings.mode, settings.style, settings.geo, settings.home, { test: settings.test === "on" });
     levelSave = NR.save(game);
     focusNetwork(); // start zoomed in on your first stations
     queue.length = 0;
@@ -321,6 +325,7 @@
   }
 
   function recordBest() {
+    if (game.test) return; // Test mode games don't count
     const key = bestKey(game.mode, game.style, game.home);
     if (game.delivered > (best[key] || 0)) {
       best[key] = game.delivered;
@@ -507,7 +512,19 @@
         toast(`Rush hour in ${NR.cityById[ev.at].name}! Extra passengers for a few seconds. Commuter trains help.`);
       } else if (ev.type === "week") enqueue(() => openWeek(ev.week));
       else if (ev.type === "level") enqueue(openLevel);
-      else if (ev.type === "fail") {
+      else if (ev.type === "giveUp") {
+        // Test mode: an overflowing station or city stop clears instead of ending the game
+        const where = ev.cityStop ? `${NR.cityStop(ev.at, ev.cityStop).name} in ${NR.METROS[ev.at].name}` : NR.cityById[ev.at].name;
+        toast(`Riders at ${where} gave up and left. Test mode is on, so nothing is lost.`);
+      } else if (ev.type === "cityTakenOver") {
+        // A city map overflowed: a head of transportation took over, and the game carries on
+        const name = NR.METROS[ev.key].name;
+        if (cityKey === ev.key) leaveCity();
+        toast(
+          `${name}'s network was overwhelmed${ev.at ? ` at ${NR.cityStop(ev.key, ev.at).name}` : ""}. A head of transportation took over${ev.fee ? ` (${NR.money(ev.fee, NR.stateOf(ev.key))})` : ""}: ` +
+            `they run ${name} safely for ${T.headTermWeeks} weeks, and its lines are frozen until then. Your game carries on.`
+        );
+      } else if (ev.type === "fail") {
         queue.length = 0;
         openOver("fail", ev.at, ev.cityStop);
       } else if (ev.type === "timeup") {
@@ -1344,7 +1361,7 @@
     }
     const modeName =
       game.mode === "levels" ? `Level ${game.level + 1}: ${NR.LEVELS[game.level].name}` : game.mode === "timed" ? "Timed challenge" : "Endless";
-    if (!cityKey) setText("mode-label", `${modeName} · ${game.style === "type" ? "Type of place" : "Specific city"}${game.geo === "tough" ? " · Tough" : ""}`);
+    if (!cityKey) setText("mode-label", `${modeName} · ${game.style === "type" ? "Type of place" : "Specific city"}${game.geo === "tough" ? " · Tough" : ""}${game.test ? " · Test mode" : ""}`);
     setText("trains-free", NR.depotCount(game));
     if (cityKey) {
       setText("mode-label", `${NR.METROS[cityKey].name} city map · trams and metro`);
@@ -1740,7 +1757,7 @@
     levelSave = NR.save(game);
     next();
   });
-  document.querySelectorAll('input[name="mode"], input[name="style"]').forEach((el) => el.addEventListener("change", updateBestLine));
+  document.querySelectorAll('input[name="mode"], input[name="style"], input[name="test"]').forEach((el) => el.addEventListener("change", updateBestLine));
 
   $("lp-tunnel").addEventListener("click", () => {
     const line = NR.lineById(game, openLineId);

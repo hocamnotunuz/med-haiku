@@ -394,6 +394,23 @@
     return true;
   };
 
+  // The city's network is overwhelmed: a head of transportation takes over at once and runs it
+  // safely for the usual term, with its lines frozen. The fee is charged even if it leaves the
+  // budgets short (the state, then national money, cover it). A head who was still settling in
+  // takes over now, with no second fee.
+  function takeOver(s, key, at) {
+    const c = s.cities[key];
+    const fee = c.head ? 0 : NR.headFee(s, key);
+    if (fee) cityPay(s, key, fee);
+    c.head = { hired: c.head ? c.head.hired : s.time, from: s.time, until: s.time + weeks(T.headTermWeeks), started: true, forced: true };
+    for (const st of c.stations) {
+      if (st.waiting.length > Math.floor(T.cityRoom / 2)) st.waiting.length = Math.floor(T.cityRoom / 2);
+      st.crowd = 0;
+      st.warned = false;
+    }
+    emit("cityTakenOver", { key, fee, at });
+  }
+
   // Once a week: each city pays its running costs from its budget. While managed, management
   // keeps 90% of the profit and 10% goes to the state budget. If a city budget runs dry,
   // the state budget covers the rest (and national money covers the state, see js/game.js).
@@ -563,9 +580,10 @@
         st.spawnIn = (14 / (0.6 + metro.size * 0.12) / pressure) * rand(0.7, 1.3) * (NR.isNight(s) ? 1.6 : 1);
       }
       for (const train of c.trains) moveVehicle(s, key, c, train, dt);
-      // Crowding: a stop that stays too full for too long ends the game, just like a station.
-      // While the head of transportation runs the city, or while you are not looking at this
-      // city's map, stops are kept at most half full instead (extra riders take the bus).
+      // Crowding: a stop that stays too full for too long overwhelms the city's network, and a
+      // head of transportation takes over (the game carries on). While the head runs the city,
+      // or while you are not looking at this city's map, stops are kept at most half full
+      // instead (extra riders take the bus).
       const away = rt.viewing !== key;
       for (const st of c.stations) {
         if (managed || away) {
@@ -577,9 +595,15 @@
         if (st.waiting.length > T.cityRoom) st.crowd = Math.min(1, st.crowd + dt / T.cityOverflowSeconds);
         else st.crowd = Math.max(0, st.crowd - dt / (T.cityOverflowSeconds * 1.5));
         if (st.crowd >= 1) {
-          s.over = true;
-          emit("fail", { at: key, cityStop: st.id });
-          return;
+          if (s.test) {
+            // Test mode: nothing can be lost. The riders give up and leave.
+            st.waiting.length = 0;
+            st.crowd = 0;
+            emit("giveUp", { at: key, cityStop: st.id });
+            continue;
+          }
+          takeOver(s, key, st.id);
+          break;
         }
         if (st.crowd > 0.4 && !st.warned) {
           st.warned = true;

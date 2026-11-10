@@ -481,12 +481,14 @@
   }
   // The states open in this game (only their land counts when track crosses a border)
   const syncOpen = (s) => (NR.runtime.openStates = new Set(Object.keys(s.states).filter((code) => s.states[code].open)));
-  NR.newGame = function (mode, style, geo, home) {
+  // opts.test: Test mode (Settings): nothing can be lost (see the overflow check below)
+  NR.newGame = function (mode, style, geo, home, opts) {
     NR.setHome(home || NR.HOME_STATE);
     if (mode === "levels" && !NR.LEVELS.length) mode = "endless"; // only some states have levels
     rt.geoLevel = geo || "gentle"; // how hard real geography is (see js/geography.js)
     const s = {
       mode,
+      test: !!(opts && opts.test), // Test mode: overflowing stations clear instead of ending the game
       home: NR.HOME_STATE,
       style,
       geo: rt.geoLevel,
@@ -1243,6 +1245,13 @@
       if (st.waiting.length > T.stationRoom) st.crowd = Math.min(1, st.crowd + dt / T.overflowSeconds);
       else st.crowd = Math.max(0, st.crowd - dt / (T.overflowSeconds * 1.5));
       if (st.crowd >= 1) {
+        if (s.test) {
+          // Test mode: nothing can be lost. The riders give up and leave, and the game carries on.
+          st.waiting.length = 0;
+          st.crowd = 0;
+          emit("giveUp", { at: st.id });
+          continue;
+        }
         s.over = true;
         emit("fail", { at: st.id });
         return;
