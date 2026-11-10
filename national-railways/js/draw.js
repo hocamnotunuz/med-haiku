@@ -125,7 +125,7 @@
     const key = codes.join(",");
     if (key === fitted) return false;
     fitted = key;
-    maxTilt = codes.length === 1 ? 12 : 0; // only long, diagonal California on its own may tilt
+    maxTilt = codes.length === 1 ? 12 : 0; // a state on its own may tilt (long, diagonal California does)
     // Center the projection on these states
     let lon0 = Infinity, lon1 = -Infinity, lat0 = Infinity, lat1 = -Infinity;
     codes.forEach((code) =>
@@ -699,7 +699,7 @@
       halo(ctx, NR.STATE_NAMES[code].toUpperCase(), x, y - 7, colors.muted, back);
       if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
       ctx.font = `500 10px ${MONO}`;
-      halo(ctx, `Opens once you own all of ${NR.STATE_NAMES[NR.HOME_STATE]}`, x, y + 9, colors.muted, back);
+      halo(ctx, `Opens once you own all of ${NR.opensAfter(s, code)}`, x, y + 9, colors.muted, back);
     }
   }
 
@@ -1584,7 +1584,7 @@
         ctx.stroke();
       }
       if (stop.hub) {
-        // The main station: where riders change to and from trains across California
+        // The main station: where riders change to and from trains on the state map
         roundRect(ctx, x - r * 1.15, y - r * 1.15, r * 2.3, r * 2.3, r * 0.35);
         ctx.fillStyle = colors.ink;
         ctx.fill();

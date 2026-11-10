@@ -1,6 +1,6 @@
 // National Railways: trams, metro and cable cars inside cities.
 // Each metro city has its own map of neighborhoods. Riders travel between neighborhoods,
-// and to and from the city's main station, where they meet the trains across California.
+// and to and from the city's main station, where they meet the trains on the state map.
 (function () {
   "use strict";
   const NR = window.NR;
@@ -466,7 +466,7 @@
     NR.cityState(s, key).budget += tax;
     c.delivered++;
     emit("cityDeliver", { key, at: here });
-    // A rider who came to the main station to catch a train joins the trains across California.
+    // A rider who came to the main station to catch a train joins the trains on the state map.
     if (p.out && stopOf(key, here).hub && NR.feedState) NR.feedState(s, key);
   }
 

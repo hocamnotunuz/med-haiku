@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="style.css">
 
 <div id="app">
-  <canvas id="map" aria-label="Map of California and its neighboring states with your rail network. Drag between cities to lay track."></canvas>
+  <canvas id="map" aria-label="Map of real states and counties with your rail network. Drag between cities to lay track."></canvas>
 
   <!-- Top: name, mode and score -->
   <header id="hud-top" class="hud-top">
@@ -19,7 +19,7 @@
       <button id="btn-legend" class="legend-toggle" type="button" aria-expanded="false" aria-controls="legend">Legend</button>
       <div id="legend" class="legend"></div>
       <div id="city-bar" class="city-bar" hidden>
-        <button id="btn-back" class="btn btn-small" type="button">← California</button>
+        <button id="btn-back" class="btn btn-small" type="button">← State map</button>
         <div class="mode-pick" role="group" aria-label="Kind of line to build">
           <button type="button" class="mode-btn" data-mode="tram" aria-pressed="true">Tram</button>
           <button type="button" class="mode-btn" data-mode="metro" aria-pressed="false">Metro</button>
@@ -171,7 +171,7 @@
     <div class="card card-start">
       <p class="eyebrow">California and the West · Passenger rail</p>
       <h1 id="start-title">National Railways</h1>
-      <p class="lede">Lay track between real California cities, run your trains, and get every passenger where they are going before a station overflows. Own all of California and Nevada, Arizona and Oregon open next.</p>
+      <p class="lede">Lay track between real cities, run your trains, and get every passenger where they are going before a station overflows. Own all of your home state (California, unless you pick another in Settings) and the states next to it open.</p>
 
       <fieldset class="choice">
         <legend>Game mode</legend>
@@ -192,6 +192,10 @@
 
       <details class="guide settings">
         <summary>Settings</summary>
+        <fieldset class="choice">
+          <legend>Start in</legend>
+          <div class="options" id="home-options"></div>
+        </fieldset>
         <fieldset class="choice">
           <legend>Difficulty</legend>
           <div class="options">

@@ -34,8 +34,8 @@ A pack is one call: `NR.addPack({ ... })`.
 | `passes` | yes (may be empty) | Real mountain passes, canyons and gaps: `[name, latitude, longitude]` |
 | `bridges` | yes (may be empty) | Real bridges: `[name, latitude, longitude]` |
 | `biomes` | recommended | Cartoon look: `{ forest: [...], wooded: [...], dry: [...] }` lists of region ids |
-| `start` | home state only | County region ids a game starting here begins owning (they should touch each other) |
-| `levels` | home state only | Levels mode campaign (3–4 levels) |
+| `start` | to be a starting state | County region ids a game starting here begins owning: usually the biggest city's county and two neighbors (they should touch each other). States with `start` appear under Settings → Start in |
+| `levels` | optional | Levels mode campaign (3–4 levels), used when the game starts in this state. Without it, Levels mode isn't offered for this state |
 | `metros` | if it has big cities | City maps, keyed by a main station id |
 | `bays` | if any | Bays where water needs a bridge: `{ name, ring: [lon, lat, lon, lat, ...] }` |
 

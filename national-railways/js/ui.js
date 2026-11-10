@@ -49,7 +49,7 @@
       }
     },
   };
-  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle", look: "arcade" }, store.get("nr-settings", {}));
+  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle", look: "arcade", home: "CA" }, store.get("nr-settings", {}));
   const best = store.get("nr-best", {});
 
   // ---------- What is happening right now ----------
@@ -145,8 +145,9 @@
     else job();
   }
 
-  function bestKey(mode, style) {
-    return `${mode}-${style}`;
+  // Best scores are kept per mode, passenger style and home state (California's keep their old name).
+  function bestKey(mode, style, home) {
+    return home && home !== "CA" ? `${mode}-${style}-${home}` : `${mode}-${style}`;
   }
   function checkedValue(name) {
     const el = document.querySelector(`input[name="${name}"]:checked`);
@@ -155,7 +156,7 @@
   function updateBestLine() {
     const mode = checkedValue("mode") || settings.mode;
     const style = checkedValue("style") || settings.style;
-    const b = best[bestKey(mode, style)];
+    const b = best[bestKey(mode, style, checkedValue("home") || settings.home)];
     $("best-line").textContent = b ? `Your best with these settings: ${plural(b, "passenger")}.` : "";
   }
 
@@ -166,20 +167,61 @@
     const style = document.querySelector(`input[name="style"][value="${settings.style}"]`);
     const geo = document.querySelector(`input[name="geo"][value="${settings.geo}"]`);
     const look = document.querySelector(`input[name="look"][value="${settings.look}"]`);
+    const home = document.querySelector(`input[name="home"][value="${settings.home}"]`) || document.querySelector('input[name="home"]');
+    if (home) home.checked = true;
     if (mode) mode.checked = true;
     if (style) style.checked = true;
     if (geo) geo.checked = true;
     if (look) look.checked = true;
+    updateLevelsChoice();
     updateBestLine();
   }
+  // Levels mode only exists in states whose pack has levels (California for now).
+  function updateLevelsChoice() {
+    const home = checkedValue("home") || settings.home;
+    const ok = NR.hasLevels(home);
+    const levels = $("mode-levels");
+    levels.disabled = !ok;
+    levels.closest(".option").classList.toggle("unavailable", !ok);
+    if (!ok && levels.checked) $("mode-endless").checked = true;
+  }
+  // The "Start in" choices: every state whose pack has starting counties.
+  function renderHomeChoices() {
+    const box = $("home-options");
+    box.textContent = "";
+    NR.homeChoices().forEach((code) => {
+      const label = document.createElement("label");
+      label.className = "option";
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "home";
+      input.value = code;
+      input.id = `home-${code}`;
+      input.addEventListener("change", () => {
+        updateLevelsChoice();
+        updateBestLine();
+      });
+      const title = document.createElement("span");
+      title.className = "option-title";
+      title.textContent = NR.STATE_NAMES[code];
+      const text = document.createElement("span");
+      text.className = "option-text";
+      const names = NR.PACKS[code].start.map((id) => NR.mainStation[id].name);
+      text.textContent = `Start with ${NR.listWords(names)}.${NR.hasLevels(code) ? "" : " No Levels mode here yet."}`;
+      label.append(input, title, text);
+      box.append(label);
+    });
+  }
+  renderHomeChoices();
 
   function startGame() {
     settings.mode = checkedValue("mode") || "endless";
     settings.style = checkedValue("style") || "type";
     settings.geo = checkedValue("geo") || "gentle";
+    settings.home = checkedValue("home") || settings.home;
     store.set("nr-settings", settings);
     leaveCity();
-    game = NR.newGame(settings.mode, settings.style, settings.geo);
+    game = NR.newGame(settings.mode, settings.style, settings.geo, settings.home);
     levelSave = NR.save(game);
     focusNetwork(); // start zoomed in on your first stations
     queue.length = 0;
@@ -187,7 +229,7 @@
     setPaused(false);
     renderLegend();
     show(null);
-    toast("Drag from Los Angeles to another city to lay your first track.");
+    toast(`Drag from ${NR.mainStation[NR.START_COUNTIES[0]].name} to another city to lay your first track.`);
   }
 
   function openWeek(week) {
@@ -244,17 +286,17 @@
       });
       $("btn-level-next").textContent = `Start level ${game.level + 2}`;
     } else {
-      $("level-title").textContent = "All of California is connected";
+      $("level-title").textContent = `All of ${NR.STATE_NAMES[NR.HOME_STATE]} is connected`;
       $("level-text").textContent =
         `You beat every level with ${plural(game.delivered, "passenger")} delivered. ` +
-        "Nevada, Arizona and Oregon are now open, each with a budget of its own. " +
+        `${NR.listWords(NR.stateNeighbors(NR.HOME_STATE).map((c) => NR.STATE_NAMES[c]))} are now open, each with a budget of its own. ` +
         "The game carries on in Endless mode, so keep your network running as long as you can.";
       $("btn-level-next").textContent = "Keep playing";
     }
   }
 
   function recordBest() {
-    const key = bestKey(game.mode, game.style);
+    const key = bestKey(game.mode, game.style, game.home);
     if (game.delivered > (best[key] || 0)) {
       best[key] = game.delivered;
       store.set("nr-best", best);
@@ -288,7 +330,7 @@
     show("over");
     const name = cityStop ? `${NR.cityStop(at, cityStop).name} (${NR.METROS[at].name})` : at ? NR.cityById[at].name : "";
     const weeks = Math.min(Math.floor(game.time / T.weekLength) + 1, game.mode === "timed" ? T.timedWeeks : Infinity);
-    const top = best[bestKey(game.mode, game.style)] || 0;
+    const top = best[bestKey(game.mode, game.style, game.home)] || 0;
     const actions = $("over-actions");
     actions.textContent = "";
     if (kind === "time") {
@@ -641,6 +683,7 @@
     closeCountyPanel();
     closeContracts();
     draft = null;
+    $("btn-back").textContent = `← ${NR.STATE_NAMES[NR.stateOf(key)]}`;
     cityKey = key;
     NR.runtime.viewing = key; // only the map you're looking at can overflow
     if (!awayHintShown) {
@@ -837,8 +880,12 @@
       if (closed.length) {
         const note = document.createElement("p");
         note.className = "bp-closed";
-        const names = closed.map((code) => NR.STATE_NAMES[code]);
-        note.textContent = `${names.slice(0, -1).join(", ")}${names.length > 1 ? " and " : ""}${names[names.length - 1]} open once you own all of ${NR.STATE_NAMES[NR.HOME_STATE]}.`;
+        // "Nevada, Arizona and Oregon open once you own all of California." (grouped by what opens them)
+        const groups = {};
+        closed.forEach((code) => (groups[NR.opensAfter(game, code)] = (groups[NR.opensAfter(game, code)] || []).concat(NR.STATE_NAMES[code])));
+        note.textContent = Object.entries(groups)
+          .map(([after, names]) => `${NR.listWords(names)} ${names.length > 1 ? "open" : "opens"} once you own all of ${after}.`)
+          .join(" ");
         box.append(note);
       }
       setText(
@@ -1227,7 +1274,7 @@
       setText("goal", clock(Math.max(0, T.timedWeeks * T.weekLength - game.time)));
     } else {
       setText("goal-label", "Best");
-      setText("goal", best[bestKey("endless", game.style)] || 0);
+      setText("goal", best[bestKey("endless", game.style, game.home)] || 0);
     }
     const modeName =
       game.mode === "levels" ? `Level ${game.level + 1}: ${NR.LEVELS[game.level].name}` : game.mode === "timed" ? "Timed challenge" : "Endless";

@@ -126,6 +126,8 @@
   const bays = (NR.BAYS || []).map((b) => ({ name: b.name, ring: b.ring, box: boxOf(b.ring) }));
   // Land in a neighboring state or country. The Pacific is only to the west: anything east of
   // San Diego's coast (or north of Oregon's coast) that isn't ours is someone else's land.
+  // To do (plan step 1.6): real outlines of the land outside the game, from the terrain tool,
+  // instead of these two California and Oregon coast numbers.
   const foreignLand = (lon, lat) => lon > -117.13 || (lat > 46.1 && lon > -123.95) || cellAt(lon, lat) >= 4;
   function waterAt(lon, lat) {
     const lake = lakes.find((l) => lon >= l.box[0] && lon <= l.box[2] && lat >= l.box[1] && lat <= l.box[3] && inRing(lon, lat, l.ring));

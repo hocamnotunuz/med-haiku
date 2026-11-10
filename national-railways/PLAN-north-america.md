@@ -13,10 +13,10 @@
 | 0. Own repository | **Postponed** (your choice). Everything is ready to move with its full history whenever you want. |
 | 1.1 Packs | **Done for hand-made content:** `packs/<code>/pack.js` for CA, NV, AZ, OR (stations, towns, levels, start, city maps, passes, bridges, bays, biomes). Generated map and terrain data still load all at once; splitting them comes with the speed work (1.6). |
 | 1.2 Map projection | **Done:** Lambert conformal conic, centered on the open states. Fixed outlines are worked out once per projection (faster), clouds are kept as a picture, and the Classic relief is laid in 64 pieces that follow the curve. |
-| 1.3 California-only shortcuts | **Mostly done:** bays, forests and deserts, cable cars and the bay message now come from packs. Left: the "foreign land" rule in `js/geography.js`, and screen text that names California. |
-| 1.4 Choose where to start | **Half done:** owning all of a state now opens its neighbors. Left: picking the home state on the start screen. |
+| 1.3 California-only shortcuts | **Done, but one item moved to 1.6:** bays, forests and deserts, cable cars, messages and screen text are general now. The rule for where the sea ends at the Mexican and Washington borders needs real outlines of the land outside the game; a general rule changed 544 routes, so it waits for the terrain rebuild in 1.6. |
+| 1.4 Choose where to start | **Done:** Settings → Start in (California, Nevada, Arizona, Oregon), from each pack's starting counties. Neighbors open once you own all of a state. Levels mode only where a pack has levels. Best scores per home state. |
 | 1.5 Two countries' money | Not started |
-| 1.6 Speed and memory | Not started |
+| 1.6 Speed and memory | Not started. Also here: real outlines of the land outside the game (from 1.3). |
 | 1.7 Pack checker | **Done (first version):** `tools/check-pack.js`, explained in `PACKS.md`. |
 | 1.8 Pack test | Not started |
 | 1.9 Pilot (WA, then BC) | Not started |

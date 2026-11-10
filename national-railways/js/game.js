@@ -8,7 +8,7 @@
   const T = (NR.TUNING = {
     dayLength: 10, // real seconds per in-game day
     timedWeeks: 4, // how many weeks the Timed challenge lasts
-    startMoney: 400, // California's budget at the start, in thousands of dollars ($k)
+    startMoney: 400, // the home state's budget at the start, in thousands of dollars ($k)
     nationalStart: 0, // national money at the start ($k)
     newStateBudget: 200, // budget a state gets when it opens ($k)
     stateTax: 0.1, // share of every fare and cargo fee a state pays to national money
@@ -260,7 +260,20 @@
   // budget first, then national money). If national money ends a week below zero, the richest
   // state covers it. Money can't be moved between budgets by hand.
   NR.STATE_NAMES = Object.fromEntries(NR.MAP.states.map((x) => [x.code, x.name]));
-  NR.HOME_STATE = NR.countyById[NR.START_COUNTIES[0]].state; // every game starts here
+  // The home state: where a game starts, with its pack's starting counties and levels.
+  // Any state whose pack lists starting counties can be home (California is the default).
+  NR.homeChoices = () => NR.PACK_LIST.filter((code) => NR.PACKS[code] && NR.PACKS[code].start && NR.PACKS[code].start.length);
+  NR.setHome = function (code) {
+    const home = NR.homeChoices().includes(code) ? code : NR.homeChoices()[0];
+    NR.HOME_PACK = home;
+    NR.HOME_STATE = home;
+    NR.START_COUNTIES = NR.PACKS[home].start;
+    NR.LEVELS = NR.PACKS[home].levels || [];
+  };
+  NR.hasLevels = (code) => !!(NR.PACKS[code] && NR.PACKS[code].levels && NR.PACKS[code].levels.length);
+  NR.setHome(NR.HOME_PACK);
+  // "A, B and C" or "A, B or C"
+  NR.listWords = (words, last = "and") => (words.length > 1 ? `${words.slice(0, -1).join(", ")} ${last} ${words[words.length - 1]}` : words[0] || "");
   NR.stateOf = (stationId) => NR.countyById[city(stationId).county].state;
   // Who pays for the track between two stations: their state, or national money across a border.
   NR.segmentPayer = (a, b) => (NR.stateOf(a) === NR.stateOf(b) ? NR.stateOf(a) : "national");
@@ -337,10 +350,13 @@
 
   // ---------- Starting a game ----------
   // mode: "endless" | "timed" | "levels"    style: "type" | "city"    geo: "gentle" | "tough"
-  NR.newGame = function (mode, style, geo) {
+  NR.newGame = function (mode, style, geo, home) {
+    NR.setHome(home || NR.HOME_STATE);
+    if (mode === "levels" && !NR.LEVELS.length) mode = "endless"; // only some states have levels
     rt.geoLevel = geo || "gentle"; // how hard real geography is (see js/geography.js)
     const s = {
       mode,
+      home: NR.HOME_STATE,
       style,
       geo: rt.geoLevel,
       time: 0,
@@ -440,7 +456,7 @@
   NR.countyStatus = function (s, id) {
     if (s.owned.includes(id)) return { owned: true };
     const code = NR.countyById[id].state;
-    if (!s.states[code].open) return { ok: false, reason: `Opens once you own all of ${NR.STATE_NAMES[NR.HOME_STATE]}` };
+    if (!s.states[code].open) return { ok: false, reason: `Opens once you own all of ${NR.opensAfter(s, code)}` };
     if (NR.stateFrozen(s, code)) return { ok: false, reason: `Frozen while ${NR.STATE_NAMES[code]} is managed` };
     if (countyArea(id) && !s.areas.includes(countyArea(id))) {
       const lv = NR.LEVELS.findIndex((l) => l.areas.includes(countyArea(id)));
@@ -486,6 +502,14 @@
       );
     }
     return [...(stateNeighbors[code] || [])];
+  };
+  // Which open state you'd need to own all of for this closed state to open ("Nevada or Oregon").
+  NR.opensAfter = (s, code) => {
+    const near = NR.stateNeighbors(code).filter((n) => s.states[n]);
+    const open = near.filter((n) => s.states[n].open);
+    if (open.length) return NR.listWords(open.map((n) => NR.STATE_NAMES[n]), "or");
+    // None of its neighbors is open yet: "California or Nevada, after they open"
+    return `${NR.listWords(near.map((n) => NR.STATE_NAMES[n]), "or")}, after ${near.length > 1 ? "they open" : "it opens"}`;
   };
   function openMoreStates(s) {
     const opened = [];
@@ -1611,6 +1635,7 @@
   NR.save = (s) => JSON.stringify(s);
   NR.load = (text) => {
     const s = JSON.parse(text);
+    NR.setHome(s.home || "CA"); // games saved before you could choose started in California
     rt.geoLevel = s.geo || "gentle";
     rt.dirty = true;
     rt.events.length = 0;

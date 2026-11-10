@@ -53,9 +53,10 @@ All these numbers live in `js/geography.js` (`NR.GEO`).
 
 ### Opening more states
 
-- Every game starts in California. Nevada, Arizona and Oregon are shaded darker until they open.
-- They open **once you own every county in California** (or when you finish the last level in Levels mode). Each starts with a $200k budget, and the map zooms out to show them.
-- Their counties are then unlocked like California's: next to one you own, by paying or by reaching the free-unlock goal.
+- **Choose your home state** under **Settings → Start in**: California (the default, around Los Angeles), Nevada (Las Vegas), Arizona (Phoenix) or Oregon (Portland). Levels mode is only in California for now. Best scores are kept per home state.
+- The other states are hidden under clouds (shaded darker in the Classic look) until they open.
+- A state's **neighbors open once you own every county in it** (in Levels mode, also when you finish the last level). Each newly opened state starts with a $200k budget, and the map zooms out to show it. The clouds say which state to finish to open them.
+- Their counties are then unlocked like the home state's: next to one you own, by paying or by reaching the free-unlock goal.
 
 ### Unlocking counties
 

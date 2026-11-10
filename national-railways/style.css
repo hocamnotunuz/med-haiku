@@ -395,6 +395,7 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
 .option input { position: absolute; opacity: 0; pointer-events: none; }
 .option:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.option.unavailable { opacity: 0.45; cursor: not-allowed; }
 .option-title { font-weight: 700; }
 .option-text { font-size: 0.8rem; color: var(--muted); line-height: 1.35; }
 

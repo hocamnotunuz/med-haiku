@@ -5,6 +5,8 @@
 NR.addPack({
   code: "NV",
   name: "Nevada",
+  // A game that starts here begins owning these counties (Las Vegas, Pahrump and Ely).
+  start: ["nv-clark", "nv-nye", "nv-lincoln-white-pine"],
   // Main stations: one per county region, at its biggest city (exceptions are explained).
   // id = the short code shown on passengers. county = region id in js/map.js.
   // pop = county population in thousands (2020 census). size = how busy (1 to 5).
