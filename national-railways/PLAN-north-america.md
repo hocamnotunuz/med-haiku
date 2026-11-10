@@ -6,6 +6,23 @@
 
 ---
 
+## Progress
+
+| Step | Status |
+| --- | --- |
+| 0. Own repository | Waiting: the empty `national-railways` repository isn't on GitHub yet (or the Claude app can't see it). Everything is ready to move with its full history. |
+| 1.1 Packs | **Done for hand-made content:** `packs/<code>/pack.js` for CA, NV, AZ, OR (stations, towns, levels, start, city maps, passes, bridges, bays, biomes). Generated map and terrain data still load all at once; splitting them comes with the speed work (1.6). |
+| 1.2 Map projection | Next |
+| 1.3 California-only shortcuts | **Mostly done:** bays, forests and deserts, cable cars and the bay message now come from packs. Left: the "foreign land" rule in `js/geography.js`, and screen text that names California. |
+| 1.4 Choose where to start | **Half done:** owning all of a state now opens its neighbors. Left: picking the home state on the start screen. |
+| 1.5 Two countries' money | Not started |
+| 1.6 Speed and memory | Not started |
+| 1.7 Pack checker | **Done (first version):** `tools/check-pack.js`, explained in `PACKS.md`. |
+| 1.8 Pack test | Not started |
+| 1.9 Pilot (WA, then BC) | Not started |
+
+---
+
 ## 1. What "California's standard" means
 
 Every state or province is finished only when it has all of these. California's numbers show the target.
