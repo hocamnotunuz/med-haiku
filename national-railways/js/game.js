@@ -16,9 +16,11 @@
     highSpeedPrice: 1.5, // extra $k per mile for high-speed track
     refundShare: 0.5, // share of the track cost you get back when you delete a line
     grant: 150, // $k of national money from a federal grant
-    startLines: 3, // line colors available at the start
-    maxLines: 7,
-    lineColorPrice: [100, 50], // $k for a line color bought with money: the first one, then this much more each
+    // Lines come in groups, each with its own set (see "Lines: state, national, international"):
+    stateLines: [4, 10], // each open state: lines at the start, and the most it can have
+    nationalLines: [2, 3], // once a country has 2 open states: lines at the start, and the most per open state
+    intlLines: [1, 8], // across the US–Canada border: lines at the start, and the most
+    lineColorPrice: [100, 50], // k for one more line in a group: the first one, then this much more each
     startTrains: 3, // Regular trains in the depot at the start
     trainSpeed: 110, // map miles per real second for a Regular train
     rushEvery: [30, 45], // seconds between rush hours (random in this range)
@@ -45,7 +47,7 @@
   });
   T.weekLength = T.dayLength * 7;
   NR.DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  NR.SAVE_VERSION = 14; // bump when saved games from older versions no longer fit (14: each country's money)
+  NR.SAVE_VERSION = 15; // bump when saved games from older versions no longer fit (14: each country's money; 15: line groups)
 
   // ---- Time of day: night runs from 21:00 to 05:00 ----
   NR.hourOf = (s) => ((s.time % T.dayLength) / T.dayLength) * 24;
@@ -513,7 +515,7 @@
       damage: {}, // stretches of track closed by an earthquake or wildfire: { "A|B": { since, cause } }
       fire: null, // a wildfire burning: { county, left }
       cities: {}, // city tram and metro networks you have opened (see js/metro.js)
-      linesUnlocked: T.startLines,
+      lineGroups: {}, // lines bought or won per group: { CA: { extra, bought }, "nat-USA": ... }
       extraSeats: 0,
       speed: T.trainSpeed,
       speedUps: 0,
@@ -1318,9 +1320,96 @@
   const segFrozen = (s, a, b) => NR.stateOf(a) === NR.stateOf(b) && NR.stateFrozen(s, NR.stateOf(a));
   NR.chainFrozen = (s, chain) => chain.some((id, i) => i > 0 && segFrozen(s, chain[i - 1], id));
   NR.lineFrozen = (s, line) => NR.chainFrozen(s, line.stops);
-  NR.freeColor = (s) => {
-    for (let c = 0; c < s.linesUnlocked; c++) if (!s.lines.some((l) => l.color === c)) return c;
+  // ---------- Lines: state, national, international ----------
+  // Every line belongs to a group, and each group has its own set of lines and colors:
+  //   a state ("CA"): all its stops in that state, paid from the state's budget;
+  //   national ("nat-USA"): across a state border inside one country, national money;
+  //   international ("intl"): across the US–Canada border, half from each country.
+  NR.lineGroup = (stops) => {
+    const states = [...new Set(stops.map((id) => NR.stateOf(id)))];
+    if (states.length === 1) return states[0];
+    const countries = [...new Set(states.map((code) => NR.countryOf(code)))];
+    return countries.length === 1 ? `nat-${countries[0]}` : "intl";
+  };
+  NR.groupKind = (g) => (g === "intl" ? "intl" : g === "link" ? "link" : /^nat-/.test(g) ? "national" : "state");
+  const openCodes = (s) => Object.keys(s.states).filter((code) => s.states[code].open);
+  // A group's lines at the start (base) and the most it can have right now
+  function groupLimits(s, g) {
+    const kind = NR.groupKind(g);
+    if (kind === "state") return s.states[g] && s.states[g].open ? { base: T.stateLines[0], max: T.stateLines[1] } : { base: 0, max: 0 };
+    if (kind === "national") {
+      const n = openCodes(s).filter((code) => NR.countryOf(code) === g.slice(4)).length;
+      return n >= 2 ? { base: T.nationalLines[0], max: T.nationalLines[1] * n } : { base: 0, max: 0 };
+    }
+    if (kind === "intl") return new Set(openCodes(s).map((code) => NR.countryOf(code))).size >= 2 ? { base: T.intlLines[0], max: T.intlLines[1] } : { base: 0, max: 0 };
+    return { base: 0, max: 0 };
+  }
+  const groupRecord = (s, g) => (s.lineGroups[g] ||= { extra: 0, bought: 0 });
+  NR.groupMax = (s, g) => groupLimits(s, g).max;
+  // How many lines a group has now (built or free to build)
+  NR.groupSlots = (s, g) => {
+    const { base, max } = groupLimits(s, g);
+    return Math.min(max, base + ((s.lineGroups[g] && s.lineGroups[g].extra) || 0));
+  };
+  NR.linesIn = (s, g) => s.lines.filter((l) => l.group === g);
+  NR.colorFree = (s, g, c) => c >= 0 && c < NR.groupSlots(s, g) && !s.lines.some((l) => l.group === g && l.color === c);
+  // A free line (color) in a group, or -1. (The home state's group when none is given.)
+  NR.freeColor = (s, g = s.home) => {
+    const n = NR.groupSlots(s, g);
+    for (let c = 0; c < n; c++) if (!s.lines.some((l) => l.group === g && l.color === c)) return c;
     return -1;
+  };
+  // "California", "national", "international"
+  NR.groupName = (g) => {
+    const kind = NR.groupKind(g);
+    if (kind === "state") return NR.STATE_NAMES[g];
+    if (kind === "national") return NR.twoCountries() ? `${NR.COUNTRIES[g.slice(4)].adjective} national` : "national";
+    return kind === "intl" ? "international" : "emergency";
+  };
+  // "California Golden Line", "National Golden Line", "International Golden Line 2"
+  NR.lineName = (line) => {
+    const names = NR.LINE_NAMES;
+    const name = `${names[line.color % names.length]} Line${line.color >= names.length ? ` ${Math.floor(line.color / names.length) + 1}` : ""}`;
+    const group = NR.groupName(line.group);
+    return `${group.charAt(0).toUpperCase()}${group.slice(1)} ${name}`;
+  };
+  // The lines that run through a state: its own, and national and international lines with a
+  // stop in it or track across its land
+  NR.linesThrough = (s, code) =>
+    s.lines.filter((l) => l.group === code || (NR.groupKind(l.group) !== "state" && (l.stops.some((id) => NR.stateOf(id) === code) || NR.lineShares(l).some(([p]) => p === code))));
+  // One more line in a group: the price, and who pays (a state its budget, national money, or
+  // half from each country for an international line)
+  NR.lineSlotPrice = (s, g) => T.lineColorPrice[0] + T.lineColorPrice[1] * ((s.lineGroups[g] && s.lineGroups[g].bought) || 0);
+  NR.lineSlotBill = (s, g) => {
+    const price = NR.lineSlotPrice(s, g);
+    const kind = NR.groupKind(g);
+    if (kind === "state") return { [g]: price };
+    if (kind === "national") return { [g.slice(4)]: price };
+    const countries = [...new Set(openCodes(s).map((code) => NR.countryOf(code)))];
+    return Object.fromEntries(countries.map((c) => [c, price / countries.length]));
+  };
+  NR.canBuyLineSlot = (s, g) => NR.groupSlots(s, g) < NR.groupMax(s, g) && NR.canPay(s, NR.lineSlotBill(s, g));
+  NR.buyLineSlot = function (s, g) {
+    if (!NR.canBuyLineSlot(s, g)) return false;
+    NR.pay(s, NR.lineSlotBill(s, g));
+    const r = groupRecord(s, g);
+    r.extra++;
+    r.bought++;
+    return true;
+  };
+  // The group that most needs one more line (the weekly "New line" adds it): a full group that
+  // can still grow, the home state first, then the other states, national, international
+  NR.lineUpgradeTarget = (s) => {
+    const states = openCodes(s).sort((a, b) => (a === s.home ? -1 : b === s.home ? 1 : NR.linesIn(s, b).length - NR.linesIn(s, a).length));
+    const groups = [...states, ...[...new Set(openCodes(s).map((code) => `nat-${NR.countryOf(code)}`))], "intl"];
+    return groups.find((g) => NR.groupSlots(s, g) > 0 && NR.freeColor(s, g) < 0 && NR.groupSlots(s, g) < NR.groupMax(s, g)) || null;
+  };
+  // Extending a line can move it to another group (a state line that crosses a border becomes
+  // national). The group it would move to if that group has no free line, else null.
+  NR.extendProblem = function (s, line, atHead, added) {
+    const all = atHead ? [...added.slice().reverse(), ...line.stops] : [...line.stops, ...added];
+    const g = NR.lineGroup(all);
+    return g !== line.group && NR.freeColor(s, g) < 0 ? g : null;
   };
   NR.depotCount = (s) => Object.values(s.depot).reduce((a, b) => a + b, 0);
   // The first train type waiting in the depot that can run on this line.
@@ -1328,9 +1417,13 @@
   const depotTypeFor = (s, line) =>
     Object.keys(NR.TRAIN_TYPES).find((k) => !NR.TRAIN_TYPES[k].carries && s.depot[k] > 0 && NR.canAddTrain(s, line, k).ok);
 
+  // A new line goes to the group of its stops, in a free line of that group (null if it's full).
   NR.createLine = function (s, stops, color) {
     if (NR.chainBlocked(stops)) return null;
-    const line = { id: s.nextId++, color, stops: stops.slice(), grade: "standard", tunnels: [] };
+    const group = NR.lineGroup(stops);
+    const c = NR.colorFree(s, group, color) ? color : NR.freeColor(s, group);
+    if (c < 0) return null;
+    const line = { id: s.nextId++, group, color: c, stops: stops.slice(), grade: "standard", tunnels: [] };
     NR.pay(s, NR.chainBill(stops, "standard"));
     s.lines.push(line);
     rt.dirty = true;
@@ -1342,13 +1435,19 @@
   // added = new stops in the order they were dragged, starting next to the old end.
   NR.extendLine = function (s, line, atHead, added) {
     const end = atHead ? line.stops[0] : line.stops[line.stops.length - 1];
-    if (NR.chainBlocked([end, ...added])) return false;
+    if (NR.chainBlocked([end, ...added]) || NR.extendProblem(s, line, atHead, added)) return false;
     NR.pay(s, NR.chainBill([end, ...added], line.grade));
     if (atHead) {
       line.stops.unshift(...added.slice().reverse());
       NR.trainsOn(s, line).forEach((t) => (t.i += added.length));
     } else {
       line.stops.push(...added);
+    }
+    // Across a border it joins another group (a state line becomes national), in a free line there
+    const group = NR.lineGroup(line.stops);
+    if (group !== line.group) {
+      line.color = NR.freeColor(s, group);
+      line.group = group;
     }
     rt.dirty = true;
   };
@@ -1698,9 +1797,12 @@
     },
     line: {
       title: "New line",
-      text: "One more line color to build with.",
-      ok: (s) => s.linesUnlocked < T.maxLines,
-      apply: (s) => s.linesUnlocked++,
+      text: (s) => `One more ${NR.groupName(NR.lineUpgradeTarget(s) || s.home)} line to build with.`,
+      ok: (s) => !!NR.lineUpgradeTarget(s),
+      apply: (s) => {
+        const g = NR.lineUpgradeTarget(s);
+        if (g) groupRecord(s, g).extra++;
+      },
     },
     freight: {
       title: "Free Freight train",
@@ -1719,36 +1821,13 @@
       },
     },
   };
-  // Two upgrades to choose from. When every line color is in use, one of them is always "New line".
+  // Two upgrades to choose from. When a group's lines are all in use, one of them is "New line".
   NR.upgradeChoices = (s) => {
     const keys = shuffle(Object.keys(NR.UPGRADES).filter((k) => NR.UPGRADES[k].ok(s)));
-    if (NR.freeColor(s) >= 0 || !keys.includes("line")) return keys.slice(0, 2);
+    if (!keys.includes("line")) return keys.slice(0, 2);
     return shuffle(["line", ...keys.filter((k) => k !== "line").slice(0, 1)]);
   };
 
-  // ---------- Buying a line color ----------
-  // A new line color costs money: the home country's national money pays, and its richest states
-  // cover what it can't.
-  NR.lineColorPrice = (s) => T.lineColorPrice[0] + T.lineColorPrice[1] * Math.max(0, s.linesBought || 0);
-  const homeStates = (s) => Object.keys(s.states).filter((code) => s.states[code].open && NR.countryOf(code) === NR.countryOf(s.home)).map((code) => s.states[code]);
-  const nationalReach = (s) => Math.max(0, s.money) + homeStates(s).reduce((n, st) => n + Math.max(0, st.budget), 0);
-  NR.canBuyLineColor = (s) => s.linesUnlocked < T.maxLines && nationalReach(s) >= NR.lineColorPrice(s);
-  NR.buyLineColor = function (s) {
-    if (!NR.canBuyLineColor(s)) return false;
-    let left = NR.lineColorPrice(s);
-    const own = Math.min(left, Math.max(0, s.money));
-    s.money -= own;
-    left -= own;
-    for (const st of homeStates(s).sort((a, b) => b.budget - a.budget)) {
-      if (left <= 0) break;
-      const take = Math.min(left, Math.max(0, st.budget));
-      st.budget -= take;
-      left -= take;
-    }
-    s.linesUnlocked++;
-    s.linesBought = (s.linesBought || 0) + 1;
-    return true;
-  };
   // The week when earthquakes and wildfires begin (counted from 0, like s.week).
   NR.disasterWeek = () => Math.round(T.firstEvent / T.weekLength);
   // Every week a new Regular train arrives in the depot. The week disasters begin,
@@ -1801,7 +1880,29 @@
       // Saved before each country had its own national money (version 13): it was all the US's
       s.nations = { USA: { money: s.money || 0, income: s.nationalIncome || 0, tax: s.nationalTax || 0, upkeep: s.nationalUpkeep || 0, lastWeek: s.nationalLastWeek || null } };
       ["money", "nationalIncome", "nationalTax", "nationalUpkeep", "nationalLastWeek"].forEach((k) => delete s[k]);
-      if (s.v === 13) s.v = NR.SAVE_VERSION;
+      if (s.v === 13) s.v = 14;
+    }
+    if (!s.lineGroups) {
+      // Saved before lines had groups (version 14): give each line its group, keeping its color
+      // when that's free there, and enough lines in each group for the ones already built
+      s.lineGroups = {};
+      syncOpen(s);
+      const taken = {};
+      for (const l of s.lines) {
+        l.group = NR.lineGroup(l.stops);
+        const used = (taken[l.group] ||= new Set());
+        let c = l.color;
+        if (used.has(c) || c >= groupLimits(s, l.group).base) for (c = 0; used.has(c); c++);
+        l.color = c;
+        used.add(c);
+      }
+      for (const [g, used] of Object.entries(taken)) {
+        const need = Math.max(...used) + 1 - groupLimits(s, g).base;
+        if (need > 0) s.lineGroups[g] = { extra: need, bought: 0 };
+      }
+      delete s.linesUnlocked;
+      delete s.linesBought;
+      if (s.v === 14) s.v = NR.SAVE_VERSION;
     }
     attachMoney(s);
     syncOpen(s);

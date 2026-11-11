@@ -86,9 +86,19 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 
 - **Build a line:** drag from one city to another. Keep dragging to add more stops. Before your first line, an orange arrow shows where to drag.
 - **Extend a line:** drag from its last station (or from the round + tab at its end) to a new city. To start a new line at a station that ends another line, drag from the other city to it instead.
-- **Manage a line:** tap its color at the bottom of the screen to buy trains, send them to the depot, upgrade to high-speed track, or delete the line. Trains you can use on that line are listed first; the others wait under **More trains**, with the reason they can't run yet.
-- **Out of colors?** Dragging from any station that ends a line then extends that line (the shortest one, if several end there), even at a busy hub like Los Angeles.
-- **More line colors:** you start with 3. When all are in use, a **+** chip appears at the bottom: tap it twice to buy another color (FB100k, then FB150k, FB200k and so on, up to 7 lines) from national money (the richest state covers what it can't). The weekly upgrade choice also always includes **New line** while every color is in use.
+- **Three kinds of lines**, each with its own colors and its own count:
+
+  | Kind | What it is | You start with | Up to | Colors | Paid from |
+  | --- | --- | --- | --- | --- | --- |
+  | **State line** (for example *California Golden Line*) | every stop in one state | 4 per open state | 10 per state | bright | that state's budget |
+  | **National line** | crosses a state border | 2 once a second state is open | 3 for each open state | deep | national money |
+  | **International line** | crosses the US–Canada border | 1 once a province is open | 8 | pastel, drawn **twice as thick** | half by each country |
+
+  A line takes its kind from its stops. Extend a California line into Nevada and it becomes a national line (and California gets that line back); if every national line is in use, the extension is refused and the message says so.
+- **Manage your lines by tapping the map:** tap a county you own and that state's **lines menu** opens: its own lines, plus the national and international lines that run through it. Tap Nevada and you get Nevada's. The **Lines** button at the bottom opens the menu of the state in the middle of the screen. Tap a county you don't own to see its unlock price; tap a station to see its county (and its city map).
+- **Manage a line:** tap it in the lines menu to buy trains, send them to the depot, upgrade to high-speed track, or delete the line. Trains you can use on that line are listed first; the others wait under **More trains**, with the reason they can't run yet.
+- **All lines of a kind in use?** Dragging from any station that ends a line then extends that line (the shortest one, if several end there), even at a busy hub like Los Angeles.
+- **More lines:** tap **+** in the lines menu twice to buy one more of that kind (FB100k, then FB150k, FB200k and so on). The weekly upgrade choice always includes **New line** while a kind is full: it names which one (your home state's first).
 - **Money:** track costs FB1k per mile (high-speed track FB2.5k per mile). Passengers pay a fare when they arrive: more for long trips and fast trains. Every train costs a little to run each week. Who pays is explained under **Budgets** below.
 - **Every week** a new Regular train arrives and you choose one upgrade.
 - **Rush hour:** now and then a big city gets very busy for a few seconds. Commuter trains help.
@@ -161,8 +171,8 @@ Tap the money at the bottom (**National** and **California**, or **4 states** on
 
 | Money | What comes in | What it pays for |
 | --- | --- | --- |
-| Each state's budget (California starts with FB400k) | Fares and cargo fees for trips inside the state, its share of fares for trips that cross a border (by the miles they rode on its land), all less 10% tax, and 10% tax on its cities' fares | Track between two of its own stations, its share of track across a border (by how much of it is on its land), trains on its lines (shared the same way on a line across a border), its counties, its head of transportation, FB200k for each city map it opens, and its cities when they run short |
-| National money (starts at FB0) | 10% tax on every state's fares and cargo fees, contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Any state that runs short, and new line colors |
+| Each state's budget (California starts with FB400k) | Fares and cargo fees for trips inside the state, its share of fares for trips that cross a border (by the miles they rode on its land), all less 10% tax, and 10% tax on its cities' fares | Track between two of its own stations, its share of track across a border (by how much of it is on its land), trains on its lines (shared the same way on a line across a border), its counties, its own new lines, its head of transportation, FB200k for each city map it opens, and its cities when they run short |
+| National money (starts at FB0) | 10% tax on every state's fares and cargo fees, contract rewards, federal grants, level bonuses, 10% of a managed state's profit | Any state that runs short, new national lines, and half of each new international line |
 
 - **Across a border, the states share by land.** Track runs straight between two stations: if 80 of its 120 miles are on California's land and 40 on Nevada's, California pays 2/3 and Nevada 1/3. Water and states that aren't open don't count. A line's trains (their price and running costs) are shared by how many of the line's miles are on each state's land. Each passenger's fare is split by the miles they actually rode on each state's land, train by train: a trip from Los Angeles through Las Vegas to Phoenix pays California, Nevada and Arizona. The line panel shows each state's share.
 - A state spends its own budget first; if that isn't enough, national money pays the rest. If a state budget is empty at the end of a week, national money pays its running costs.
@@ -224,7 +234,7 @@ Tap the **clipboard** on the bottom bar.
 | File | What it does |
 | --- | --- |
 | `index.html` | The page: screens, buttons and the map area. |
-| `style.css` | Colors, fonts and layout (light and dark themes, Arcade and Classic looks). |
+| `style.css` | Colors, fonts and layout (light and dark themes; Arcade, Classic and Neo minimalist looks). |
 | `packs/index.js` | Every state (and Mexico and Canada) as a rough outline, with its neighbors: for the clouds and the land outside the game. Generated: do not edit by hand. |
 | `packs/<code>/map.js` | One per state in the game: its county regions, land, coast and borders. Generated: do not edit by hand. |
 | `packs/<code>/terrain.js` | One per state: real geography (the mountains grid, lakes, rivers, named ranges, and its city maps' hills and water). Generated: do not edit by hand. |

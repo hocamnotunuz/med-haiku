@@ -13,7 +13,7 @@ NR.PLACE_TYPES = {
 };
 
 // Names for the line colors, in the order they unlock.
-NR.LINE_NAMES = ["Golden", "Redwood", "Pacific", "Sierra", "Mojave", "Jacaranda", "Delta"];
+NR.LINE_NAMES = ["Golden", "Redwood", "Pacific", "Sierra", "Mojave", "Jacaranda", "Delta", "Canyon", "Prairie", "Cascade"];
 
 // Main stations, towns, levels and the starting counties come from the state packs
 // (packs/<code>/pack.js, see PACKS.md).

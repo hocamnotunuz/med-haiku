@@ -46,7 +46,7 @@
       accent: get("--accent"),
       accentInk: get("--accent-ink"),
       danger: get("--danger"),
-      lines: [1, 2, 3, 4, 5, 6, 7].map((n) => get("--line-" + n)),
+      lines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => get("--line-" + n)),
     };
     DISPLAY = get("--font-display") || DISPLAY;
     MONO = get("--font-mono") || MONO;
@@ -54,9 +54,35 @@
     mini = document.documentElement.dataset.look === "minimal";
     miniHints = document.documentElement.dataset.miniBg === "hints";
     NR.cartoon.readTheme();
+    palettes = null; // the line color sets are made again from the new colors
     if (typeof landStore !== "undefined") landStore.key = ""; // colors changed: draw the land again
   };
   NR.lineColor = (i) => colors.lines[i] || colors.ink;
+  // Each group of lines has its own color set: bright for state lines, deep for national lines
+  // (mixed toward black), pastel for international lines (mixed toward white).
+  const mixHex = (hex, to, k) => {
+    const m = /^#([0-9a-f]{6})$/i.exec((hex || "").trim());
+    if (!m) return hex;
+    const n = parseInt(m[1], 16);
+    return "#" + [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(v + (to - v) * k).toString(16).padStart(2, "0")).join("");
+  };
+  let palettes = null;
+  function paletteFor(kind) {
+    if (!palettes) {
+      const cs = getComputedStyle(document.documentElement);
+      const deep = parseFloat(cs.getPropertyValue("--line-deep")) || 0.35;
+      const pastel = parseFloat(cs.getPropertyValue("--line-pastel")) || 0.48;
+      palettes = { state: colors.lines, national: colors.lines.map((c) => mixHex(c, 0, deep)), intl: colors.lines.map((c) => mixHex(c, 255, pastel)) };
+    }
+    return palettes[kind] || palettes.state;
+  }
+  NR.groupColor = (group, c) => {
+    const p = paletteFor(group ? NR.groupKind(group) : "state");
+    return c >= 0 ? p[c % p.length] || colors.ink : colors.muted;
+  };
+  NR.lineColorOf = (line) => NR.groupColor(line.group, line.color);
+  // International lines are drawn twice as thick
+  const lineWidthOf = (line, lw) => (line.group === "intl" ? lw * 2 : lw);
 
   // ---------- Map projection ----------
   // Lambert conformal conic, the usual projection for maps of the US and Canada: shapes stay
@@ -385,7 +411,11 @@
   function segmentOffsets(s) {
     const map = {};
     s.lines.forEach((l) => {
-      for (let i = 0; i + 1 < l.stops.length; i++) (map[segKey(l.stops[i], l.stops[i + 1])] ||= []).push(l.id);
+      for (let i = 0; i + 1 < l.stops.length; i++) {
+        const list = (map[segKey(l.stops[i], l.stops[i + 1])] ||= []);
+        list.push(l.id);
+        if (l.group === "intl") list.wide = true; // a wide international line needs more room
+      }
     });
     return map;
   }
@@ -393,7 +423,7 @@
     const list = segs[segKey(a, b)];
     if (!list || list.length < 2) return 0;
     const side = a < b ? 1 : -1; // same side whichever way the train runs
-    return side * (list.indexOf(lineId) - (list.length - 1) / 2) * view.lw * 1.25;
+    return side * (list.indexOf(lineId) - (list.length - 1) / 2) * view.lw * 1.25 * (list.wide ? 1.6 : 1);
   }
   function segPoints(a, b, off) {
     const pa = pos[a];
@@ -420,7 +450,7 @@
         const dx = (pe[0] - pp[0]) / len;
         const dy = (pe[1] - pp[1]) / len;
         const reach = view.r + 18;
-        out.push({ lineId: l.id, color: l.color, atHead, stationId: end, dx, dy, x: pe[0] + dx * reach, y: pe[1] + dy * reach });
+        out.push({ lineId: l.id, group: l.group, color: l.color, atHead, stationId: end, dx, dy, x: pe[0] + dx * reach, y: pe[1] + dy * reach });
       }
     }
     return out;
@@ -942,21 +972,24 @@
     const lw = (busy.far ? Math.max(2, view.lw * 0.65) : view.lw) * (mini ? 1.2 : 1); // thinner when zoomed out; bolder in Neo minimalist
     if (toon) {
       // Cartoon look: a dark outline under all the lines first
-      ctx.lineWidth = lw + (busy.far ? 3 : 4);
       ctx.strokeStyle = colors.outline;
-      ctx.beginPath();
-      s.lines.forEach((l) => {
-        for (let i = 0; i + 1 < l.stops.length; i++) {
-          const [x1, y1, x2, y2] = segPoints(l.stops[i], l.stops[i + 1], offsetFor(segs, l.stops[i], l.stops[i + 1], l.id));
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
-        }
-      });
-      ctx.stroke();
+      for (const wide of [false, true]) {
+        ctx.lineWidth = (wide ? lw * 2 : lw) + (busy.far ? 3 : 4);
+        ctx.beginPath();
+        s.lines.forEach((l) => {
+          if ((l.group === "intl") !== wide) return;
+          for (let i = 0; i + 1 < l.stops.length; i++) {
+            const [x1, y1, x2, y2] = segPoints(l.stops[i], l.stops[i + 1], offsetFor(segs, l.stops[i], l.stops[i + 1], l.id));
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+          }
+        });
+        ctx.stroke();
+      }
     }
-    ctx.lineWidth = lw;
     s.lines.forEach((l) => {
-      ctx.strokeStyle = NR.lineColor(l.color);
+      ctx.lineWidth = lineWidthOf(l, lw);
+      ctx.strokeStyle = NR.lineColorOf(l);
       ctx.beginPath();
       for (let i = 0; i + 1 < l.stops.length; i++) {
         const p = trackPath(l.stops[i], l.stops[i + 1], offsetFor(segs, l.stops[i], l.stops[i + 1], l.id));
@@ -968,7 +1001,7 @@
       if (l.grade === "high") {
         // High-speed track: a dashed white stripe down the middle of the line
         ctx.save();
-        ctx.lineWidth = Math.max(1.2, lw * 0.32);
+        ctx.lineWidth = Math.max(1.2, lineWidthOf(l, lw) * 0.32);
         ctx.strokeStyle = colors.station;
         ctx.setLineDash([lw * 1.3, lw * 1.1]);
         ctx.stroke();
@@ -983,7 +1016,7 @@
     NR.lineHandles(s).forEach((h) => {
       if (draft && draft.kind === "extend" && draft.lineId === h.lineId && draft.atHead === h.atHead) return;
       const pe = pos[h.stationId];
-      const color = NR.lineColor(h.color);
+      const color = NR.groupColor(h.group, h.color);
       ctx.strokeStyle = color;
       ctx.beginPath();
       ctx.moveTo(pe[0] + h.dx * view.r, pe[1] + h.dy * view.r);
@@ -1013,7 +1046,7 @@
   }
 
   function drawDraft(ctx, draft, pointer, P = pos) {
-    ctx.strokeStyle = NR.lineColor(draft.color);
+    ctx.strokeStyle = NR.groupColor(draft.group, draft.color); // (muted while its group is full)
     ctx.lineWidth = view.lw;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -1551,7 +1584,7 @@
       ctx.translate(tx, ty);
       ctx.rotate(angle);
       trainPath(ctx, tr.type, L, H, nose);
-      ctx.fillStyle = tr.type === "work" ? colors.work : NR.lineColor(l.color);
+      ctx.fillStyle = tr.type === "work" ? colors.work : NR.lineColorOf(l);
       ctx.fill();
       ctx.save();
       ctx.clip();

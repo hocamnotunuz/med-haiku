@@ -36,6 +36,11 @@
   --line-5: #e2620b;
   --line-6: #7d4fd3;
   --line-7: #0a8f8a;
+  --line-8: #c2185b;
+  --line-9: #6b8e23;
+  --line-10: #0097c4;
+  --line-deep: 0.4; /* national lines: the colors mixed this much toward black */
+  --line-pastel: 0.5; /* international lines: mixed this much toward white */
   --chip-ink: #ffffff;
   /* Type: Overpass descends from the lettering on American highway signs */
   --font-display: "Overpass", "Segoe UI", system-ui, sans-serif;
@@ -75,6 +80,11 @@
     --line-5: #ff8b3e;
     --line-6: #a37ff1;
     --line-7: #2cc2bc;
+    --line-8: #f06292;
+    --line-9: #9ccc65;
+    --line-10: #4fc3f7;
+    --line-deep: 0.3; /* national lines: the colors mixed this much toward black */
+    --line-pastel: 0.42; /* international lines: mixed this much toward white */
     --chip-ink: #0c1720;
     color-scheme: dark;
   }
@@ -111,6 +121,11 @@
   --line-5: #ff8b3e;
   --line-6: #a37ff1;
   --line-7: #2cc2bc;
+  --line-8: #f06292;
+  --line-9: #9ccc65;
+  --line-10: #4fc3f7;
+  --line-deep: 0.3; /* national lines: the colors mixed this much toward black */
+  --line-pastel: 0.42; /* international lines: mixed this much toward white */
   --chip-ink: #0c1720;
   color-scheme: dark;
 }
@@ -449,10 +464,17 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
 @media (min-width: 900px) {
   /* On wide screens these panels sit at the right, leaving the middle of the map free to tap. */
   #county-panel,
+  #lines-panel,
   #contracts-panel,
   #city-panel,
   #budget-panel { left: auto; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 52px); transform: none; }
 }
+
+/* ---------- A state's lines (tap a county you own, or Lines at the bottom) ---------- */
+.lines-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border: 1px solid var(--panel-line); border-radius: 10px; background: var(--panel); color: var(--ink); padding: 4px 10px; cursor: pointer; font: inherit; }
+.ls-section { margin-top: 8px; }
+.ls-section .lp-section { margin-bottom: 6px; }
+.ls-chips { flex-wrap: wrap; gap: 8px; }
 
 /* ---------- City maps ---------- */
 .city-bar { pointer-events: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 6px; }
@@ -651,6 +673,11 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   --line-5: #ff7f1f;
   --line-6: #9b5cff;
   --line-7: #00bfb3;
+  --line-8: #e83e8c;
+  --line-9: #8bc34a;
+  --line-10: #29b6f6;
+  --line-deep: 0.35; /* national lines: the colors mixed this much toward black */
+  --line-pastel: 0.5; /* international lines: mixed this much toward white */
   --chip-ink: #ffffff;
   --font-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
   --font-mono: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
@@ -859,6 +886,11 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   --line-5: #f07b2e;
   --line-6: #8a55c8;
   --line-7: #1fa3a0;
+  --line-8: #d6457f;
+  --line-9: #7a9a2e;
+  --line-10: #2aa0d8;
+  --line-deep: 0.4; /* national lines: the colors mixed this much toward black */
+  --line-pastel: 0.5; /* international lines: mixed this much toward white */
   --chip-ink: #ffffff;
   --font-display: "Jost", "Futura", "Segoe UI", system-ui, sans-serif;
   --font-mono: "Jost", "Futura", "Segoe UI", system-ui, sans-serif;
@@ -893,6 +925,11 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
     --line-5: #ff9147;
     --line-6: #a97ce6;
     --line-7: #36c2be;
+    --line-8: #f0749e;
+    --line-9: #a3c45a;
+    --line-10: #5cc0ec;
+    --line-deep: 0.3; /* national lines: the colors mixed this much toward black */
+    --line-pastel: 0.42; /* international lines: mixed this much toward white */
     --chip-ink: #1c2024;
   }
 }
@@ -925,6 +962,11 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   --line-5: #ff9147;
   --line-6: #a97ce6;
   --line-7: #36c2be;
+  --line-8: #f0749e;
+  --line-9: #a3c45a;
+  --line-10: #5cc0ec;
+  --line-deep: 0.3; /* national lines: the colors mixed this much toward black */
+  --line-pastel: 0.42; /* international lines: mixed this much toward white */
   --chip-ink: #1c2024;
 }
 /* Flat panels: hairline borders, no shadows; quiet, spaced-out labels */

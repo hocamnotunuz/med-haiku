@@ -79,7 +79,7 @@
       $(id).textContent = v;
     }
   }
-  const lineName = (c) => `${NR.LINE_NAMES[c]} Line`;
+  const lineName = (line) => NR.lineName(line); // "California Golden Line", "National Golden Line"
   const capital = (text) => text.charAt(0).toUpperCase() + text.slice(1); // "national money" -> "National money"
   const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
   // "1 county", "10 counties", "3 days"
@@ -276,7 +276,7 @@
     const fresh = Object.values(NR.TRAIN_TYPES).filter((t) => t.unlockWeek === week);
     const news = fresh.map((t) => `New: ${t.name} trains are now available. ${t.about}`);
     if (week === NR.disasterWeek())
-      news.push("From now on, earthquakes and wildfires can damage track. A free Work train is waiting in your depot: it goes to the first damaged line by itself, or put it on a line yourself (tap the line's color).");
+      news.push("From now on, earthquakes and wildfires can damage track. A free Work train is waiting in your depot: it goes to the first damaged line by itself, or put it on a line yourself (open the line from Lines at the bottom).");
     $("week-news").hidden = !news.length;
     $("week-news").textContent = news.join(" ");
     const list = $("upgrade-list");
@@ -292,7 +292,7 @@
       title.textContent = u.title;
       const text = document.createElement("span");
       text.className = "upgrade-text";
-      text.textContent = u.text;
+      text.textContent = typeof u.text === "function" ? u.text(game) : u.text;
       b.append(title, text);
       list.appendChild(b);
     });
@@ -454,7 +454,8 @@
         toast(`${NR.cityById[ev.id].name} joined the map.`);
         showNewStation(ev.id);
       } else if (ev.type === "workSent") {
-        toast(`Your Work train went to the ${lineName(ev.color)} to repair the damaged track.`);
+        const sent = NR.lineById(game, ev.lineId);
+        toast(`Your Work train went to the ${sent ? lineName(sent) : "damaged line"} to repair the damaged track.`);
       } else if (ev.type === "county") {
         const main = NR.mainStation[ev.id];
         const name = NR.countyById[ev.id].name;
@@ -589,14 +590,14 @@
     });
   }
 
-  // ---------- Bottom bar: one round button per line color ----------
+  // ---------- Bottom bar: the Lines button (state map) or one round button per line (city map) ----------
   let chipSig = "";
   function renderChips() {
     const city = cityKey && game && game.cities[cityKey];
     const sig = city
       ? ["city", cityKey, ...city.lines.map((l) => `${l.color}:${l.mode}:${NR.cityTrainsOn(city, l).length}`)].join(",")
       : game
-        ? [game.linesUnlocked, NR.canBuyLineColor(game), ...game.lines.map((l) => `${l.color}:${NR.trainsOn(game, l).length}`)].join(",")
+        ? ["state", game.lines.length].join(",")
         : "";
     if (sig === chipSig) return;
     chipSig = sig;
@@ -623,42 +624,153 @@
       }
       return;
     }
-    for (let c = 0; c < game.linesUnlocked; c++) {
-      const line = game.lines.find((l) => l.color === c);
+    // The state map: one "Lines" button. Lines are managed state by state: tap a county you own
+    // (or this button, for the state in view) to open that state's lines.
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "lines-btn";
+    const label = document.createElement("span");
+    label.className = "res-label";
+    label.textContent = "Lines";
+    const value = document.createElement("span");
+    value.className = "res-value";
+    value.textContent = game.lines.length;
+    b.append(label, value);
+    b.setAttribute("aria-label", `Lines: ${game.lines.length} built. Open the lines of the state in view.`);
+    b.addEventListener("click", () => (linesState ? closeLinesPanel() : openLinesPanel(stateInView())));
+    box.appendChild(b);
+  }
+
+  // ---------- A state's lines: its own, and the national and international lines through it ----------
+  let linesState = null; // the state whose lines are open
+  let lsSig = "";
+  let lsArmed = { g: null, until: 0 }; // the "+" tapped once, waiting for its second tap
+  // The open state in the middle of the screen (the home state if none)
+  function stateInView() {
+    const r = canvas.getBoundingClientRect();
+    const id = NR.hitCounty(r.width / 2, r.height / 2);
+    const code = id && NR.countyById[id].state;
+    return code && game.states[code] && game.states[code].open ? code : game.home;
+  }
+  function openLinesPanel(code) {
+    closeCountyPanel(); // (also closes the line, contracts, city and budget panels' neighbor: this one)
+    closeLinePanel();
+    closeContracts();
+    closeCityPanel();
+    closeBudgetPanel();
+    linesState = code;
+    lsSig = "";
+    $("lines-panel").hidden = false;
+    renderLinesPanel();
+  }
+  function closeLinesPanel() {
+    linesState = null;
+    $("lines-panel").hidden = true;
+  }
+  // Who pays for one more line of a group, in words
+  const slotPayer = (g) => (NR.groupKind(g) === "state" ? `from the ${NR.STATE_NAMES[g]} budget` : NR.groupKind(g) === "national" ? `from ${NR.nationalName(g.slice(4))}` : "half from each country");
+  // What to say when a group has no free line
+  NR.groupFullText = (g) =>
+    NR.groupKind(g) === "state"
+      ? `Every ${NR.STATE_NAMES[g]} line is in use. Tap a ${NR.STATE_NAMES[g]} county you own to buy another.`
+      : `Every ${NR.groupName(g)} line is in use. Tap a county you own to buy another.`;
+  function renderLinesPanel() {
+    const code = linesState;
+    if (!game || !code || cityKey) return closeLinesPanel();
+    const groups = [code, `nat-${NR.countryOf(code)}`, ...(NR.twoCountries() ? ["intl"] : [])];
+    const through = NR.linesThrough(game, code);
+    const sig = JSON.stringify([
+      code,
+      groups.map((g) => [NR.groupSlots(game, g), NR.groupMax(game, g), NR.canBuyLineSlot(game, g), NR.lineSlotPrice(game, g), NR.linesIn(game, g).length]),
+      through.map((l) => [l.id, l.group, l.color, NR.trainsOn(game, l).length]),
+    ]);
+    if (sig === lsSig) return;
+    lsSig = sig;
+    $("lsp-name").textContent = `${NR.STATE_NAMES[code]} lines`;
+    const body = $("lsp-body");
+    body.textContent = "";
+    groups.forEach((g) => body.append(linesSection(g, code, through.filter((l) => l.group === g))));
+  }
+  function linesSection(g, code, lines) {
+    const kind = NR.groupKind(g);
+    const name = NR.STATE_NAMES[code];
+    const slots = NR.groupSlots(game, g);
+    const max = NR.groupMax(game, g);
+    const used = NR.linesIn(game, g).length;
+    const sec = document.createElement("div");
+    sec.className = "ls-section";
+    const head = document.createElement("p");
+    head.className = "lp-section";
+    head.textContent =
+      kind === "state" ? `${name} lines · ${used}/${slots} (up to ${max})` : `${capital(NR.groupName(g))} lines through ${name} · ${used}/${slots} in all${max ? ` (up to ${max})` : ""}`;
+    sec.append(head);
+    if (!max) {
+      const note = document.createElement("p");
+      note.className = "lp-meta";
+      note.textContent = kind === "national" ? "Opens once a second state is open: lines that cross a state border." : "Opens once a province is open: lines that cross the US–Canada border.";
+      sec.append(note);
+      return sec;
+    }
+    const row = document.createElement("div");
+    row.className = "chips ls-chips";
+    for (const l of lines) {
       const b = document.createElement("button");
       b.type = "button";
-      b.className = line ? "chip" : "chip free";
-      b.style.setProperty("--chip", `var(--line-${c + 1})`);
-      if (line) {
-        const n = NR.trainsOn(game, line).length;
-        b.textContent = n;
-        b.setAttribute("aria-label", `${lineName(c)}, ${plural(n, "train")}. Open line options.`);
-        b.addEventListener("click", () => (openLineId === line.id ? closeLinePanel() : openLinePanel(line.id)));
-      } else {
-        b.setAttribute("aria-label", `${lineName(c)}, not built yet`);
-        b.addEventListener("click", () => toast(`Drag from one city to another to build the ${lineName(c)}.`));
-      }
-      box.appendChild(b);
+      b.className = "chip";
+      b.dataset.line = l.id;
+      b.style.setProperty("--chip", NR.lineColorOf(l));
+      const n = NR.trainsOn(game, l).length;
+      b.textContent = n;
+      b.title = lineName(l);
+      b.setAttribute("aria-label", `${lineName(l)}, ${plural(n, "train")}. Open line options.`);
+      b.addEventListener("click", () => openLinePanel(l.id));
+      row.append(b);
     }
-    // All colors in use: a "+" chip buys another one (tap twice).
-    if (NR.freeColor(game) < 0 && game.linesUnlocked < T.maxLines) {
+    // Free lines of the group, ready to build
+    for (let c = 0; c < slots; c++) {
+      if (game.lines.some((l) => l.group === g && l.color === c)) continue;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip free";
+      b.style.setProperty("--chip", NR.groupColor(g, c));
+      const lineLabel = lineName({ group: g, color: c });
+      b.title = `${lineLabel}: not built yet`;
+      b.addEventListener("click", () =>
+        toast(
+          kind === "state"
+            ? `Drag between two ${name} cities to build the ${lineLabel}.`
+            : kind === "national"
+              ? "Drag from a city in one state to a city in another to build a national line."
+              : "Drag from a city on one side of the US–Canada border to one on the other to build an international line."
+        )
+      );
+      row.append(b);
+    }
+    // One more line (tap twice)
+    if (slots < max) {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "chip buy-line";
       b.textContent = "+";
-      const price = NR.lineColorPrice(game);
-      b.setAttribute("aria-label", `Buy a new line color for ${NR.money(price)}`);
+      const price = NR.billMoney(NR.lineSlotBill(game, g));
+      b.setAttribute("aria-label", `Buy one more ${NR.groupName(g)} line for ${price}`);
+      // The first tap is remembered here, not on the button: the menu may redraw between taps
+      b.dataset.armed = lsArmed.g === g && performance.now() < lsArmed.until ? "1" : "";
       b.addEventListener("click", () => {
-        if (!NR.canBuyLineColor(game)) return toast(`A new line color costs ${NR.money(price)} of ${NR.nationalName("national")} (the richest ${NR.COUNTRIES[NR.countryOf("national")].unit} covers what it can't). Not enough money yet.`);
-        if (!b.dataset.armed) {
+        if (!NR.canBuyLineSlot(game, g)) return toast(`One more ${NR.groupName(g)} line costs ${price} ${slotPayer(g)}. Not enough money yet.`);
+        if (!(lsArmed.g === g && performance.now() < lsArmed.until)) {
+          lsArmed = { g, until: performance.now() + 4000 };
           b.dataset.armed = "1";
-          setTimeout(() => (b.dataset.armed = ""), 4000);
-          return toast(`New line color: ${NR.money(price)} from ${NR.nationalName("national")} (the richest ${NR.COUNTRIES[NR.countryOf("national")].unit} covers what it can't). Tap + again to buy.`);
+          setTimeout(() => (lsSig = ""), 4000);
+          return toast(`One more ${NR.groupName(g)} line: ${price} ${slotPayer(g)}. Tap + again to buy.`);
         }
-        if (NR.buyLineColor(game)) toast(`You bought the ${lineName(game.linesUnlocked - 1)}. Drag between cities to build it.`);
+        lsArmed = { g: null, until: 0 };
+        if (NR.buyLineSlot(game, g)) toast(`You have one more ${NR.groupName(g)} line. Drag between cities to build it.`);
       });
-      box.appendChild(b);
+      row.append(b);
     }
+    sec.append(row);
+    return sec;
   }
 
   // ---------- Goals and contracts panel ----------
@@ -963,7 +1075,7 @@
     setText(
       "bp-national-note",
       `A 10% tax on every ${NR.COUNTRIES[home].unit}'s fares and cargo fees, contract rewards, grants and level bonuses come here. ` +
-        `It covers any ${NR.COUNTRIES[home].unit} whose budget runs short, and pays for new line colors. If it ends a week below zero, the richest ${NR.COUNTRIES[home].unit} covers it. ` +
+        `It covers any ${NR.COUNTRIES[home].unit} whose budget runs short, and pays for new national lines (and its half of international ones). If it ends a week below zero, the richest ${NR.COUNTRIES[home].unit} covers it. ` +
         `Track, trains and fares across a border are shared by the ${countries.length > 1 ? "states and provinces" : `${NR.COUNTRIES[home].unit}s`}: track by how much of it is on each one's land, trains by how much of their line is, and fares by the miles each trip rode on each one's land. ` +
         (countries.length > 1
           ? `Each country has its own national money: ${countries.map((c) => `${NR.COUNTRIES[c].money} (${NR.COUNTRIES[c].sign})`).join(" and ")}, always worth the same. Money never moves between countries. `
@@ -1037,6 +1149,7 @@
 
   // ---------- County panel ----------
   function openCountyPanel(id) {
+    closeLinesPanel();
     closeLinePanel();
     closeContracts();
     closeCityPanel();
@@ -1048,6 +1161,7 @@
   function closeCountyPanel() {
     openCountyId = null;
     $("county-panel").hidden = true;
+    closeLinesPanel(); // (every panel that closes this one closes the lines menu too)
   }
   function renderCountyPanel() {
     const id = openCountyId;
@@ -1259,8 +1373,8 @@
     panelSig = sig;
     document.querySelectorAll("#line-panel .more-trains").forEach((el) => el.remove()); // rebuilt below
 
-    $("lp-dot").style.background = `var(--line-${line.color + 1})`;
-    $("lp-name").textContent = lineName(line.color);
+    $("lp-dot").style.background = NR.lineColorOf(line);
+    $("lp-name").textContent = lineName(line);
     // Who pays: a line inside one state is paid from its budget; a line across a border by the
     // states it runs through, by how much of it is on each one's land.
     const paidBy = NR.STATE_NAMES[shares[0][0]] && shares.length === 1 ? `paid from the ${NR.STATE_NAMES[shares[0][0]]} budget` : `crosses a border: ${NR.sharesName(shares)} ${shares.length > 1 ? "share it" : "pays"}`;
@@ -1362,6 +1476,7 @@
   // ---------- Every frame ----------
   function updateHud() {
     renderChips();
+    if (linesState) renderLinesPanel();
     $("btn-results").hidden = !(game && game.over && !screen);
     if (!game) return;
     setText("score", game.delivered);
@@ -1455,6 +1570,7 @@
       NR.layout(w, h, dpr, { top, bottom: h - barTop + 10, left: 18, right: 18 });
     }
     $("line-panel").style.bottom = `${h - barTop + 10}px`;
+    $("lines-panel").style.bottom = `${h - barTop + 10}px`;
     $("county-panel").style.bottom = `${h - barTop + 10}px`;
     $("contracts-panel").style.bottom = `${h - barTop + 10}px`;
     $("budget-panel").style.bottom = `${h - barTop + 10}px`;
@@ -1492,6 +1608,14 @@
   const placeName = (id) => (draft.city ? NR.cityStop(draft.city, id).name : NR.cityById[id].name);
   const draftLine = () => (draft.city ? NR.cityLineById(game.cities[draft.city], draft.lineId) : NR.lineById(game, draft.lineId));
 
+  // A new line drawn on the state map takes the group of its stops (a state, national or
+  // international) and that group's free color (-1 when it's full: drawn muted)
+  function regroupDraft() {
+    if (!draft || draft.city || draft.kind !== "new") return;
+    draft.group = NR.lineGroup(draft.chain);
+    draft.color = NR.freeColor(game, draft.group);
+  }
+
   function extendDraft(id) {
     const chain = draft.chain;
     const lastId = chain[chain.length - 1];
@@ -1500,6 +1624,7 @@
       draft.cost -= draftPrice(id, lastId); // dragged back: undo the last stop
       chain.pop();
       draft.note = "";
+      regroupDraft();
       return;
     }
     if (chain.includes(id)) return;
@@ -1545,6 +1670,7 @@
     }
     chain.push(id);
     draft.cost += cost;
+    regroupDraft();
     draft.note = (draft.city ? NR.cityLegNotes(draft.city, draft.mode, lastId, id) : NR.geoNotes(lastId, id)).join(" · ");
   }
 
@@ -1579,13 +1705,20 @@
       return;
     }
     if (d.kind === "new") {
-      if (NR.freeColor(game) !== d.color) return;
-      const line = NR.createLine(game, d.chain, d.color);
+      const g = NR.lineGroup(d.chain);
+      if (NR.freeColor(game, g) < 0) return toast(NR.groupFullText(g));
+      const line = NR.createLine(game, d.chain);
       if (!line) return toast(NR.chainBlocked(d.chain) || "This track can't be built.");
-      if (!NR.trainsOn(game, line).length) toast(`The ${lineName(line.color)} has no train yet. Tap its color at the bottom to add one.`);
+      if (!NR.trainsOn(game, line).length) toast(`The ${lineName(line)} has no train yet. Tap Lines at the bottom, then the line, to add one.`);
     } else {
       const line = NR.lineById(game, d.lineId);
-      if (line) NR.extendLine(game, line, d.atHead, d.chain.slice(1));
+      if (!line) return;
+      // Across a border a line joins another group: there must be a free line there
+      const full = NR.extendProblem(game, line, d.atHead, d.chain.slice(1));
+      if (full) return toast(`This would make it a ${NR.groupName(full)} line, and ${NR.groupFullText(full).charAt(0).toLowerCase()}${NR.groupFullText(full).slice(1)}`);
+      const before = lineName(line);
+      NR.extendLine(game, line, d.atHead, d.chain.slice(1));
+      if (lineName(line) !== before) toast(`The ${before} crosses a border now: it's the ${lineName(line)}.`);
     }
   }
 
@@ -1660,8 +1793,9 @@
       e.preventDefault();
       return;
     }
-    // An arrow at the screen edge: go to that station.
-    const mark = NR.offscreenMarks
+    // An arrow at the screen edge: go to that station (a station right under the finger wins:
+    // one just above the bottom bar can have its arrow drawn on top of it)
+    const mark = !NR.hitStation(game, p.x, p.y, grab) && NR.offscreenMarks
       .map((m) => Object.assign({ d: Math.hypot(m.x - p.x, m.y - p.y) }, m))
       .filter((m) => m.d < 18)
       .sort((a, b) => a.d - b.d)[0];
@@ -1672,21 +1806,23 @@
     const h = NR.hitHandle(game, p.x, p.y, grab + 4);
     const st = NR.hitStation(game, p.x, p.y, grab + 4);
     // From a line's end extends it. With no color left, so does any line end (even a busy hub).
-    const end = st && (lineEndAt(game.lines, game.lines, st.id) || (NR.freeColor(game) < 0 && anyLineEnd(game.lines, st.id)));
+    const here = st && NR.stateOf(st.id);
+    const end = st && (lineEndAt(game.lines, game.lines, st.id) || (NR.freeColor(game, here) < 0 && anyLineEnd(game.lines, st.id)));
     if (h && (!st || h.d < st.d)) {
       const line = NR.lineById(game, h.lineId);
-      draft = { kind: "extend", lineId: line.id, atHead: h.atHead, color: line.color, grade: line.grade, chain: [h.stationId], cost: 0 };
+      draft = { kind: "extend", lineId: line.id, atHead: h.atHead, group: line.group, color: line.color, grade: line.grade, chain: [h.stationId], cost: 0 };
     } else if (end) {
-      // Dragging from the last station of a line extends that line (no new color needed).
-      draft = { kind: "extend", lineId: end.line.id, atHead: end.atHead, color: end.line.color, grade: end.line.grade, chain: [st.id], cost: 0 };
-      extendHint(lineName(end.line.color));
+      // Dragging from the last station of a line extends that line (no new line needed).
+      draft = { kind: "extend", lineId: end.line.id, atHead: end.atHead, group: end.line.group, color: end.line.color, grade: end.line.grade, chain: [st.id], cost: 0 };
+      extendHint(lineName(end.line));
     } else if (st) {
-      const color = NR.freeColor(game);
-      if (color < 0) {
-        toast("Every line color is in use. Tap + at the bottom to buy another, extend a line from its end, or pick New line at the end of the week.");
+      // A new line: a line of this state, or national once it crosses a border
+      const color = NR.freeColor(game, here);
+      if (color < 0 && NR.freeColor(game, `nat-${NR.countryOf(here)}`) < 0) {
+        toast(`${NR.groupFullText(here)} You can also extend a line from its end, or pick New line at the end of the week.`);
         return;
       }
-      draft = { kind: "new", color, grade: "standard", chain: [st.id], cost: 0 };
+      draft = { kind: "new", group: here, color, grade: "standard", chain: [st.id], cost: 0 };
     } else {
       // Empty map: drag to move it around.
       closeLinePanel();
@@ -1723,8 +1859,11 @@
     touches.delete(e.pointerId);
     // A tap (no dragging) on the map: show that county's details.
     if (e.type === "pointerup" && gesture && gesture.kind === "pan" && !gesture.moved && !touches.size) {
+      // A county you own: its state's lines. One you don't own yet: its details (to unlock it).
       const id = NR.hitCounty(gesture.start.x, gesture.start.y);
-      if (id && id !== openCountyId) openCountyPanel(id);
+      const code = id && game.owned.includes(id) && NR.countyById[id].state;
+      if (code) linesState === code ? closeLinesPanel() : openLinesPanel(code);
+      else if (id && id !== openCountyId) openCountyPanel(id);
       else closeCountyPanel();
     }
     if (draft) {
@@ -1793,14 +1932,14 @@
     if (line && NR.digTunnels(game, line)) {
       panelSig = "";
       renderLinePanel();
-      toast(`Tunnels dug: trains on the ${lineName(line.color)} no longer slow down over the passes.`);
+      toast(`Tunnels dug: trains on the ${lineName(line)} no longer slow down over the passes.`);
     }
   });
   $("lp-upgrade").addEventListener("click", () => {
     const line = NR.lineById(game, openLineId);
     if (line && NR.upgradeLine(game, line)) {
       renderLinePanel();
-      toast(`The ${lineName(line.color)} now has high-speed track. High-speed and Bullet trains can run on it.`);
+      toast(`The ${lineName(line)} now has high-speed track. High-speed and Bullet trains can run on it.`);
     }
   });
   $("lp-delete").addEventListener("click", () => {
@@ -1821,10 +1960,11 @@
     }
     NR.deleteLine(game, line);
     closeLinePanel();
-    toast(`${lineName(line.color)} deleted. Its track and trains are free again.`);
+    toast(`${lineName(line)} deleted. Its track and trains are free again.`);
   });
   $("lp-close").addEventListener("click", closeLinePanel);
   $("cp-close").addEventListener("click", closeCountyPanel);
+  $("lsp-close").addEventListener("click", closeLinesPanel);
   $("ct-close").addEventListener("click", closeContracts);
   $("btn-contracts").addEventListener("click", () => game && (contractsOpen() ? closeContracts() : openContracts()));
   $("cp-buy").addEventListener("click", () => {
