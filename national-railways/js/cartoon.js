@@ -7,7 +7,7 @@
   "use strict";
   const NR = window.NR;
   const C = (NR.cartoon = {});
-  C.on = () => document.documentElement.dataset.look !== "classic";
+  C.on = () => document.documentElement.dataset.look === "arcade";
 
   // ---------- Colors: the --toon-* tokens in style.css (light and dark) ----------
   let K = {};
@@ -596,6 +596,17 @@
   // shallow water, land, deserts, hills and mountains, rivers, lakes, trees and cacti.
   C.drawState = (ctx) => keptPicture(cache, ctx, `v${NR.packVersion}`, paintState);
   C.keptPicture = keptPicture; // also used for the land layer in js/draw.js
+  // Smooth outlines of a state's mountains (mountains and high mountains), for the faint
+  // mountain areas of the Neo minimalist look (js/draw.js). Worked out once per state.
+  const mountainCache = {};
+  C.mountainRings = function (code) {
+    const t = NR.TERRAIN.grids.find((x) => x.code === code);
+    if (!t) return [];
+    if (!mountainCache[code] || mountainCache[code].cells !== t.cells)
+      mountainCache[code] = { cells: t.cells, rings: outlines((k) => t.cells[k] >= 2, t.cols, t.rows, t.box[0], t.box[3], t.step, 8) };
+    return mountainCache[code].rings;
+  };
+  C.traceRings = (ctx, rings) => traceRings(ctx, rings, NR.toScreen);
 
   function paintState(ctx, view) {
     const P = NR.toScreen;

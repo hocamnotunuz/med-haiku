@@ -618,9 +618,9 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
 /* ---------- After a game over: back to the results card ---------- */
 .results-btn { position: absolute; left: 50%; top: 96px; transform: translateX(-50%); z-index: 7; box-shadow: 0 8px 28px var(--shadow); }
 
-/* ---------- Arcade look (the default; Settings > Look > Classic turns it off) ----------
+/* ---------- Arcade look (the default; Settings > Look > Classic or Neo minimalist turn it off) ----------
    A cartoon map and chunky, outlined panels. The map's own colors are the --toon-* tokens. */
-:root:not([data-look="classic"]) {
+:root[data-look="arcade"] {
   --sea: #49b9f2;
   --grid: #49b9f2;
   --land: #c8e88f;
@@ -685,7 +685,7 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   --toon-fog-edge: rgba(35, 35, 63, 0.4);
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-look="classic"]):not([data-theme="light"]) {
+  :root[data-look="arcade"]:not([data-theme="light"]) {
     --sea: #1b2d6b;
     --grid: #1b2d6b;
     --land: #2d5c40;
@@ -736,7 +736,7 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
     color-scheme: dark;
   }
 }
-:root:not([data-look="classic"])[data-theme="dark"] {
+:root[data-look="arcade"][data-theme="dark"] {
   --sea: #1b2d6b;
   --grid: #1b2d6b;
   --land: #2d5c40;
@@ -787,25 +787,25 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   color-scheme: dark;
 }
 /* Chunky outlined panels and buttons that press down */
-:root:not([data-look="classic"]) :is(.stat, .bar, .line-panel, .card, .toast, .zoom-controls .icon-btn) {
+:root[data-look="arcade"] :is(.stat, .bar, .line-panel, .card, .toast, .zoom-controls .icon-btn) {
   border: 2.5px solid var(--toon-outline);
   box-shadow: 0 5px 0 var(--toon-outline);
 }
-:root:not([data-look="classic"]) :is(.btn, .icon-btn, .option, .upgrade, .buy, .mode-pick, .ct-item, .bp-state, .head-chip) {
+:root[data-look="arcade"] :is(.btn, .icon-btn, .option, .upgrade, .buy, .mode-pick, .ct-item, .bp-state, .head-chip) {
   border: 2px solid var(--toon-outline);
   box-shadow: 0 3px 0 var(--toon-outline);
 }
-:root:not([data-look="classic"]) :is(.btn, .icon-btn, .upgrade, .buy, .chip):active:not(:disabled) {
+:root[data-look="arcade"] :is(.btn, .icon-btn, .upgrade, .buy, .chip):active:not(:disabled) {
   transform: translateY(2px);
   box-shadow: 0 1px 0 var(--toon-outline);
 }
-:root:not([data-look="classic"]) .stat { border-radius: 14px; }
-:root:not([data-look="classic"]) .bar { border-radius: 22px; }
-:root:not([data-look="classic"]) :is(.card, .line-panel) { border-radius: 22px; }
-:root:not([data-look="classic"]) .btn { border-radius: 14px; font-weight: 600; }
-:root:not([data-look="classic"]) .chip { border: 2.5px solid var(--toon-outline); box-shadow: 0 3px 0 var(--toon-outline); }
-:root:not([data-look="classic"]) .chip.free { border: 2.5px dashed var(--toon-outline); box-shadow: none; }
-:root:not([data-look="classic"]) .brand-name {
+:root[data-look="arcade"] .stat { border-radius: 14px; }
+:root[data-look="arcade"] .bar { border-radius: 22px; }
+:root[data-look="arcade"] :is(.card, .line-panel) { border-radius: 22px; }
+:root[data-look="arcade"] .btn { border-radius: 14px; font-weight: 600; }
+:root[data-look="arcade"] .chip { border: 2.5px solid var(--toon-outline); box-shadow: 0 3px 0 var(--toon-outline); }
+:root[data-look="arcade"] .chip.free { border: 2.5px dashed var(--toon-outline); box-shadow: none; }
+:root[data-look="arcade"] .brand-name {
   font-weight: 700;
   font-size: 1.35rem;
   color: var(--accent);
@@ -813,15 +813,125 @@ h2 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
   paint-order: stroke fill;
   text-shadow: 0 2px 0 var(--toon-outline);
 }
-:root:not([data-look="classic"]) :is(.stat-label, .res-label, .mode-label) { font-weight: 600; letter-spacing: 0.04em; }
-:root:not([data-look="classic"]) :is(.stat-value, .res-value) { font-weight: 700; font-size: 1.15rem; }
-:root:not([data-look="classic"]) .toast { background: var(--line-1); color: #23233f; font-weight: 600; border-radius: 999px; }
-:root:not([data-look="classic"]) :is(h1, h2, .lp-name, .upgrade-title) { font-weight: 700; }
+:root[data-look="arcade"] :is(.stat-label, .res-label, .mode-label) { font-weight: 600; letter-spacing: 0.04em; }
+:root[data-look="arcade"] :is(.stat-value, .res-value) { font-weight: 700; font-size: 1.15rem; }
+:root[data-look="arcade"] .toast { background: var(--line-1); color: #23233f; font-weight: 600; border-radius: 999px; }
+:root[data-look="arcade"] :is(h1, h2, .lp-name, .upgrade-title) { font-weight: 700; }
 /* Picked and highlighted things keep their pink edge in the Arcade look */
-:root:not([data-look="classic"]) .option:has(input:checked) {
+:root[data-look="arcade"] .option:has(input:checked) {
   border-color: var(--accent);
   box-shadow: 0 3px 0 var(--accent), inset 0 0 0 1px var(--accent);
   background: color-mix(in srgb, var(--accent) 9%, var(--panel));
 }
-:root:not([data-look="classic"]) :is(.upgrade, .buy:not(:disabled)):hover,
-:root:not([data-look="classic"]) :is(.ct-item.done, .head-chip.settling) { border-color: var(--accent); }
+:root[data-look="arcade"] :is(.upgrade, .buy:not(:disabled)):hover,
+:root[data-look="arcade"] :is(.ct-item.done, .head-chip.settling) { border-color: var(--accent); }
+
+/* ---------- Neo minimalist look (Settings > Look > Neo minimalist) ----------
+   A flat transit-map style: plain land and water, fine borders, bold flat line colors, a clean
+   geometric typeface, flat panels. Closed states are flat grey (--closed), and --hill tints the
+   faint mountain areas of the "hints" background. */
+:root[data-look="minimal"] {
+  --sea: #cfdfe6;
+  --grid: #cfdfe6;
+  --land: #f7f4ee;
+  --closed: #e3dfd6;
+  --coast: #a9b6ba;
+  --county: #dcd6ca;
+  --county-text: #a39b8d;
+  --locked: rgba(110, 98, 80, 0.06);
+  --river: #a8c6d3;
+  --hill: rgba(120, 100, 75, 0.09);
+  --night: rgba(20, 24, 40, 0.22);
+  --station: #ffffff;
+  --ink: #232323;
+  --muted: #76726a;
+  --panel: #fbfaf7;
+  --panel-line: #e2ddd2;
+  --scrim: rgba(30, 30, 30, 0.4);
+  --shadow: rgba(30, 30, 30, 0.1);
+  --accent: #e2483d;
+  --accent-ink: #ffffff;
+  --danger: #e2483d;
+  --line-1: #f0a830;
+  --line-2: #e2483d;
+  --line-3: #2f6fd0;
+  --line-4: #2e9a57;
+  --line-5: #f07b2e;
+  --line-6: #8a55c8;
+  --line-7: #1fa3a0;
+  --chip-ink: #ffffff;
+  --font-display: "Jost", "Futura", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Jost", "Futura", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-look="minimal"]:not([data-theme="light"]) {
+    --sea: #0f1316;
+    --grid: #121619;
+    --land: #272c31;
+    --closed: #1c2024;
+    --coast: #434a50;
+    --county: #33383d;
+    --county-text: #6e737a;
+    --locked: rgba(0, 0, 0, 0.14);
+    --river: #2c4957;
+    --hill: rgba(255, 255, 255, 0.04);
+    --night: rgba(0, 0, 10, 0.3);
+    --station: #23272b;
+    --ink: #ecebe6;
+    --muted: #9b9a94;
+    --panel: #1c2024;
+    --panel-line: #33383d;
+    --scrim: rgba(0, 0, 0, 0.55);
+    --shadow: rgba(0, 0, 0, 0.4);
+    --accent: #ff6a5c;
+    --accent-ink: #1c2024;
+    --danger: #ff6a5c;
+    --line-1: #f5b443;
+    --line-2: #ff6a5c;
+    --line-3: #5a95f0;
+    --line-4: #45b872;
+    --line-5: #ff9147;
+    --line-6: #a97ce6;
+    --line-7: #36c2be;
+    --chip-ink: #1c2024;
+  }
+}
+:root[data-look="minimal"][data-theme="dark"] {
+  --sea: #0f1316;
+  --grid: #121619;
+  --land: #272c31;
+  --closed: #1c2024;
+  --coast: #434a50;
+  --county: #33383d;
+  --county-text: #6e737a;
+  --locked: rgba(0, 0, 0, 0.14);
+  --river: #2c4957;
+  --hill: rgba(255, 255, 255, 0.04);
+  --night: rgba(0, 0, 10, 0.3);
+  --station: #23272b;
+  --ink: #ecebe6;
+  --muted: #9b9a94;
+  --panel: #1c2024;
+  --panel-line: #33383d;
+  --scrim: rgba(0, 0, 0, 0.55);
+  --shadow: rgba(0, 0, 0, 0.4);
+  --accent: #ff6a5c;
+  --accent-ink: #1c2024;
+  --danger: #ff6a5c;
+  --line-1: #f5b443;
+  --line-2: #ff6a5c;
+  --line-3: #5a95f0;
+  --line-4: #45b872;
+  --line-5: #ff9147;
+  --line-6: #a97ce6;
+  --line-7: #36c2be;
+  --chip-ink: #1c2024;
+}
+/* Flat panels: hairline borders, no shadows; quiet, spaced-out labels */
+:root[data-look="minimal"] :is(.stat, .bar, .line-panel, .card, .toast, .zoom-controls .icon-btn) { box-shadow: none; border: 1px solid var(--panel-line); }
+:root[data-look="minimal"] :is(.stat, .btn, .icon-btn) { border-radius: 8px; }
+:root[data-look="minimal"] :is(.bar, .card, .line-panel) { border-radius: 12px; }
+:root[data-look="minimal"] .brand-name { font-weight: 600; letter-spacing: 0.01em; }
+:root[data-look="minimal"] :is(.stat-label, .res-label, .mode-label) { font-weight: 500; letter-spacing: 0.1em; }
+:root[data-look="minimal"] :is(.stat-value, .res-value) { font-weight: 500; }
+:root[data-look="minimal"] .toast { background: var(--ink); color: var(--panel); border-color: var(--ink); border-radius: 999px; font-weight: 500; }

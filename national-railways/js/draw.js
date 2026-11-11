@@ -14,6 +14,10 @@
   const pos = (NR.pos = {}); // screen position of every city
   let colors = { lines: [] };
   let toon = false; // the cartoon look (js/cartoon.js)
+  // The Neo minimalist look: a flat transit-map style. miniHints: with faint mountain areas and
+  // every county border (otherwise bare: only the counties you own are outlined).
+  let mini = false;
+  let miniHints = false;
 
   // Colors come from the CSS tokens in style.css, so light and dark themes both work.
   NR.readTheme = function () {
@@ -36,6 +40,8 @@
       station: get("--station"),
       ink: get("--ink"),
       outline: get("--toon-outline") || get("--ink"), // cartoon outlines and shadows
+      closed: get("--closed") || get("--locked"), // states not open yet, and land outside the game (Neo minimalist)
+      hill: get("--hill") || "rgba(0, 0, 0, 0.06)", // faint mountain areas (Neo minimalist)
       muted: get("--muted"),
       accent: get("--accent"),
       accentInk: get("--accent-ink"),
@@ -45,6 +51,8 @@
     DISPLAY = get("--font-display") || DISPLAY;
     MONO = get("--font-mono") || MONO;
     toon = NR.cartoon.on();
+    mini = document.documentElement.dataset.look === "minimal";
+    miniHints = document.documentElement.dataset.miniBg === "hints";
     NR.cartoon.readTheme();
     if (typeof landStore !== "undefined") landStore.key = ""; // colors changed: draw the land again
   };
@@ -335,6 +343,45 @@
 
   // ---------- Lines that share track sit side by side ----------
   const segKey = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
+  // Transit-map track (Neo minimalist): straight, then one 45° bend, so every stretch runs across,
+  // up and down, or diagonally. Only the drawing changes: prices and travel times don't.
+  function octo(x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1, ax = Math.abs(dx), ay = Math.abs(dy);
+    if (ax < 1 || ay < 1 || Math.abs(ax - ay) < 1) return [x1, y1, x2, y2];
+    return ax > ay ? [x1, y1, x1 + Math.sign(dx) * (ax - ay), y1, x2, y2] : [x1, y1, x1, y1 + Math.sign(dy) * (ay - ax), x2, y2];
+  }
+  // The points a stretch of a line is drawn through, from a to b. The bend is worked out in one
+  // fixed order of the two stations, so trains follow the same bends whichever way they run.
+  function trackPath(a, b, off) {
+    const p = segPoints(a, b, off);
+    if (!mini) return p;
+    if (a < b) return octo(p[0], p[1], p[2], p[3]);
+    const q = octo(p[2], p[3], p[0], p[1]);
+    const out = [];
+    for (let i = q.length - 2; i >= 0; i -= 2) out.push(q[i], q[i + 1]);
+    return out;
+  }
+  // The point and direction a fraction e of the way along a path
+  function along(pts, e) {
+    const lens = [];
+    let total = 0;
+    for (let i = 0; i + 2 < pts.length; i += 2) {
+      const l = Math.hypot(pts[i + 2] - pts[i], pts[i + 3] - pts[i + 1]);
+      lens.push(l);
+      total += l;
+    }
+    let d = e * total;
+    for (let k = 0; k < lens.length; k++) {
+      const i = k * 2;
+      if (d <= lens[k] || k === lens.length - 1) {
+        const f = lens[k] ? Math.min(1, d / lens[k]) : 0;
+        return [pts[i] + (pts[i + 2] - pts[i]) * f, pts[i + 1] + (pts[i + 3] - pts[i + 1]) * f, Math.atan2(pts[i + 3] - pts[i + 1], pts[i + 2] - pts[i])];
+      }
+      d -= lens[k];
+    }
+    return [pts[0], pts[1], 0];
+  }
+
   function segmentOffsets(s) {
     const map = {};
     s.lines.forEach((l) => {
@@ -568,7 +615,7 @@
   const landStore = { canvas: null, key: "", cam: "", seen: "", since: 0, a: null, b: null };
   function drawLand(ctx, s, selected) {
     const open = s ? Object.keys(s.states).filter((code) => s.states[code].open).join("") : "";
-    const key = [toon ? "toon" : "classic", NR.packVersion, s ? `${s.owned.length}:${s.owned[s.owned.length - 1]}` : "-", open].join("|");
+    const key = [toon ? "toon" : mini ? `mini-${miniHints}` : "classic", NR.packVersion, s ? `${s.owned.length}:${s.owned[s.owned.length - 1]}` : "-", open].join("|");
     NR.cartoon.keptPicture(landStore, ctx, key, (g) => paintLand(g, s));
     if (!s) return;
     // Counties you can unlock now: a dashed outline. The county you tapped: a solid one.
@@ -595,6 +642,7 @@
     ctx.restore();
   }
   function paintLand(ctx, s) {
+    if (mini) return paintMinimal(ctx, s);
     if (!toon) {
       ctx.beginPath();
       NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
@@ -664,6 +712,70 @@
     } else {
       ctx.lineWidth = 3;
       ctx.stroke();
+    }
+  }
+
+  // ---------- The Neo minimalist look: flat land and water, fine borders ----------
+  function paintMinimal(ctx, s) {
+    // Land outside the game (Canada, Mexico) and states not loaded yet: flat, a shade darker
+    ctx.beginPath();
+    NR.outsideAreas().forEach((ar) => ar.outline.forEach((ring) => tracePath(ctx, ring, true)));
+    NR.gameStates().forEach(({ code }) => !NR.isLoaded(code) && NR.landOf(code).forEach((ring) => tracePath(ctx, ring, true)));
+    ctx.fillStyle = colors.closed;
+    ctx.fill("evenodd");
+    ctx.beginPath();
+    NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
+    ctx.fillStyle = colors.land;
+    ctx.fill("evenodd");
+    if (miniHints) paintHills(ctx);
+    if (s) {
+      // Counties you don't own yet: a faint tint (all the land, with the counties you own cut out)
+      ctx.beginPath();
+      NR.MAP.land.forEach((ring) => tracePath(ctx, ring, true));
+      s.owned.forEach((id) => NR.countyById[id] && NR.countyById[id].rings.forEach((ring) => tracePath(ctx, ring, true)));
+      ctx.fillStyle = colors.locked;
+      ctx.fill("evenodd");
+      // States that aren't open yet: flat grey
+      ctx.beginPath();
+      Object.keys(s.states).forEach((code) => !s.states[code].open && NR.landOf(code).forEach((ring) => tracePath(ctx, ring, true)));
+      ctx.fillStyle = colors.closed;
+      ctx.fill("evenodd");
+    }
+    drawWaterways(ctx);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    // County borders: every one as a hairline, or (bare) only around the counties you own
+    ctx.beginPath();
+    if (miniHints || !s) NR.MAP.borders.forEach((line) => tracePath(ctx, line, false));
+    else s.owned.forEach((id) => NR.countyById[id] && NR.countyById[id].rings.forEach((ring) => tracePath(ctx, ring, true)));
+    ctx.strokeStyle = colors.county;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // A fine coastline and fine state borders
+    ctx.beginPath();
+    NR.MAP.coast.forEach((line) => tracePath(ctx, line, false));
+    ctx.strokeStyle = colors.coast;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.beginPath();
+    NR.MAP.stateBorders.forEach((line) => tracePath(ctx, line, false));
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+  }
+  // Faint mountain areas (the "hints" background): each state's mountains as smooth flat shapes,
+  // kept inside the state (states on screen only)
+  function paintHills(ctx) {
+    for (const g of NR.TERRAIN.grids) {
+      if (!boxOnScreen(g.box) || !NR.MAP.stateLand[g.code]) continue;
+      ctx.save();
+      ctx.beginPath();
+      NR.MAP.stateLand[g.code].forEach((ring) => tracePath(ctx, ring, true));
+      ctx.clip("evenodd");
+      ctx.beginPath();
+      NR.cartoon.traceRings(ctx, NR.cartoon.mountainRings(g.code));
+      ctx.fillStyle = colors.hill;
+      ctx.fill("evenodd");
+      ctx.restore();
     }
   }
 
@@ -755,7 +867,7 @@
     const free = (r) => !taken.some((t) => r[0] < t[2] && r[2] > t[0] && r[1] < t[3] && r[3] > t[1]);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const back = toon ? NR.cartoon.fogColor() : colors.land; // the names sit on the fog in the cartoon look
+    const back = toon ? NR.cartoon.fogColor() : mini ? colors.closed : colors.land; // the names sit on the fog in the cartoon look
     for (const { code, x, y, wide } of spots) {
       const name = NR.STATE_NAMES[code].toUpperCase();
       const more = `Opens once you own all of ${NR.opensAfter(s, code)}`;
@@ -827,7 +939,7 @@
   function drawLines(ctx, s, segs) {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    const lw = busy.far ? Math.max(2, view.lw * 0.65) : view.lw; // thinner when zoomed out
+    const lw = (busy.far ? Math.max(2, view.lw * 0.65) : view.lw) * (mini ? 1.2 : 1); // thinner when zoomed out; bolder in Neo minimalist
     if (toon) {
       // Cartoon look: a dark outline under all the lines first
       ctx.lineWidth = lw + (busy.far ? 3 : 4);
@@ -847,9 +959,10 @@
       ctx.strokeStyle = NR.lineColor(l.color);
       ctx.beginPath();
       for (let i = 0; i + 1 < l.stops.length; i++) {
-        const [x1, y1, x2, y2] = segPoints(l.stops[i], l.stops[i + 1], offsetFor(segs, l.stops[i], l.stops[i + 1], l.id));
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
+        const p = trackPath(l.stops[i], l.stops[i + 1], offsetFor(segs, l.stops[i], l.stops[i + 1], l.id));
+        if (i === 0 || !mini) ctx.moveTo(p[0], p[1]);
+        else ctx.lineTo(p[0], p[1]); // Neo minimalist: one continuous line through its stations
+        for (let k = 2; k < p.length; k += 2) ctx.lineTo(p[k], p[k + 1]);
       }
       ctx.stroke();
       if (l.grade === "high") {
@@ -1432,11 +1545,11 @@
       const L = body + nose;
       const dx = (body - H * 0.6) / Math.ceil(seats / 2);
       const dot = Math.max(1.2, Math.min(dx, H / 2) * 0.28);
-      const [x1, y1, x2, y2] = segPoints(a, b, offsetFor(segs, a, b, l.id));
       const e = tr.moving ? ease(Math.min(1, tr.t)) : 0;
+      const [tx, ty, angle] = along(trackPath(a, b, offsetFor(segs, a, b, l.id)), e);
       ctx.save();
-      ctx.translate(x1 + (x2 - x1) * e, y1 + (y2 - y1) * e);
-      ctx.rotate(Math.atan2(y2 - y1, x2 - x1));
+      ctx.translate(tx, ty);
+      ctx.rotate(angle);
       trainPath(ctx, tr.type, L, H, nose);
       ctx.fillStyle = tr.type === "work" ? colors.work : NR.lineColor(l.color);
       ctx.fill();
@@ -1665,7 +1778,7 @@
       else {
         ctx.fillStyle = colors.land;
         ctx.fillRect(tl[0], tl[1], br[0] - tl[0], br[1] - tl[1]);
-        NR.drawRelief(ctx, geo.relief, cityPt, colors.relief);
+        if (!mini) NR.drawRelief(ctx, geo.relief, cityPt, colors.relief);
         ctx.beginPath();
         geo.water.forEach((ring) => traceCity(ctx, ring, true));
         ctx.fillStyle = colors.sea;
@@ -1890,7 +2003,7 @@
     updatePositions();
     if (s) measureBusy(s);
     if (toon) NR.cartoon.drawState(ctx);
-    else drawGraticule(ctx);
+    else if (!mini) drawGraticule(ctx);
     drawLand(ctx, s, ui.county);
     if (!s) {
       drawPreview(ctx);

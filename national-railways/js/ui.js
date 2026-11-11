@@ -49,7 +49,7 @@
       }
     },
   };
-  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle", look: "arcade", home: "CA", test: "off" }, store.get("nr-settings", {}));
+  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle", look: "arcade", miniBg: "bare", home: "CA", test: "off" }, store.get("nr-settings", {}));
   const best = store.get("nr-best", {});
 
   // ---------- What is happening right now ----------
@@ -171,6 +171,8 @@
     const look = document.querySelector(`input[name="look"][value="${settings.look}"]`);
     const test = document.querySelector(`input[name="test"][value="${settings.test === "on" ? "on" : "off"}"]`);
     if (test) test.checked = true;
+    const miniBg = document.querySelector(`input[name="miniBg"][value="${settings.miniBg === "hints" ? "hints" : "bare"}"]`);
+    if (miniBg) miniBg.checked = true;
     const home = document.querySelector(`input[name="home"][value="${settings.home}"]`) || document.querySelector('input[name="home"]');
     if (home) home.checked = true;
     if (mode) mode.checked = true;
@@ -1848,7 +1850,12 @@
 
   // ---------- Light and dark themes, and the look (Arcade cartoon or Classic) ----------
   // The look changes as soon as you pick it in Settings, and is remembered in this browser.
-  const applyLook = () => (document.documentElement.dataset.look = settings.look === "classic" ? "classic" : "arcade");
+  // (The Neo minimalist look's mountains choice shows only while that look is picked.)
+  const applyLook = () => {
+    document.documentElement.dataset.look = ["classic", "minimal"].includes(settings.look) ? settings.look : "arcade";
+    document.documentElement.dataset.miniBg = settings.miniBg === "hints" ? "hints" : "bare";
+    $("mini-bg-choice").hidden = settings.look !== "minimal";
+  };
   applyLook();
   document.querySelectorAll('input[name="look"]').forEach((input) =>
     input.addEventListener("change", () => {
@@ -1857,9 +1864,16 @@
       applyLook();
     })
   );
+  document.querySelectorAll('input[name="miniBg"]').forEach((input) =>
+    input.addEventListener("change", () => {
+      settings.miniBg = input.value;
+      store.set("nr-settings", settings);
+      applyLook();
+    })
+  );
   NR.readTheme();
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", NR.readTheme);
-  new MutationObserver(NR.readTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-look"] });
+  new MutationObserver(NR.readTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-look", "data-mini-bg"] });
 
   // ---------- Start ----------
   new ResizeObserver(layout).observe(app);

@@ -27,14 +27,15 @@ When your network grows, stations crowd together on the screen when you zoom out
 
 **Settings → Test mode → On** starts games where nothing can be lost: when a station or a city neighborhood overflows, its riders give up and leave (a message says so, grouped every few seconds) and the game carries on. Everything else plays as usual. The top bar says "Test mode", and these games don't count for best scores. The setting is remembered for your next game.
 
-### Two looks: Arcade and Classic
+### Three looks: Arcade, Classic and Neo minimalist
 
-**Settings → Look** on the start screen switches between two ways of drawing the game. The choice changes the picture only, never the rules, and is remembered in your browser.
+**Settings → Look** on the start screen switches between three ways of drawing the game. The choice changes the picture only, never the rules, and is remembered in your browser.
 
 - **Arcade** (the default): a cartoon map. Hills and mountains are flat layers with little peaks on top: green where the real mountains are forested (Sierra Nevada, Cascades, Coast Ranges), brown where they are dry, with snowcaps on the highest. Forests have pine trees; the deserts are sandy, with cacti in the hot south (Mojave, Sonoran), sagebrush in the cooler north (Great Basin, Oregon's high desert) and red-rock mesas. The sea has waves and every coast a band of shallow water; rivers and lakes are outlined. Lines, stations and trains have dark outlines, and the buttons are chunky. Counties you don't own yet sit under a light fog. States that aren't open yet, and the land outside the four states (Mexico, Utah, Idaho, Washington, New Mexico), are hidden under drifting cartoon clouds; when a state opens, its clouds puff up and fade away.
 - **Classic**: a calm atlas-style map with shaded relief.
+- **Neo minimalist**: a flat transit-map style. Plain land and water, fine borders, bold flat lines that run straight and bend at 45° between stations (trains follow the bends; prices and travel times are the same as in the other looks), a clean geometric typeface (Jost) and flat panels. States that aren't open yet are flat grey with their name. **Settings → Neo minimalist: mountains** picks **Hidden** (plain land, county borders only around the counties you own) or **Faint** (soft flat mountain areas and every county border).
 
-Both looks have a light and a dark version that follow your device.
+Every look has a light and a dark version that follow your device.
 
 ### Real geography
 
