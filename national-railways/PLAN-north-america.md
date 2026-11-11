@@ -256,6 +256,36 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 
 ---
 
+## 11. Finishing all of Canada and the US (the owner's request: complete everything, then publish once)
+
+The online game stays at version 38 (California to British Columbia) until **every** province, territory and state is done, checked and tested. Then it is published once. Work is still saved to GitHub as it goes (that is only the safety copy).
+
+### Order
+1. **Canada:** Alberta (in progress) → Saskatchewan → Manitoba → Ontario → Quebec → New Brunswick → Nova Scotia → Prince Edward Island → Newfoundland and Labrador → Yukon → Northwest Territories → Nunavut (the territories as a few huge regions, as decided).
+2. **US West:** Idaho, Montana, Wyoming, Utah, Colorado, New Mexico, Alaska (opens from Yukon and British Columbia).
+3. **Plains & Texas:** North Dakota, South Dakota, Nebraska, Kansas, Oklahoma, Texas, Minnesota, Iowa.
+4. **Midwest & South Central:** Missouri, Arkansas, Louisiana, Wisconsin, Illinois, Michigan, Indiana, Ohio.
+5. **South:** Kentucky, Tennessee, Mississippi, Alabama, Georgia, Florida, South Carolina, North Carolina.
+6. **Mid-Atlantic:** Virginia, West Virginia, Maryland (with DC), Delaware, Pennsylvania, New Jersey, New York, Connecticut.
+7. **New England:** Rhode Island, Massachusetts, Vermont, New Hampshire, Maine.
+8. **Hawaii** last (islands, reached by a sea link).
+
+### For each state or province
+1. **Me:** add it to the map tool, register it (empty pack), build the maps of everything in the game, check that its regions add up to its land, make its raw facts (populations, places, parks in Canada) and its terrain (rivers, ranges).
+2. **Its pack agent, phase 1:** reviews which small regions to merge and recommends a list. I apply the recommendation (the owner's choice for BC; from Alberta on I follow the agent's recommendation and list them in the report).
+3. **Its pack agent, phase 2:** main stations, towns, scenic places, start, passes, bridges, ferries and water, biomes, levels, notes; the checker and the pack test must pass.
+4. **Me:** spot-check its facts and screenshots, fix any tool bug it finds, save to GitHub.
+5. **After each group:** every game test and every pack test, a speed check with everything loaded, and a progress note to the owner (no publishing).
+
+### Tool work still to do (as each comes up)
+- **Links across water between states and provinces** that count as borders for unlocking: Confederation Bridge (PEI–New Brunswick), the Newfoundland ferries, the Mackinac Bridge, the Detroit, St. Clair, Niagara and St. Lawrence crossings if the map doesn't already join them, the Hawaiian islands, and Hawaii's sea link.
+- **Special counties:** Virginia's independent cities, Louisiana's parishes, Alaska's boroughs and census areas (names and labels), Connecticut (2020 populations for its old counties), DC with Maryland.
+- **Terrain:** the big US rivers (Mississippi, Missouri, Ohio, Tennessee, Arkansas, Red, Rio Grande, Platte...) and eastern ranges (Appalachians, Ozarks...).
+- **The finished map:** a speed test with all of North America, the start menu with every home, opening order across the border.
+
+### Size
+About 57 more packs, two agent phases each. One at a time that is roughly 35–45 hours of agent work; the tokens add up to about 25 million.
+
 ## Appendix: brief for a pack agent (template)
 
 > You are building the **{STATE}** pack for National Railways to the standard in `PLAN-north-america.md` section 1.
