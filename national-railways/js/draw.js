@@ -221,6 +221,9 @@
       if (!best || score > best.score) best = { score, scale, c, s, x0, x1, y0, y1 };
     }
     view.scale = best.scale;
+    // How far you can zoom in: 6 times the whole map, or more on a big map (British Columbia,
+    // or many states open), so a city can always be seen as closely as on a small state
+    cam.max = Math.max(6, MAX_PX_PER_DEGREE / view.scale);
     view.cos = best.c;
     view.sin = best.s;
     view.ox = box.left + bw / 2 - ((best.x0 + best.x1) / 2) * best.scale;
@@ -235,6 +238,8 @@
   // ---------- Zooming and moving the map ----------
   // The camera zooms the fitted map by cam.zoom and shifts it by cam.x, cam.y pixels.
   const cam = (NR.camera = { zoom: 1, x: 0, y: 0, max: 6 });
+  const MAX_PX_PER_DEGREE = 1000; // the closest zoom, in screen pixels per degree of the map
+  const START_PX_PER_DEGREE = 600; // a new game starts at most this close
   NR.setCamera = function (zoom, x, y) {
     cam.zoom = clamp(zoom, 1, cam.max);
     // Keep the state on screen. Its edges may come inside the screen only by a margin
@@ -272,7 +277,7 @@
   NR.onScreen = (x, y, margin = 10) => x > view.box.left + margin && x < view.w - view.box.right - margin && y > view.box.top + margin && y < view.h - view.box.bottom - margin;
   NR.resetCamera = () => NR.setCamera(1, 0, 0);
   // Zoom in on these places ([longitude, latitude] pairs) with some room around them.
-  NR.focusOn = function (places, maxZoom = 4) {
+  NR.focusOn = function (places, maxZoom = Math.max(4, START_PX_PER_DEGREE / view.scale)) {
     if (!places.length) return NR.resetCamera();
     NR.setCamera(1, 0, 0);
     const pts = places.map(([lon, lat]) => NR.toScreen(lon, lat));
@@ -280,10 +285,20 @@
     const w = Math.max(40, Math.max(...xs) - Math.min(...xs)) * 1.5;
     const h = Math.max(40, Math.max(...ys) - Math.min(...ys)) * 1.5;
     const b = view.box;
-    const z = clamp(Math.min((view.w - b.left - b.right) / w, (view.h - b.top - b.bottom) / h), 1, Math.min(maxZoom, cam.max));
+    let z = clamp(Math.min((view.w - b.left - b.right) / w, (view.h - b.top - b.bottom) / h), 1, Math.min(maxZoom, cam.max));
     const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
     const [vx, vy] = NR.viewCenter();
-    NR.setCamera(z, vx - cx * z, vy - cy * z);
+    // Keeping the state on screen can shift the view (a city near its edge, a tall bar on a
+    // phone): zoom out a little until every place is in view
+    const seen = () => places.every(([lon, lat]) => {
+      const [x, y] = NR.toScreen(lon, lat);
+      return x >= b.left && x <= view.w - b.right && y >= b.top && y <= view.h - b.bottom;
+    });
+    for (;;) {
+      NR.setCamera(z, vx - cx * z, vy - cy * z);
+      if (z <= 1 || seen()) break;
+      z = Math.max(1, z / 1.15);
+    }
   };
   // The middle of the map area on screen (used by the zoom buttons).
   NR.viewCenter = () => [(view.box.left + view.w - view.box.right) / 2, (view.box.top + view.h - view.box.bottom) / 2];
@@ -611,7 +626,30 @@
       ctx.stroke();
       if (named) halo(ctx, p.name, x + 8, y, colors.muted, colors.land);
     }
+    // A ferry: a dashed line along its route, and its name once (at its middle point)
+    const routes = {};
+    for (const b of G.bridges) if (b.route) (routes[b.route] ||= []).push(b);
+    for (const pts of Object.values(routes)) {
+      const xy = pts.map((b) => NR.toScreen(b.lon, b.lat));
+      if (!xy.some(([x, y]) => onScreen(x, y))) continue;
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = colors.river;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      xy.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.stroke();
+      ctx.restore();
+      const [x, y] = xy[Math.floor((xy.length - 1) / 2)];
+      ctx.fillStyle = colors.panel;
+      ctx.fillRect(x - 5, y - 4, 10, 8);
+      ctx.fillStyle = colors.river;
+      ctx.fillRect(x - 4, y - 3, 8, 1.6);
+      ctx.fillRect(x - 4, y + 1.4, 8, 1.6);
+      if (named) halo(ctx, pts[0].route, x + 8, y, colors.river, colors.land);
+    }
     for (const b of G.bridges) {
+      if (b.route) continue;
       const [x, y] = NR.toScreen(b.lon, b.lat);
       if (!onScreen(x, y)) continue;
       ctx.fillStyle = colors.panel;
@@ -2032,6 +2070,17 @@
     halo(ctx, `${mi} mi · north is up`, x0, y0 - 11, colors.muted, colors.sea);
   }
 
+  // Fit the map to the open states (it zooms out when new states open). True if it changed.
+  NR.refit = function (s) {
+    const open = s && s.states ? Object.keys(s.states).filter((code) => s.states[code].open) : [NR.HOME_STATE];
+    if (NR.fitStates(open) && view.box) {
+      NR.layout(view.w, view.h, view.dpr, view.box);
+      NR.resetCamera();
+      return true;
+    }
+    return false;
+  };
+
   NR.draw = function (ctx, s, ui) {
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
     ctx.fillStyle = colors.sea;
@@ -2040,12 +2089,7 @@
       drawCity(ctx, s, ui.city, ui);
       return;
     }
-    // Fit the map to the open states (it zooms out when new states open).
-    const open = s && s.states ? Object.keys(s.states).filter((code) => s.states[code].open) : [NR.HOME_STATE];
-    if (NR.fitStates(open) && view.box) {
-      NR.layout(view.w, view.h, view.dpr, view.box);
-      NR.resetCamera();
-    }
+    NR.refit(s);
     updatePositions();
     if (s) measureBusy(s);
     if (toon) NR.cartoon.drawState(ctx);

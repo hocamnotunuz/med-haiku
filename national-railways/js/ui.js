@@ -258,7 +258,9 @@
     leaveCity();
     game = NR.newGame(settings.mode, settings.style, settings.geo, settings.home, { test: settings.test === "on" });
     levelSave = NR.save(game);
+    NR.refit(game); // fit the map to the new game's states first (or it would undo the zoom)
     focusNetwork(); // start zoomed in on your first stations
+    autoCamera = true; // ...and stay on them if the screen's layout settles a moment later
     queue.length = 0;
     fx.length = 0;
     setPaused(false);
@@ -1662,6 +1664,10 @@
   // that matters for the map changes, and the map must not be wiped and redrawn: with a big
   // network that flashed the whole screen in the Arcade look, whose digits differ in width.)
   let laidOut = "";
+  // True from the start of a game until you move or zoom the map yourself: while it is, a change
+  // in the screen's layout (on a phone the top bar grows once the game starts) zooms in on your
+  // stations again
+  let autoCamera = false;
   function layout() {
     const rect = app.getBoundingClientRect();
     const w = Math.max(1, rect.width);
@@ -1677,6 +1683,7 @@
       canvas.style.width = w + "px";
       canvas.style.height = h + "px";
       NR.layout(w, h, dpr, { top, bottom: h - barTop + 10, left: 18, right: 18 });
+      if (autoCamera && game && !cityKey) focusNetwork();
     }
     $("line-panel").style.bottom = `${h - barTop + 10}px`;
     $("lines-panel").style.bottom = `${h - barTop + 10}px`;
@@ -1876,6 +1883,7 @@
   }
 
   canvas.addEventListener("pointerdown", (e) => {
+    autoCamera = false;
     if (!game || screen) return;
     const p = at(e);
     touches.set(e.pointerId, p);
@@ -2019,6 +2027,7 @@
     (e) => {
       if (!game || screen || cityKey) return;
       e.preventDefault();
+      autoCamera = false;
       const p = at(e);
       NR.zoomAt(p.x, p.y, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
     },
@@ -2028,8 +2037,8 @@
     const [cx, cy] = NR.viewCenter();
     NR.zoomAt(cx, cy, factor);
   };
-  $("btn-zoom-in").addEventListener("click", () => zoomBy(1.5));
-  $("btn-zoom-out").addEventListener("click", () => zoomBy(1 / 1.5));
+  $("btn-zoom-in").addEventListener("click", () => ((autoCamera = false), zoomBy(1.5)));
+  $("btn-zoom-out").addEventListener("click", () => ((autoCamera = false), zoomBy(1 / 1.5)));
   // The frame button switches between your network and the whole map.
   $("btn-zoom-fit").addEventListener("click", () => (NR.camera.zoom > 1.05 ? NR.resetCamera() : focusNetwork()));
 

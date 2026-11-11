@@ -9,8 +9,9 @@ NR.addPack({
   name: "British Columbia",
   country: "CAN",
   // A game that starts here begins owning Metro Vancouver, the Fraser Valley and Squamish-Lillooet
-  // (the only regions that touch Metro Vancouver by land): Vancouver is metro, Abbotsford farm (the
-  // Fraser Valley is BC's biggest farming area) and Squamish mountain, so the first track has riders.
+  // (the only BC regions that touch Metro Vancouver by land; Capital, Nanaimo and the Sunshine Coast
+  // are across the water): Vancouver is metro, Abbotsford farm (the Fraser Valley is BC's biggest
+  // farming area) and Squamish mountain, so the first track has riders.
   start: ["bc-metro-vancouver", "bc-fraser-valley", "bc-squamish-lillooet"],
   // Main stations: one per region, at its biggest city (exceptions are explained).
   // id = the short code shown on passengers. county = region id in this folder's map.js.
@@ -22,7 +23,7 @@ NR.addPack({
     { id: "VAN", name: "Vancouver", county: "bc-metro-vancouver", lat: 49.26, lon: -123.11, port: "Port of Vancouver", airport: "Vancouver International", type: "metro", size: 5, pop: 2643, main: true, level: "south" },
     // Abbotsford: the Fraser Valley's dairy, berry and poultry farms, so farm.
     { id: "ABB", name: "Abbotsford", county: "bc-fraser-valley", lat: 49.05, lon: -122.33, type: "farm", size: 3, pop: 324, main: true, level: "south" },
-    // Squamish rather than Whistler (a town): the bigger municipality, below the Stawamus Chief.
+    // Squamish: the region's biggest municipality (Whistler is a town), below the Stawamus Chief.
     { id: "SQU", name: "Squamish", county: "bc-squamish-lillooet", lat: 49.7, lon: -123.16, type: "mountain", size: 1, pop: 50, main: true, level: "south" },
     // Victoria rather than Saanich (117,735 people to Victoria's 91,867): Victoria is the provincial
     // capital and the centre of a population centre of 363,222 that takes in most of Saanich. Coast:
@@ -164,42 +165,52 @@ NR.addPack({
       ],
     },
   ],
+  // Real mountain passes, canyons and gaps: [name, latitude, longitude]. Track that crosses
+  // mountains near one goes over the pass (it costs more and trains climb slowly); anywhere else,
+  // mountains need a tunnel. BC's railways and highways mostly follow river valleys through the
+  // ranges, narrower than the map's mountain cells: the valley routes below (like Washington's
+  // Yakima River Canyon) sit at a real place on them. Sources in NOTES.md.
   passes: [
-    // The Coast Mountains: the Sea-to-Sky corridor and the Duffey Lake Road
-    ["Howe Sound (Sea-to-Sky Highway)", 49.63, -123.2],
+    // The Coast Mountains. The Sea-to-Sky Highway and the old BC Rail line are cut into Howe Sound's
+    // east shore (placed at Lions Bay), then climb the Cheakamus Canyon to Whistler.
+    ["Howe Sound (Sea-to-Sky Highway)", 49.46, -123.24],
     ["Cheakamus Canyon", 49.85, -123.15],
-    ["Cayoosh Pass", 50.37, -122.49],
+    ["Cayoosh Pass", 50.37, -122.49], // the Duffey Lake Road, Pemberton to Lillooet
     // The Cascades and the Fraser Canyon
-    ["Fraser Canyon (Hells Gate)", 49.78, -121.45],
-    ["Coquihalla Pass", 49.6, -121.08],
-    ["Allison Pass", 49.12, -120.87],
-    // The Okanagan and the Boundary country (Highway 3)
+    ["Fraser Canyon (Hells Gate)", 49.78, -121.45], // Highway 1 and both transcontinental lines
+    ["Coquihalla Pass", 49.6, -121.08], // Highway 5, Hope to Merritt
+    ["Allison Pass", 49.12, -120.87], // Highway 3 through Manning Park
+    // The Okanagan and the Boundary country (Highway 3, the Crowsnest Highway)
     ["Richter Pass", 49.07, -119.58],
-    ["Anarchist Summit", 49.04, -119.34],
+    ["Anarchist Summit", 49.04, -119.34], // on Anarchist Mountain, above Osoyoos
     ["Bonanza Pass", 49.22, -118.07],
     ["Kootenay Pass", 49.06, -117.04],
     // The Monashees, the Selkirks and the Rockies
-    ["Monashee Pass", 50.1, -118.52],
-    ["Eagle Pass", 50.97, -118.37],
+    ["Monashee Pass", 50.1, -118.52], // Highway 6, Vernon to Nakusp
+    ["Eagle Pass", 50.97, -118.37], // Highway 1 and the CPR, Sicamous to Revelstoke
     ["Rogers Pass", 51.3, -117.52],
-    ["Kicking Horse Pass", 51.45, -116.29],
-    ["Crowsnest Pass", 49.63, -114.68],
-    ["Yellowhead Pass", 52.89, -118.46],
-    // The north
-    ["Heckman Pass", 52.53, -125.77],
-    ["Kitselas Canyon", 54.6, -128.43],
-    ["Skeena River valley", 54.39, -129.1],
-    ["Robson Valley", 53.12, -119.84],
-    ["North Thompson valley", 51.42, -120.21],
-    ["Canal Flats", 50.16, -115.81],
-    ["Port Alberni Summit", 49.26, -124.68],
+    ["Kicking Horse Pass", 51.45, -116.29], // on the Alberta border
+    ["Crowsnest Pass", 49.63, -114.68], // on the Alberta border
+    ["Yellowhead Pass", 52.89, -118.46], // on the Alberta border
+    ["Canal Flats", 50.16, -115.81], // the Rocky Mountain Trench's low divide, Columbia Lake to the Kootenay
+    ["Robson Valley", 53.12, -119.84], // the upper Fraser in the Trench, at Dunster (Highway 16 and CN)
+    ["North Thompson valley", 51.42, -120.21], // Highway 5 and CN's main line, at Little Fort
+    // Vancouver Island (Highway 4)
+    ["Port Alberni Summit", 49.26, -124.68], // "the Hump", on the Nanaimo–Alberni-Clayoquot line
     ["Sutton Pass", 49.24, -125.32],
-    ["Pine Pass", 55.4, -122.63],
-    ["Summit Lake (Alaska Highway)", 58.65, -124.63],
+    // The north
+    ["Heckman Pass", 52.53, -125.77], // Highway 20, the top of "the Hill" above Bella Coola
+    ["Kitselas Canyon", 54.6, -128.43], // the Skeena above Terrace (Highway 16 and CN)
+    ["Skeena River valley", 54.39, -129.1], // the Skeena through the Coast Mountains, at Exstew
+    ["Pine Pass", 55.4, -122.63], // Highway 97 and CN (ex-BC Rail) to the Peace River country
+    ["Summit Lake (Alaska Highway)", 58.65, -124.63], // the Alaska Highway's highest point
   ],
+  // Real bridges: [name, latitude, longitude]. Water crossed near one uses the real bridge
+  // (cheaper, and any length); anywhere else you build a new bridge, if the water is narrow enough.
   bridges: [
-    // Ferries that work like bridges: the only way track crosses the straits (see bays below).
-    // Each route has two or three points along the crossing.
+    // BC Ferries' routes (and the MV Coho from Port Angeles) work like bridges: across the straits
+    // below, track can cross only near one. Each route has points along its crossing; a crossing
+    // uses a route when one of its points is within 3 to 4 miles of the water it crosses.
     ["Tsawwassen–Swartz Bay ferry (Tsawwassen)", 49.0, -123.16],
     ["Tsawwassen–Swartz Bay ferry (mid-strait)", 48.94, -123.23],
     ["Tsawwassen–Swartz Bay ferry (Active Pass)", 48.875, -123.29],
@@ -213,6 +224,8 @@ NR.addPack({
     ["Horseshoe Bay–Langdale ferry (Horseshoe Bay)", 49.37, -123.29],
     ["Horseshoe Bay–Langdale ferry (Queen Charlotte Channel)", 49.39, -123.35],
     ["Horseshoe Bay–Langdale ferry (Keats Island)", 49.41, -123.45],
+    // Earls Cove–Saltery Bay (Jervis Inlet) is inside the Sunshine Coast region and its water isn't a
+    // bay (track follows the shore of Malaspina Strait), so it is listed for the record.
     ["Earls Cove–Saltery Bay ferry (east)", 49.765, -124.07],
     ["Earls Cove–Saltery Bay ferry (west)", 49.78, -124.14],
     ["Comox–Powell River ferry (west)", 49.75, -124.82],
@@ -220,8 +233,9 @@ NR.addPack({
     ["Comox–Powell River ferry (east)", 49.83, -124.57],
     ["Port Angeles–Victoria ferry (mid-strait)", 48.31, -123.4],
     ["Port Angeles–Victoria ferry (Victoria)", 48.38, -123.38],
-    // Prince Rupert–Skidegate crosses open water: a point by each shore (track is checked against
-    // the whole crossing, and points must sit within 10 miles of land).
+    // Prince Rupert–Skidegate crosses 90 miles of open water: one point on each side (bridge points
+    // must be within 10 miles of land; the Graham Island one is 17 miles out so that lines from
+    // Terrace or Kitimat to Skidegate don't count as using the ferry).
     ["Prince Rupert–Skidegate ferry (Chatham Sound)", 54.18, -130.58],
     ["Prince Rupert–Skidegate ferry (off Graham Island)", 53.45, -131.7],
     // Burrard Inlet
@@ -237,10 +251,12 @@ NR.addPack({
     ["Simon Fraser Bridge (Prince George)", 53.89, -122.73],
     ["Peace River Bridge (Taylor)", 56.14, -120.68],
   ],
-  // Straits where water needs a real bridge (here, a ferry). Elsewhere, sea between two places
-  // just means track follows the coast. Rough outlines along the international boundary on the
-  // US side; land inside them is still land. Haro Strait and the others come before the Strait of
-  // Georgia so a crossing is named after the narrower water.
+  // Straits where water needs a real bridge (here, a ferry route). Elsewhere, sea between two places
+  // just means track follows the coast. Rough outlines; land inside them is still land. They stop a
+  // few miles off the coasts, so track along a shore (or behind the Gulf Islands) isn't caught. On
+  // the US side they follow the international boundary, except Haro Strait, which reaches the
+  // San Juan Islands' west shores so that crossing from them is a long new bridge, not a short one.
+  // A crossing is named after the first one listed that holds it.
   bays: [
     {
       name: "Howe Sound",
@@ -259,7 +275,7 @@ NR.addPack({
       ring: [
         -123.1, 49.0, -123.06, 48.96, -122.99, 48.8, -123.02, 48.785, -123.045, 48.79, -123.15, 48.82, -123.24, 48.85, -123.28, 48.875, -123.4, 48.94,
         -123.5, 49.0, -123.58, 49.06, -123.63, 49.1, -123.69, 49.14, -123.74, 49.18, -123.8, 49.21, -123.9, 49.24, -124.03, 49.29, -124.15, 49.32,
-        -124.3, 49.37, -124.45, 49.4, -124.55, 49.52, -124.7, 49.62, -124.8, 49.7, -124.9, 49.78, -125.05, 49.88, -125.18, 49.98, -124.95, 50.0,
+        -124.3, 49.39, -124.42, 49.44, -124.52, 49.53, -124.7, 49.62, -124.8, 49.7, -124.9, 49.78, -125.05, 49.88, -125.18, 49.98, -124.95, 50.0,
         -124.8, 50.02, -124.62, 49.92, -124.58, 49.84, -124.62, 49.79, -124.45, 49.7, -124.25, 49.58, -124.05, 49.47, -123.95, 49.47, -123.8, 49.44,
         -123.65, 49.38, -123.55, 49.35, -123.4, 49.3, -123.3, 49.31, -123.26, 49.28, -123.28, 49.25, -123.25, 49.2, -123.2, 49.1, -123.15, 49.02,
       ],

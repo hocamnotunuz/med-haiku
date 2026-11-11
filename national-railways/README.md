@@ -1,20 +1,23 @@
 # National Railways
 
-A passenger-rail strategy game set in California and its neighbors. Lay track between real cities, run trains, and get passengers where they are going before any station overflows. Own all of California and Nevada, Arizona and Oregon open next; own all of Oregon and Washington opens.
+A passenger-rail strategy game set in California and its neighbors. Lay track between real cities, run trains, and get passengers where they are going before any station overflows. Own all of California and Nevada, Arizona and Oregon open next; own all of Oregon and Washington opens; own all of Washington and British Columbia, Canada's westernmost province, opens.
 
 ## The map
 
-Five states share one map: **California, Nevada, Arizona, Oregon and Washington**, divided into their real counties (U.S. Census Bureau borders). Counties with fewer than 50,000 people are merged with small neighbors into regions such as **Del Norte-Siskiyou-Trinity County**:
+Five states and a province share one map: **California, Nevada, Arizona, Oregon, Washington and British Columbia**, divided into their real counties (U.S. Census Bureau borders) or, in Canada, census divisions (British Columbia's regional districts, from BC's open data). Counties with fewer than 50,000 people are merged with small neighbors into regions such as **Del Norte-Siskiyou-Trinity County**:
 
-| State | Counties | Regions | Towns |
+| State or province | Counties | Regions | Towns |
 | --- | --- | --- | --- |
 | California | 58 | 49 | 72 |
 | Nevada | 17 | 9 | 19 |
 | Arizona | 15 | 12 | 31 |
 | Oregon | 36 | 24 | 34 |
 | Washington | 39 | 28 | 43 |
+| British Columbia | 29 | 22 | 35 |
 
 Every region has one main station at its biggest city, with a few exceptions to keep stations apart or names clear: Yuba County uses Wheatland (its larger towns sit across the river from Yuba City), Clackamas County uses Oregon City (Lake Oswego is right next to Portland), Pinal County uses Casa Grande (the city of Maricopa shares its name with Maricopa County), and Thurston County uses Olympia, the capital, over the slightly bigger Lacey. Washington's small counties are merged by their real metro areas (Chelan and Douglas around Wenatchee; Whitman, Asotin and Garfield around Pullman), and the San Juan Islands, which no bridge reaches, are part of Skagit's region. Regions outside California are named with their state, like "Clark County, Nevada".
+
+**British Columbia** is Canadian, so its money is in **Maple Coins** (MC). Its regions are merged along real road and ferry links (the far north with Fort St. John, the northwest with Prince Rupert and Haida Gwaii, the Sunshine Coast with Powell River...). Vancouver Island, Haida Gwaii and the Sunshine Coast are reached **only over real ferry routes** (Tsawwassen–Swartz Bay, Horseshoe Bay–Departure Bay, Prince Rupert–Skidegate, Port Angeles–Victoria...), which work like bridges: the straits are water that blocks track anywhere else. The ferries are drawn as dashed lines, and they count as borders for unlocking regions.
 
 ### Busy maps
 
@@ -66,7 +69,7 @@ All these numbers live in `js/geography.js` (`NR.GEO`).
 
 ### Opening more states
 
-- **Choose your home state** under **Settings → Start in**: California (the default, around Los Angeles), Nevada (Las Vegas), Arizona (Phoenix), Oregon (Portland) or Washington (Seattle). Levels mode is in California and Washington (four levels each, from Puget Sound to the Inland Northwest). Best scores are kept per home state.
+- **Choose your home state** under **Settings → Start in**: California (the default, around Los Angeles), Nevada (Las Vegas), Arizona (Phoenix), Oregon (Portland), Washington (Seattle) or British Columbia (Vancouver). Levels mode is in California, Washington (from Puget Sound to the Inland Northwest) and British Columbia (from Vancouver and Victoria to the North), four levels each. Best scores are kept per home state.
 - The other states are hidden under clouds (shaded darker in the Classic look) until they open.
 - A state's **neighbors open once you own every county in it** (in Levels mode, also when you finish the last level). Each newly opened state starts with a FB200k budget, and the map zooms out to show it. The clouds say which state to finish to open them.
 - Their counties are then unlocked like the home state's: next to one you own, by paying or by reaching the free-unlock goal.

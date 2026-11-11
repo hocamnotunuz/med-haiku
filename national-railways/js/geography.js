@@ -258,7 +258,7 @@
         g.water.push(w);
         if (!real && mi > lv.maxNewBridge && !g.blocked) {
           // Suggest the real bridges nearest to this crossing (bays only)
-          const near = run.kind === "bay" ? [...G.bridges].sort((x, y) => distToPiece(x, a1, b1) - distToPiece(y, a1, b1)).slice(0, 3).map((x) => x.name) : [];
+          const near = run.kind === "bay" ? [...new Set([...G.bridges].sort((x, y) => distToPiece(x, a1, b1) - distToPiece(y, a1, b1)).map((x) => x.name))].slice(0, 3) : [];
           const list = near.length > 1 ? `${near.slice(0, -1).join(", ")} or ${near[near.length - 1]}` : near[0];
           g.blocked = `${Math.round(mi)} miles across ${run.name} is too wide for a new bridge. Go around it, or cross at a real bridge${list ? ` like the ${list}` : ""}.`;
         }

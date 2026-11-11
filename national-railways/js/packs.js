@@ -147,6 +147,9 @@ window.NR = window.NR || {};
     const named = ([name, lat, lon]) => ({ name, lat, lon });
     NR.PASSES = packs.flatMap((p) => (p.passes || []).map(named));
     NR.BRIDGES = packs.flatMap((p) => (p.bridges || []).map(named));
+    // A ferry is listed as a few points along its route ("Tsawwassen–Swartz Bay ferry (mid-strait)"):
+    // they are one crossing, named once ("Tsawwassen–Swartz Bay ferry")
+    for (const b of NR.BRIDGES) if (/ferry/i.test(b.name)) (b.route = b.name.replace(/ \([^)]*\)$/, "")), (b.name = b.route);
     NR.BAYS = packs.flatMap((p) => p.bays || []);
     // County region id -> "forest", "wooded" or "dry" (others: farmland and grassland)
     NR.BIOMES = {};
