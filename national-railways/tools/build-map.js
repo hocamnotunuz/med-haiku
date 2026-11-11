@@ -139,7 +139,7 @@ const STATES = {
   },
   // The other provinces and territories: their census divisions from Statistics Canada (see
   // CANADA below). Small ones merge automatically until each pack agent reviews them.
-  AB: { country: "CAN", name: "Alberta", pop: "statcan" },
+  AB: { country: "CAN", name: "Alberta", pop: "statcan", merge: [] }, // (all 19 separate for the pack agent's review)
   SK: { country: "CAN", name: "Saskatchewan", pop: "statcan" },
   MB: { country: "CAN", name: "Manitoba", pop: "statcan" },
   ON: { country: "CAN", name: "Ontario", pop: "statcan" },

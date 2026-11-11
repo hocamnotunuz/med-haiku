@@ -43,9 +43,15 @@ const RIVERS = [
   "Fraser", "Thompson", "North Thompson", "Kootenay", "Skeena", "Peace", "Stikine", "Nechako", "Liard", "Nass", "Quesnel",
   "Chilcotin", "Similkameen", "Kettle", "Bulkley", "Elk", "Fort Nelson", "Finlay", "Parsnip", "Harrison", "Lillooet", "Squamish",
   "Bella Coola",
+  // The rest of Canada
+  "Athabasca", "North Saskatchewan", "South Saskatchewan", "Saskatchewan", "Slave", "Bow", "Red Deer", "Oldman", "Smoky", "Milk",
+  "Battle", "Beaver", "Assiniboine", "Red", "Winnipeg", "Nelson", "Churchill", "Qu'Appelle", "Souris", "Ottawa", "R. des Outaouais",
+  "St. Lawrence", "Saguenay", "Saint-Maurice", "Richelieu", "Saint John", "Miramichi", "Restigouche", "Niagara", "St. Clair",
+  "Detroit", "Moose", "Albany", "Rainy", "Nipigon", "French", "Trent", "Rideau", "Grand", "Thames", "Exploits", "Humber", "Gander",
+  "La Grande", "Rupert", "Manicouagan", "Outardes", "Chaudière", "Saint-François", "Yamaska", "Matapédia", "Petitcodiac",
 ];
 // Natural Earth spellings to fix
-const RIVER_NAMES = { "Pend Orielle": "Pend Oreille" };
+const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa" };
 
 // ---------- Load the game's map and cities ----------
 const ctx = {};
