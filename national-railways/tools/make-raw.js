@@ -195,16 +195,26 @@ async function statcan(table) {
   }
   return { data: readCsv(path.join(dir, `${table}.csv`)), meta: readCsv(path.join(dir, `${table}_MetaData.csv`)) };
 }
-// Every official name of one kind in the province (Canadian Geographical Names Database)
+// Every official name of one kind in the province (Canadian Geographical Names Database). The
+// service gives at most 1,000 names per answer and its pages have no fixed order, so the
+// province's box is split into quarters until each answer is complete.
 async function geonames(sgc, concise) {
-  const out = [];
-  for (let skip = 0; ; skip += 1000) {
-    const file = await get(`https://geogratis.gc.ca/services/geoname/en/geonames.json?province=${sgc}&concise=${concise}&num=1000&skip=${skip}`, `gn-${concise}-${skip}.json`, CA_CACHE);
+  const seen = new Map();
+  const box = ctx.NR.AREAS[CODE].box.map((v, i) => Math.round((v + (i < 2 ? -0.5 : 0.5)) * 100) / 100);
+  const ask = async ([x0, y0, x1, y1]) => {
+    const file = await get(
+      `https://geogratis.gc.ca/services/geoname/en/geonames.json?province=${sgc}&concise=${concise}&num=1000&bbox=${x0},${y0},${x1},${y1}`,
+      `gn-${sgc}-${concise}-${[x0, y0, x1, y1].join("_")}.json`,
+      CA_CACHE
+    );
     const items = JSON.parse(fs.readFileSync(file, "utf8")).items || [];
-    out.push(...items);
-    if (items.length < 1000) break;
-  }
-  return out.filter((i) => (i.status && i.status.code) === "official");
+    if (items.length >= 1000) {
+      const mx = Math.round(((x0 + x1) / 2) * 1000) / 1000, my = Math.round(((y0 + y1) / 2) * 1000) / 1000;
+      for (const q of [[x0, y0, mx, my], [mx, y0, x1, my], [x0, my, mx, y1], [mx, my, x1, y1]]) await ask(q);
+    } else items.forEach((i) => seen.set(i.id, i));
+  };
+  await ask(box);
+  return [...seen.values()].filter((i) => (i.status && i.status.code) === "official").sort((a, b) => a.id.localeCompare(b.id));
 }
 
 async function canadaRaw() {
@@ -231,9 +241,11 @@ async function canadaRaw() {
   const memberCol = pcs.meta.findIndex((r) => r[0] === "Dimension ID" && r[1] === "Member Name");
   const members = pcs.meta.slice(memberCol + 1).filter((r) => r[0] === "1");
   const province = members.find((r) => r[2] === `[${SGC}]`);
-  const pcNames = new Set(members.filter((r) => province && r[4] === province[3]).map((r) => r[1]));
+  // (matched by the centre's code, "[0403]" in the metadata, the end of "2021S05100403" in the
+  // data: two provinces can each have a "Windsor")
+  const pcCodes = new Set(members.filter((r) => province && r[4] === province[3]).map((r) => r[2].replace(/[[\]]/g, "")));
   const pcPop = {};
-  for (const r of pcs.data.slice(1)) if (r[2] && r[2].slice(4, 9) === "S0510" && pcNames.has(r[1])) pcPop[r[1]] = +r[4];
+  for (const r of pcs.data.slice(1)) if (r[2] && r[2].slice(4, 9) === "S0510" && pcCodes.has(r[2].slice(9))) pcPop[r[1]] = +r[4];
 
   // Places: every official populated place, with its location
   const KINDS = { CITY: "city", TOWN: "town", VILG: "village", MUN1: "municipality", MUN2: "community", UNP: "locality" };

@@ -206,7 +206,8 @@ function biggestTown(cd) {
       if (r[2] && r[2].slice(4, 9) === "A0005") csdCache.push({ code: r[2].slice(-7), name: r[1], pop: +r[4] });
   }
   // (not unorganized areas, subdivisions, rural municipalities like "Sherwood No. 159" or reserves "... 135")
-  const towns = csdCache.filter((c) => c.code.startsWith(cd) && !/Unorganized|Subd\.|No\. \d+$| \d+[A-Z]?$/.test(c.name));
+  // (rural municipalities don't count: "Clearwater County", "Municipal District of ...")
+  const towns = csdCache.filter((c) => c.code.startsWith(cd) && !/Unorganized|Subd\.|No\. \d+$| \d+[A-Z]?$|County|Municipal District|Improvement District|Special Area/.test(c.name));
   return towns.sort((a, b) => b.pop - a.pop)[0];
 }
 function download(url, file) {
@@ -262,6 +263,12 @@ const bboxArea = (ring) => {
   const xs = ring.map((q) => q[0]), ys = ring.map((q) => q[1]);
   return (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys));
 };
+// A ring's area in km² (approximately: fine for telling islets from islands)
+function kmArea(ring) {
+  let a = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) a += (ring[j][0] - ring[i][0]) * (ring[j][1] + ring[i][1]);
+  return Math.abs(a / 2) * 111.3 * 111.3 * Math.cos((ring[0][1] * Math.PI) / 180);
+}
 // The census divisions of these provinces as one topology (shared borders are exact inside it)
 function canadaTopology(codes) {
   const ts = require(path.join(MODULES, "topojson-server"));
@@ -291,9 +298,30 @@ function canadaTopology(codes) {
       const list = JSON.parse(fs.readFileSync(download(`${service}${where(`PRUID='${cfg.sgc}'`)}&f=json&returnGeometry=false`, path.join(CACHE, "canada", `cd-${cfg.sgc}-list.json`)), "utf8"));
       const cds = list.features.map((f) => f.attributes.CDUID).sort();
       const all = cds.flatMap((cd) => JSON.parse(fs.readFileSync(download(`${service}${where(`CDUID='${cd}'`)}&f=geojson&geometryPrecision=5&returnGeometry=true`, path.join(CACHE, "canada", "cd", `${cd}.json`)), "utf8")).features);
+      // Lighter before the shared borders are worked out (the full files are too big for that):
+      // points rounded to the map's 3 decimals (both sides of a shared border round the same
+      // way, so it stays shared), repeats dropped, and islets under 25 km² left out (each
+      // division keeps its biggest piece)
+      const r3 = (v) => Math.round(v * 1000) / 1000;
+      const lighter = (ring) => {
+        const out = [];
+        for (const [x, y] of ring) {
+          const q = [r3(x), r3(y)];
+          const last = out[out.length - 1];
+          if (!last || last[0] !== q[0] || last[1] !== q[1]) out.push(q);
+        }
+        return out;
+      };
+      for (const f of all) {
+        const polys = (f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates).map((poly) => poly.map(lighter).filter((ring) => ring.length >= 4));
+        const areas = polys.map((poly) => (poly.length ? kmArea(poly[0]) : 0));
+        const biggest = Math.max(...areas);
+        f.geometry = { type: "MultiPolygon", coordinates: polys.filter((poly, i) => poly.length && (areas[i] >= 25 || areas[i] === biggest)) };
+      }
       for (const f of all) {
         const { CDUID, CDNAME, CDTYPE } = f.properties;
-        const name = CDNAME.replace(/\s+/g, " ").replace(/, /g, " "); // "Division No.  6", "Stormont, Dundas and Glengarry"
+        // "Division No.  6", "Stormont, Dundas and Glengarry", "Greater Sudbury / Grand Sudbury"
+        const name = CDNAME.replace(/\s+/g, " ").replace(/, /g, " ").replace(/ \/ .*$/, "");
         features.push({ type: "Feature", id: CDUID, properties: { name, kind: CD_KIND[CDTYPE] || "", numbered: numbered(name), state: code }, geometry: f.geometry });
       }
       continue;
@@ -327,11 +355,6 @@ function canadaTopology(codes) {
     `https://openmaps.gov.bc.ca/geo/pub/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=pub:${layer}` +
     `&outputFormat=application/json&srsName=EPSG:4326&count=10000` +
     (filter ? `&CQL_FILTER=${encodeURIComponent(filter)}` : "");
-  const kmArea = (ring) => {
-    let a = 0;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) a += (ring[j][0] - ring[i][0]) * (ring[j][1] + ring[i][1]);
-    return Math.abs(a / 2) * 111.3 * 111.3 * Math.cos((ring[0][1] * Math.PI) / 180);
-  };
   for (const code of codes) {
     const cfg = CANADA[code];
     if (sourceOf(code) === "statcan") {
@@ -477,7 +500,7 @@ for (const [i, members] of groupOf) {
   const code = stateOf(counties[i]);
   const base = members.every((j) => counties[j].properties.numbered)
     ? `${counties[members[0]].properties.name.replace(/ \d+$/, "")} ${members.map((j) => +counties[j].properties.name.match(/\d+$/)[0]).sort((a, b) => a - b).join("-")}`
-    : members.map((j) => counties[j].properties.name).sort().join("-");
+    : members.map((j) => counties[j].properties.name).sort().join(sourceOf(code) === "statcan" ? " & " : "-");
   const id = code === "CA" ? idOf(base) : `${code.toLowerCase()}-${idOf(base)}`; // California keeps its old ids
   // "Kern County"; in Canada "Capital Regional District", "Simcoe County", "Charlevoix", or
   // for numbered census divisions "Calgary area (Division No. 6)"
@@ -487,7 +510,7 @@ for (const [i, members] of groupOf) {
     const nums = members.map((j) => +counties[j].properties.name.match(/\d+$/)[0]).sort((a, b) => a - b);
     const word = counties[members[0]].properties.name.replace(/ \d+$/, "");
     const big = members.map((j) => biggestTown(String(counties[j].id))).filter(Boolean).sort((a, b) => b.pop - a.pop)[0];
-    label = `${big ? big.name : STATES[code].name} area (${word} ${nums.join(" & ")})`;
+    label = `${big ? big.name.replace(/ \(Part\)$/, "") : STATES[code].name} area (${word} ${nums.join(" & ")})`;
   } else if (isCanadian(code)) label = kinds.length === 1 && kinds[0] ? `${base} ${kinds[0]}` : sourceOf(code) === "databc" ? `${base} Regional District` : base;
   else label = /City$/.test(base) ? base : `${base} County`;
   regionKey.set(i, id);
