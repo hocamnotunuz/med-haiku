@@ -344,8 +344,7 @@
   // Dig tunnels under the passes of a line: trains no longer slow down there.
   NR.tunnelBill = function (s, line) {
     const bill = {};
-    for (let i = 0; i + 1 < line.stops.length; i++) {
-      const [a, b] = [line.stops[i], line.stops[i + 1]];
+    for (const [a, b] of NR.lineLegs(line)) {
       if (NR.tunneled(line, a, b)) continue;
       const mi = NR.segmentGeo(a, b).passes.reduce((sum, p) => sum + p.miles, 0);
       if (mi) NR.addShares(bill, NR.segmentShares(a, b), mi * detour() * (L().tunnelCost - L().passCost) * perMile(line.grade));
@@ -357,9 +356,9 @@
     if (!Object.keys(bill).length || NR.lineFrozen(s, line) || !NR.canPay(s, bill)) return false;
     NR.pay(s, bill);
     line.tunnels = line.tunnels || [];
-    for (let i = 0; i + 1 < line.stops.length; i++) {
-      const key = NR.segKey(line.stops[i], line.stops[i + 1]);
-      if (NR.segmentGeo(line.stops[i], line.stops[i + 1]).passes.length && !line.tunnels.includes(key)) line.tunnels.push(key);
+    for (const [a, b] of NR.lineLegs(line)) {
+      const key = NR.segKey(a, b);
+      if (NR.segmentGeo(a, b).passes.length && !line.tunnels.includes(key)) line.tunnels.push(key);
     }
     return true;
   };

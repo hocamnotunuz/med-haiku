@@ -411,8 +411,8 @@
   function segmentOffsets(s) {
     const map = {};
     s.lines.forEach((l) => {
-      for (let i = 0; i + 1 < l.stops.length; i++) {
-        const list = (map[segKey(l.stops[i], l.stops[i + 1])] ||= []);
+      for (const [a, b] of NR.lineLegs(l)) {
+        const list = (map[segKey(a, b)] ||= []);
         list.push(l.id);
         if (l.group === "intl") list.wide = true; // a wide international line needs more room
       }
@@ -440,6 +440,7 @@
   NR.lineHandles = function (s) {
     const out = [];
     for (const l of s.lines) {
+      if (l.loop) continue; // a loop has no ends
       const n = l.stops.length;
       for (const atHead of [true, false]) {
         const end = atHead ? l.stops[0] : l.stops[n - 1];
@@ -978,8 +979,8 @@
         ctx.beginPath();
         s.lines.forEach((l) => {
           if ((l.group === "intl") !== wide) return;
-          for (let i = 0; i + 1 < l.stops.length; i++) {
-            const [x1, y1, x2, y2] = segPoints(l.stops[i], l.stops[i + 1], offsetFor(segs, l.stops[i], l.stops[i + 1], l.id));
+          for (const [a, b] of NR.lineLegs(l)) {
+            const [x1, y1, x2, y2] = segPoints(a, b, offsetFor(segs, a, b, l.id));
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
           }
@@ -991,12 +992,13 @@
       ctx.lineWidth = lineWidthOf(l, lw);
       ctx.strokeStyle = NR.lineColorOf(l);
       ctx.beginPath();
-      for (let i = 0; i + 1 < l.stops.length; i++) {
-        const p = trackPath(l.stops[i], l.stops[i + 1], offsetFor(segs, l.stops[i], l.stops[i + 1], l.id));
+      NR.lineLegs(l).forEach(([a, b], i) => {
+        const p = trackPath(a, b, offsetFor(segs, a, b, l.id));
         if (i === 0 || !mini) ctx.moveTo(p[0], p[1]);
         else ctx.lineTo(p[0], p[1]); // Neo minimalist: one continuous line through its stations
         for (let k = 2; k < p.length; k += 2) ctx.lineTo(p[k], p[k + 1]);
-      }
+      });
+      if (mini && l.loop) ctx.closePath(); // a clean join where a loop meets itself
       ctx.stroke();
       if (l.grade === "high") {
         // High-speed track: a dashed white stripe down the middle of the line
@@ -1570,7 +1572,7 @@
       const l = NR.lineById(s, tr.lineId);
       if (!l) continue;
       const a = l.stops[tr.i];
-      const b = l.stops[tr.moving ? tr.i + tr.dir : NR.nextStop(l, tr).n];
+      const b = l.stops[tr.moving ? NR.stepIndex(l, tr.i, tr.dir) : NR.nextStop(l, tr).n];
       if (!a || !b) continue;
       const seats = NR.seatsOf(s, tr);
       const nose = tr.type === "bullet" ? H * 1.6 : tr.type === "highspeed" ? H : tr.type === "airport" ? H * 0.6 : 0;

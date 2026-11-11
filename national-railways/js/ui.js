@@ -1316,6 +1316,7 @@
     buy.appendChild(add);
     $("lp-upgrade").hidden = true;
     $("lp-tunnel").hidden = true;
+    $("lp-loop").hidden = true; // city lines don't loop
     $("lp-delete").disabled = frozen;
     if (!$("lp-delete").dataset.armed) {
       const value = NR.cityLinePrice(cityKey, line) + vehicles.length * m.price;
@@ -1338,7 +1339,7 @@
       case "scenic":
         return types.some((c) => c.scenic);
       case "work":
-        return game.week >= NR.disasterWeek() || line.stops.some((id, i) => i && game.damage[NR.segKey(line.stops[i - 1], id)]);
+        return game.week >= NR.disasterWeek() || NR.lineLegs(line).some(([a, b]) => game.damage[NR.segKey(a, b)]);
       default:
         return true;
     }
@@ -1358,8 +1359,11 @@
     const canTunnel = tunnelPrice > 0 && NR.canPay(game, tunnelBill);
     const frozen = NR.lineFrozen(game, line);
     const shares = NR.lineShares(line);
+    const loopProblem = line.loop ? null : NR.closeLoopProblem(game, line);
     const sig = JSON.stringify([
       line.stops,
+      !!line.loop,
+      loopProblem,
       line.grade,
       trains.map((t) => t.id),
       checks.map(([k, c]) => [c.ok, c.reason, game.depot[k]]),
@@ -1379,14 +1383,14 @@
     // states it runs through, by how much of it is on each one's land.
     const paidBy = NR.STATE_NAMES[shares[0][0]] && shares.length === 1 ? `paid from the ${NR.STATE_NAMES[shares[0][0]]} budget` : `crosses a border: ${NR.sharesName(shares)} ${shares.length > 1 ? "share it" : "pays"}`;
     $("lp-meta").textContent =
-      `${plural(line.stops.length, "stop")} · ${NR.lineMiles(line)} mi · ${line.grade === "high" ? "high-speed" : "standard"} track · ${paidBy}` +
+      `${line.loop ? "loop · " : ""}${plural(line.stops.length, "stop")} · ${NR.lineMiles(line)} mi · ${line.grade === "high" ? "high-speed" : "standard"} track · ${paidBy}` +
       (frozen ? " · frozen while its state is managed" : "");
-    $("lp-stops").textContent = line.stops.map((id) => NR.cityById[id].name).join(" – ");
+    $("lp-stops").textContent = line.stops.map((id) => NR.cityById[id].name).join(" – ") + (line.loop ? ` – back to ${NR.cityById[line.stops[0]].name}` : "");
     // What the track crosses: passes, tunnels, bridges...
     const crossings = [];
-    for (let i = 0; i + 1 < line.stops.length; i++) {
-      const notes = NR.geoNotes(line.stops[i], line.stops[i + 1], line);
-      if (notes.length) crossings.push(`${NR.cityById[line.stops[i]].name}–${NR.cityById[line.stops[i + 1]].name}: ${notes.join(", ")}`);
+    for (const [a, b] of NR.lineLegs(line)) {
+      const notes = NR.geoNotes(a, b, line);
+      if (notes.length) crossings.push(`${NR.cityById[a].name}–${NR.cityById[b].name}: ${notes.join(", ")}`);
     }
     $("lp-geo").hidden = !crossings.length;
     $("lp-geo").textContent = crossings.join(" · ");
@@ -1462,7 +1466,18 @@
     tun.textContent = `Dig tunnels under the passes · ${NR.billMoney(tunnelBill)}`;
     tun.title = "Trains stop slowing down on the climbs over mountain passes on this line.";
     tun.disabled = !canTunnel || frozen;
-    if (!$("lp-delete").dataset.armed) $("lp-delete").textContent = `Delete line (get back ${NR.billMoney(NR.chainBill(line.stops, line.grade, T.refundShare, line))})`;
+    if (!$("lp-delete").dataset.armed) $("lp-delete").textContent = `Delete line (get back ${NR.billMoney(NR.chainBill(NR.lineChain(line), line.grade, T.refundShare, line))})`;
+    // Close the line into a loop (3 stops or more), or open a loop again
+    const loop = $("lp-loop");
+    loop.hidden = !line.loop && line.stops.length < 3;
+    loop.dataset.armed = "";
+    loop.textContent = line.loop
+      ? `Open the loop (get back ${NR.billMoney(NR.openLoopRefund(line))})`
+      : `Close into a loop · ${NR.billMoney(NR.closeLoopBill(line))}`;
+    loop.title = line.loop
+      ? `Takes up the track from ${NR.cityById[line.stops[line.stops.length - 1]].name} back to ${NR.cityById[line.stops[0]].name}: trains turn round at the ends again.`
+      : `Lays track from ${NR.cityById[line.stops[line.stops.length - 1]].name} back to ${NR.cityById[line.stops[0]].name}: trains go round and round without turning back.`;
+    loop.disabled = frozen || (!line.loop && !!loopProblem && !/money/.test(loopProblem));
   }
 
   // Zoom in on your stations and the counties you own.
@@ -1588,12 +1603,12 @@
   // returns { line, atHead }: dragging from it extends that line.
   function lineEndAt(ends, all, id) {
     if (all.filter((l) => l.stops.includes(id)).length !== 1) return null;
-    const line = ends.find((l) => l.stops[0] === id || l.stops[l.stops.length - 1] === id);
+    const line = ends.find((l) => !l.loop && (l.stops[0] === id || l.stops[l.stops.length - 1] === id));
     return line ? { line, atHead: line.stops[0] === id } : null;
   }
   // Any line that ends at this station (the shortest one, if several do).
   function anyLineEnd(lines, id) {
-    const ends = lines.filter((l) => l.stops[0] === id || l.stops[l.stops.length - 1] === id).sort((a, b) => a.stops.length - b.stops.length);
+    const ends = lines.filter((l) => !l.loop && (l.stops[0] === id || l.stops[l.stops.length - 1] === id)).sort((a, b) => a.stops.length - b.stops.length);
     return ends.length ? { line: ends[0], atHead: ends[0].stops[0] === id } : null;
   }
   // The first few times, explain how to start a new line instead.
@@ -1616,6 +1631,13 @@
     draft.color = NR.freeColor(game, draft.group);
   }
 
+  // In an extend drag, is this station the other end of the line (so it closes a loop)?
+  function closesLoop(id) {
+    const line = draftLine();
+    if (!line || line.loop) return false;
+    const other = draft.atHead ? line.stops[line.stops.length - 1] : line.stops[0];
+    return id === other && line.stops.length + draft.chain.length - 1 >= 3;
+  }
   function extendDraft(id) {
     const chain = draft.chain;
     const lastId = chain[chain.length - 1];
@@ -1623,12 +1645,16 @@
     if (chain.length >= 2 && id === chain[chain.length - 2]) {
       draft.cost -= draftPrice(id, lastId); // dragged back: undo the last stop
       chain.pop();
+      draft.closing = false;
       draft.note = "";
       regroupDraft();
       return;
     }
+    if (draft.closing) return; // the loop is closed: nothing comes after it
     if (chain.includes(id)) return;
-    if (draft.kind === "extend" && draftLine().stops.includes(id)) return;
+    // Reaching the line's other end (with 3 stops or more in all) closes it into a loop
+    const other = draft.kind === "extend" && !draft.city && closesLoop(id);
+    if (draft.kind === "extend" && draftLine().stops.includes(id) && !other) return;
     const cost = draftPrice(lastId, id);
     if (draft.city) {
       // Water too wide to cross, or a cable car asked to cross water
@@ -1670,6 +1696,10 @@
     }
     chain.push(id);
     draft.cost += cost;
+    if (other) {
+      draft.closing = true;
+      toast(`Let go here to close the ${lineName(draftLine())} into a loop: trains will go round and round.`);
+    }
     regroupDraft();
     draft.note = (draft.city ? NR.cityLegNotes(draft.city, draft.mode, lastId, id) : NR.geoNotes(lastId, id)).join(" · ");
   }
@@ -1717,7 +1747,14 @@
       const full = NR.extendProblem(game, line, d.atHead, d.chain.slice(1));
       if (full) return toast(`This would make it a ${NR.groupName(full)} line, and ${NR.groupFullText(full).charAt(0).toLowerCase()}${NR.groupFullText(full).slice(1)}`);
       const before = lineName(line);
-      NR.extendLine(game, line, d.atHead, d.chain.slice(1));
+      const added = d.closing ? d.chain.slice(1, -1) : d.chain.slice(1);
+      if (added.length) NR.extendLine(game, line, d.atHead, added);
+      if (d.closing) {
+        const why = NR.closeLoopProblem(game, line);
+        if (why) return toast(why);
+        NR.closeLoop(game, line);
+        return toast(`The ${lineName(line)} is a loop now: its trains go round and round. Open it again from its line panel.`);
+      }
       if (lineName(line) !== before) toast(`The ${before} crosses a border now: it's the ${lineName(line)}.`);
     }
   }
@@ -1961,6 +1998,25 @@
     NR.deleteLine(game, line);
     closeLinePanel();
     toast(`${lineName(line)} deleted. Its track and trains are free again.`);
+  });
+  $("lp-loop").addEventListener("click", () => {
+    const btn = $("lp-loop");
+    const line = !cityKey && NR.lineById(game, openLineId);
+    if (!line) return;
+    if (!line.loop) {
+      const why = NR.closeLoopProblem(game, line);
+      if (why) return toast(why);
+    }
+    if (!btn.dataset.armed) {
+      btn.dataset.armed = "1";
+      btn.textContent = line.loop ? "Tap again to open the loop" : "Tap again to close the loop";
+      return;
+    }
+    if (line.loop ? NR.openLoop(game, line) : NR.closeLoop(game, line)) {
+      panelSig = "";
+      renderLinePanel();
+      toast(line.loop ? `The ${lineName(line)} is a loop now: its trains go round and round.` : `The ${lineName(line)} is open again: its trains turn round at the ends. You got back half of the closing track.`);
+    }
   });
   $("lp-close").addEventListener("click", closeLinePanel);
   $("cp-close").addEventListener("click", closeCountyPanel);

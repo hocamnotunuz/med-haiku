@@ -368,13 +368,32 @@
     const total = parts.reduce((n, [, k]) => n + k, 0);
     return parts.map(([code, k]) => [code, k / total]).sort((p, q) => q[1] - p[1]);
   };
+  // ---------- Loop lines ----------
+  // A line can close into a circle (line.loop): its last stop then joins its first, which isn't
+  // repeated in line.stops. These three helpers walk any line, loop or not.
+  // Every stretch of a line's track, as [from, to] pairs (a loop's last stop back to its first too)
+  NR.lineLegs = (l) => {
+    const legs = [];
+    for (let i = 0; i + 1 < l.stops.length; i++) legs.push([l.stops[i], l.stops[i + 1]]);
+    if (l.loop && l.stops.length > 2) legs.push([l.stops[l.stops.length - 1], l.stops[0]]);
+    return legs;
+  };
+  // Its stops in track order, with a loop's first stop again at the end (for prices and bills)
+  NR.lineChain = (l) => (l.loop && l.stops.length > 2 ? [...l.stops, l.stops[0]] : l.stops);
+  // The stop after stop i going in direction dir: a loop wraps round, an open line ends (-1)
+  NR.stepIndex = (l, i, dir) => {
+    const n = i + dir;
+    if (l.loop && l.stops.length > 2) return (n + l.stops.length) % l.stops.length;
+    return n >= 0 && n < l.stops.length ? n : -1;
+  };
+
   // Who pays for a line's trains (price and running costs): the states it runs through, by how
   // many of its miles are on each one's land.
   NR.lineShares = (l) => {
     const by = {};
-    for (let i = 0; i + 1 < l.stops.length; i++) {
-      const mi = Math.max(1, NR.trackMiles(l.stops[i], l.stops[i + 1]));
-      for (const [code, share] of NR.segmentShares(l.stops[i], l.stops[i + 1])) by[code] = (by[code] || 0) + mi * share;
+    for (const [a, b] of NR.lineLegs(l)) {
+      const mi = Math.max(1, NR.trackMiles(a, b));
+      for (const [code, share] of NR.segmentShares(a, b)) by[code] = (by[code] || 0) + mi * share;
     }
     const total = Object.values(by).reduce((n, v) => n + v, 0) || 1;
     return Object.entries(by)
@@ -710,10 +729,10 @@
       s.stations.forEach((st) => (next[st.id] = []));
       s.lines.forEach((l) => {
         if (!useLine(l)) return;
-        for (let i = 0; i + 1 < l.stops.length; i++) {
-          if (s.damage[segKey(l.stops[i], l.stops[i + 1])]) continue; // damaged track can't be used
-          next[l.stops[i]].push(l.stops[i + 1]);
-          next[l.stops[i + 1]].push(l.stops[i]);
+        for (const [a, b] of NR.lineLegs(l)) {
+          if (s.damage[segKey(a, b)]) continue; // damaged track can't be used
+          next[a].push(b);
+          next[b].push(a);
         }
       });
       return next;
@@ -768,13 +787,13 @@
   }
   NR.serves = serves;
 
-  // Trains run to the end of their line, then turn around.
+  // Trains run to the end of their line, then turn around. On a loop they go round and round.
   function nextStop(line, train) {
     let dir = train.dir;
-    let n = train.i + dir;
-    if (n < 0 || n >= line.stops.length) {
+    let n = NR.stepIndex(line, train.i, dir);
+    if (n < 0) {
       dir = -dir;
-      n = train.i + dir;
+      n = NR.stepIndex(line, train.i, dir);
     }
     return { n, dir };
   }
@@ -785,10 +804,10 @@
     let i = train.i;
     let dir = train.dir;
     for (let k = 0; k < line.stops.length * 2; k++) {
-      let n = i + dir;
-      if (n < 0 || n >= line.stops.length) {
+      let n = NR.stepIndex(line, i, dir);
+      if (n < 0) {
         dir = -dir;
-        n = i + dir;
+        n = NR.stepIndex(line, i, dir);
       }
       i = n;
       if (serves(train.type, line.stops[i])) return line.stops[i];
@@ -911,8 +930,8 @@
           emit("repaired", { key, byWorkTrain: true });
         } else {
           // Other trains turn back at the damage, or wait if they are boxed in.
-          const back = train.i - dir;
-          if (back < 0 || back >= line.stops.length || s.damage[segKey(here, line.stops[back])]) {
+          const back = NR.stepIndex(line, train.i, -dir);
+          if (back < 0 || s.damage[segKey(here, line.stops[back])]) {
             train.wait = 0.5;
             return;
           }
@@ -930,7 +949,7 @@
     train.t += (dt * s.speed * typeOf(train).speed) / train.segLen;
     if (train.t >= 1) {
       const from = line.stops[train.i];
-      train.i += train.dir;
+      train.i = NR.stepIndex(line, train.i, train.dir);
       // Everyone on board rode this stretch: count its miles on each state's land (fares are
       // split that way)
       if (train.pax.length) {
@@ -952,7 +971,7 @@
   function allSegments(s) {
     const keys = new Set();
     s.lines.forEach((l) => {
-      for (let i = 0; i + 1 < l.stops.length; i++) keys.add(segKey(l.stops[i], l.stops[i + 1]));
+      for (const [a, b] of NR.lineLegs(l)) keys.add(segKey(a, b));
     });
     return [...keys];
   }
@@ -1287,7 +1306,7 @@
   // ---------- Building lines ----------
   NR.lineMiles = (l) => {
     let m = 0;
-    for (let i = 0; i + 1 < l.stops.length; i++) m += NR.trackMiles(l.stops[i], l.stops[i + 1]);
+    for (const [a, b] of NR.lineLegs(l)) m += NR.trackMiles(a, b);
     return m;
   };
   // Is a stretch of a line's track dug as a tunnel under a pass? (js/geography.js)
@@ -1299,7 +1318,7 @@
     return p;
   };
   // What the track of a line cost to build, in $k.
-  NR.lineValue = (l) => NR.chainPrice(l.stops, l.grade, l);
+  NR.lineValue = (l) => NR.chainPrice(NR.lineChain(l), l.grade, l);
   // The same, as a bill: each stretch is paid by its state, or by national money across a border.
   NR.chainBill = (chain, grade, share = 1, line) => {
     const bill = {};
@@ -1319,7 +1338,7 @@
   // (Track across a border stays yours, even when a state it touches is managed.)
   const segFrozen = (s, a, b) => NR.stateOf(a) === NR.stateOf(b) && NR.stateFrozen(s, NR.stateOf(a));
   NR.chainFrozen = (s, chain) => chain.some((id, i) => i > 0 && segFrozen(s, chain[i - 1], id));
-  NR.lineFrozen = (s, line) => NR.chainFrozen(s, line.stops);
+  NR.lineFrozen = (s, line) => NR.chainFrozen(s, NR.lineChain(line));
   // ---------- Lines: state, national, international ----------
   // Every line belongs to a group, and each group has its own set of lines and colors:
   //   a state ("CA"): all its stops in that state, paid from the state's budget;
@@ -1435,7 +1454,7 @@
   // added = new stops in the order they were dragged, starting next to the old end.
   NR.extendLine = function (s, line, atHead, added) {
     const end = atHead ? line.stops[0] : line.stops[line.stops.length - 1];
-    if (NR.chainBlocked([end, ...added]) || NR.extendProblem(s, line, atHead, added)) return false;
+    if (line.loop || NR.chainBlocked([end, ...added]) || NR.extendProblem(s, line, atHead, added)) return false;
     NR.pay(s, NR.chainBill([end, ...added], line.grade));
     if (atHead) {
       line.stops.unshift(...added.slice().reverse());
@@ -1452,12 +1471,53 @@
     rt.dirty = true;
   };
 
+  // Close a line into a loop: track from its last stop back to its first (3 stops or more).
+  // The closing stretch: [last stop, first stop]
+  const closingLeg = (line) => [line.stops[line.stops.length - 1], line.stops[0]];
+  NR.closeLoopBill = (line) => NR.chainBill(closingLeg(line), line.grade, 1, line);
+  // Why a line can't close into a loop, or null
+  NR.closeLoopProblem = function (s, line) {
+    if (line.loop) return "It's a loop already.";
+    if (line.stops.length < 3) return "A loop needs 3 stations or more.";
+    if (NR.chainFrozen(s, closingLeg(line))) return "Its track can't change while its state is managed.";
+    const blocked = NR.chainBlocked(closingLeg(line));
+    if (blocked) return `No track from ${city(closingLeg(line)[0]).name} to ${city(line.stops[0]).name}: ${blocked}`;
+    if (!NR.canPay(s, NR.closeLoopBill(line))) return `Closing the loop costs ${NR.billMoney(NR.closeLoopBill(line))}. Not enough money yet.`;
+    return null;
+  };
+  NR.closeLoop = function (s, line) {
+    if (NR.closeLoopProblem(s, line)) return false;
+    NR.pay(s, NR.closeLoopBill(line));
+    line.loop = true;
+    rt.dirty = true;
+    return true;
+  };
+  // Open a loop again: the closing stretch is taken up, and half its price comes back.
+  NR.openLoopRefund = (line) => NR.chainBill(closingLeg(line), line.grade, T.refundShare, line);
+  NR.openLoop = function (s, line) {
+    if (!line.loop || NR.chainFrozen(s, closingLeg(line))) return false;
+    NR.refund(s, NR.openLoopRefund(line));
+    const key = segKey(...closingLeg(line));
+    if (line.tunnels) line.tunnels = line.tunnels.filter((k) => k !== key);
+    // Trains on the closing stretch go back to the station they came from
+    const last = line.stops.length - 1;
+    NR.trainsOn(s, line).forEach((t) => {
+      if (t.moving && ((t.i === last && t.dir === 1) || (t.i === 0 && t.dir === -1))) {
+        t.moving = false;
+        t.t = 0;
+        t.wait = 0.5;
+      }
+    });
+    line.loop = false;
+    rt.dirty = true;
+    return true;
+  };
+
   // Price of upgrading a whole line to high-speed track, in $k.
   // The difference between high-speed and standard track (more over mountains and water).
   NR.upgradeBill = (line) => {
     const bill = {};
-    for (let i = 0; i + 1 < line.stops.length; i++) {
-      const [a, b] = [line.stops[i], line.stops[i + 1]];
+    for (const [a, b] of NR.lineLegs(line)) {
       const t = tunneled(line, a, b);
       NR.addShares(bill, NR.segmentShares(a, b), NR.trackPrice(a, b, "high", t) - NR.trackPrice(a, b, "standard", t));
     }
@@ -1545,7 +1605,7 @@
     });
     s.trains = s.trains.filter((t) => t.lineId !== line.id);
     s.lines = s.lines.filter((l) => l !== line);
-    NR.refund(s, NR.chainBill(line.stops, line.grade, T.refundShare, line));
+    NR.refund(s, NR.chainBill(NR.lineChain(line), line.grade, T.refundShare, line));
     rt.dirty = true;
     return true;
   };
@@ -1579,9 +1639,9 @@
     if (!NR.stationById(s, a) || !NR.stationById(s, b)) return false;
     const next = {};
     s.lines.forEach((l) => {
-      for (let i = 0; i + 1 < l.stops.length; i++) {
-        (next[l.stops[i]] ||= []).push(l.stops[i + 1]);
-        (next[l.stops[i + 1]] ||= []).push(l.stops[i]);
+      for (const [a, b] of NR.lineLegs(l)) {
+        (next[a] ||= []).push(b);
+        (next[b] ||= []).push(a);
       }
     });
     const seen = new Set([a]);
