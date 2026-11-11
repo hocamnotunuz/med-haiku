@@ -246,14 +246,21 @@ async function canadaRaw() {
       if (seen.has(key)) continue;
       seen.add(key);
       const inside = regionAt(g.longitude, g.latitude);
-      const region = inside || nearestRegion(g.longitude, g.latitude);
-      const munis = byName[g.name] || [];
+      // Only real municipalities (cities, towns, villages, district municipalities) take a
+      // municipality's population; communities (often First Nations) and localities can share a
+      // town's name without being it
+      const isMuni = !["community", "locality"].includes(kind);
+      const munis = isMuni ? byName[g.name] || [] : [];
+      // A municipality's region comes from its census code (first 4 digits: its census division)
+      // when it has one: places on the coast can sit just off the simplified outline
+      const byCode = munis.length === 1 && regions.find((r) => r.fips.includes(munis[0].code.slice(0, 4)));
+      const region = byCode || inside || nearestRegion(g.longitude, g.latitude);
       const place = { name: g.name, kind, lat: +g.latitude.toFixed(4), lon: +g.longitude.toFixed(4), county: region.id, offMap: !inside || undefined };
-      if (munis.length === 1 && kind !== "locality") Object.assign(place, { pop: munis[0].pop, popSource: "municipality", csd: munis[0].code });
-      else if (munis.length > 1 && kind !== "locality") Object.assign(place, { pop: null, municipalities: munis });
-      else if (pcPop[g.name] !== undefined) Object.assign(place, { pop: pcPop[g.name], popSource: "population centre" });
+      if (munis.length === 1) Object.assign(place, { pop: munis[0].pop, popSource: "municipality", csd: munis[0].code });
+      else if (munis.length > 1) Object.assign(place, { pop: null, municipalities: munis });
+      else if (pcPop[g.name] !== undefined && (isMuni || !byName[g.name])) Object.assign(place, { pop: pcPop[g.name], popSource: "population centre" });
       else place.pop = null;
-      if (pcPop[g.name] !== undefined && place.popSource !== "population centre") place.popCentre = pcPop[g.name];
+      if (pcPop[g.name] !== undefined && place.popSource !== "population centre" && isMuni) place.popCentre = pcPop[g.name];
       places.push(place);
     }
   // The same town is often listed twice: as its municipality and as an unincorporated place a

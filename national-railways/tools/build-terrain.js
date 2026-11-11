@@ -180,7 +180,25 @@ function inRing(x, y, ring) {
   }
   return inside;
 }
-const onLand = (lon, lat) => NR.MAP.land.reduce((inside, ring) => (inRing(lon, lat, ring) ? !inside : inside), false);
+// Is a point inside an even number of these rings? Each ring's box is checked first (big
+// provinces have thousands of rings).
+function ringTester(rings) {
+  const boxes = rings.map((r) => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let i = 0; i < r.length; i += 2) (x0 = Math.min(x0, r[i])), (x1 = Math.max(x1, r[i])), (y0 = Math.min(y0, r[i + 1])), (y1 = Math.max(y1, r[i + 1]));
+    return [x0, y0, x1, y1];
+  });
+  return (lon, lat) => {
+    let inside = false;
+    for (let k = 0; k < rings.length; k++) {
+      const b = boxes[k];
+      if (lon < b[0] || lon > b[2] || lat < b[1] || lat > b[3]) continue;
+      if (inRing(lon, lat, rings[k])) inside = !inside;
+    }
+    return inside;
+  };
+}
+const onLand = ringTester(NR.MAP.land);
 
 // ---------- Each state's terrain ----------
 // For every state in the game: a mountains grid and a relief picture over the state (and a
@@ -232,7 +250,7 @@ const idOf = (name, x, y) => `${name}@${round(x)},${round(y)}`;
 
 function buildState(code) {
   const mine = NR.MAP.stateLand[code];
-  const onState = (lon, lat) => mine.reduce((inside, ring) => (inRing(lon, lat, ring) ? !inside : inside), false);
+  const onState = ringTester(mine);
   const [X0, Y0, X1, Y1] = ringsBox(mine);
   const box = [Math.floor((X0 - 0.1) / STEP) * STEP, Math.floor((Y0 - 0.1) / STEP) * STEP, Math.ceil((X1 + 0.1) / STEP) * STEP, Math.ceil((Y1 + 0.1) / STEP) * STEP].map(round);
   const cols = Math.round((box[2] - box[0]) / STEP);

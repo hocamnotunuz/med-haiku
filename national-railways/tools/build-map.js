@@ -114,7 +114,43 @@ const STATES = {
     country: "CAN",
     name: "British Columbia",
     pop: "statcan",
+    // Merged along real road and ferry links (the pack agent's review, the owner's choice):
+    // Fort Nelson's only road south goes to Fort St. John; the northwest along the Skeena with
+    // Haida Gwaii and the Stikine; Bella Coola's only road goes to Williams Lake; the North Island;
+    // the Sunshine Coast and Powell River (one coast, no road to the rest of the mainland); the
+    // West Kootenay
+    merge: [
+      ["Northern Rockies", "Peace River"],
+      ["Kitimat-Stikine", "North Coast", "Stikine"],
+      ["Cariboo", "Central Coast"],
+      ["Mount Waddington", "Strathcona"],
+      ["qathet", "Sunshine Coast"],
+      ["Central Kootenay", "Kootenay Boundary"],
+    ],
+    // Ferry routes count as borders, so the islands and the Sunshine Coast can be unlocked from
+    // Vancouver: Tsawwassen–Swartz Bay, Horseshoe Bay–Departure Bay, Horseshoe Bay–Langdale,
+    // Comox–Powell River
+    bridges: [
+      ["Capital", "Metro Vancouver"],
+      ["Nanaimo", "Metro Vancouver"],
+      ["Sunshine Coast", "Metro Vancouver"],
+      ["Comox Valley", "qathet"],
+    ],
   },
+  // The other provinces and territories: their census divisions from Statistics Canada (see
+  // CANADA below). Small ones merge automatically until each pack agent reviews them.
+  AB: { country: "CAN", name: "Alberta", pop: "statcan" },
+  SK: { country: "CAN", name: "Saskatchewan", pop: "statcan" },
+  MB: { country: "CAN", name: "Manitoba", pop: "statcan" },
+  ON: { country: "CAN", name: "Ontario", pop: "statcan" },
+  QC: { country: "CAN", name: "Quebec", pop: "statcan" },
+  NB: { country: "CAN", name: "New Brunswick", pop: "statcan" },
+  NS: { country: "CAN", name: "Nova Scotia", pop: "statcan" },
+  PE: { country: "CAN", name: "Prince Edward Island", pop: "statcan" },
+  NL: { country: "CAN", name: "Newfoundland and Labrador", pop: "statcan" },
+  YT: { country: "CAN", name: "Yukon", pop: "statcan" },
+  NT: { country: "CAN", name: "Northwest Territories", pop: "statcan" },
+  NU: { country: "CAN", name: "Nunavut", pop: "statcan" },
 };
 
 // ---------- Canadian provinces: regions from each province's own open data ----------
@@ -125,8 +161,12 @@ const STATES = {
 // km² or more, from the same service). Populations: Statistics Canada, 2021 Census, table 98-10-0007 (Statistics Canada Open
 // Licence), matched by census division. (Statistics Canada's own boundary files can't be
 // downloaded by a script: its file server turns automated downloads away.)
+// Every other province and territory: its census divisions from Statistics Canada's 2021
+// cartographic boundary files (already cut at the shore), through its map service
+// (geo.statcan.gc.ca), which answers scripts. Islets under 25 km² are left out.
 const CANADA = {
   BC: {
+    source: "databc",
     sgc: "59", // the province's Statistics Canada code
     wfs: [
       ["WHSE_LEGAL_ADMIN_BOUNDARIES.ABMS_REGIONAL_DISTRICTS_SP", "bc-regional-districts.json"],
@@ -137,7 +177,38 @@ const CANADA = {
     // Statistics Canada still uses the old names of three regional districts
     statcanNames: { "Metro Vancouver": "Greater Vancouver", qathet: "Powell River", "North Coast": "Skeena-Queen Charlotte" },
   },
+  AB: { sgc: "48" },
+  SK: { sgc: "47" },
+  MB: { sgc: "46" },
+  ON: { sgc: "35" },
+  QC: { sgc: "24" },
+  NB: { sgc: "13" },
+  NS: { sgc: "12" },
+  PE: { sgc: "11" },
+  NL: { sgc: "10" },
+  YT: { sgc: "60" },
+  NT: { sgc: "61" },
+  NU: { sgc: "62" },
 };
+// Where a state's map comes from: the US Census, DataBC, or Statistics Canada. Two maps from
+// different sources share no points, so their border is found by distance (see below).
+const sourceOf = (code) => (STATES[code].country === "CAN" ? CANADA[code].source || "statcan" : "census");
+// What a kind of census division is called after its name ("Simcoe County", "Peel Region");
+// numbered ones ("Division No. 6") are named after their biggest town instead (see below)
+const CD_KIND = { CTY: "County", CT: "County", UC: "Counties", RM: "Region", DM: "District", DIS: "District", REG: "Region", RD: "Regional District" };
+const numbered = (name) => /^(Division No\.|Region) \d+$/.test(name);
+// The biggest municipality of a census division (2021 population), for naming numbered ones
+let csdCache = null;
+function biggestTown(cd) {
+  if (!csdCache) {
+    csdCache = [];
+    for (const r of readCsv(statcanTable("98100002")).slice(1))
+      if (r[2] && r[2].slice(4, 9) === "A0005") csdCache.push({ code: r[2].slice(-7), name: r[1], pop: +r[4] });
+  }
+  // (not unorganized areas, subdivisions, rural municipalities like "Sherwood No. 159" or reserves "... 135")
+  const towns = csdCache.filter((c) => c.code.startsWith(cd) && !/Unorganized|Subd\.|No\. \d+$| \d+[A-Z]?$/.test(c.name));
+  return towns.sort((a, b) => b.pop - a.pop)[0];
+}
 function download(url, file) {
   if (fs.existsSync(file) && fs.statSync(file).size > 0) return file;
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -213,6 +284,20 @@ function canadaTopology(codes) {
   for (const code of codes) {
     const cfg = CANADA[code];
     if (!cfg) throw new Error(`No map source for ${STATES[code].name} yet (add it to CANADA)`);
+    if (sourceOf(code) === "statcan") {
+      // One request per census division (a whole big province at once is too much for the server)
+      const service = "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/4/query";
+      const where = (w) => `?where=${encodeURIComponent(w)}&outFields=CDUID,CDNAME,CDTYPE&outSR=4326`;
+      const list = JSON.parse(fs.readFileSync(download(`${service}${where(`PRUID='${cfg.sgc}'`)}&f=json&returnGeometry=false`, path.join(CACHE, "canada", `cd-${cfg.sgc}-list.json`)), "utf8"));
+      const cds = list.features.map((f) => f.attributes.CDUID).sort();
+      const all = cds.flatMap((cd) => JSON.parse(fs.readFileSync(download(`${service}${where(`CDUID='${cd}'`)}&f=geojson&geometryPrecision=5&returnGeometry=true`, path.join(CACHE, "canada", "cd", `${cd}.json`)), "utf8")).features);
+      for (const f of all) {
+        const { CDUID, CDNAME, CDTYPE } = f.properties;
+        const name = CDNAME.replace(/\s+/g, " ").replace(/, /g, " "); // "Division No.  6", "Stormont, Dundas and Glengarry"
+        features.push({ type: "Feature", id: CDUID, properties: { name, kind: CD_KIND[CDTYPE] || "", numbered: numbered(name), state: code }, geometry: f.geometry });
+      }
+      continue;
+    }
     for (const [layer, file, filter] of cfg.wfs) {
       const url =
         `https://openmaps.gov.bc.ca/geo/pub/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=pub:${layer}` +
@@ -242,8 +327,23 @@ function canadaTopology(codes) {
     `https://openmaps.gov.bc.ca/geo/pub/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=pub:${layer}` +
     `&outputFormat=application/json&srsName=EPSG:4326&count=10000` +
     (filter ? `&CQL_FILTER=${encodeURIComponent(filter)}` : "");
+  const kmArea = (ring) => {
+    let a = 0;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) a += (ring[j][0] - ring[i][0]) * (ring[j][1] + ring[i][1]);
+    return Math.abs(a / 2) * 111.3 * 111.3 * Math.cos((ring[0][1] * Math.PI) / 180);
+  };
   for (const code of codes) {
     const cfg = CANADA[code];
+    if (sourceOf(code) === "statcan") {
+      // Already cut at the shore: just leave out the islets (keeping each region's biggest piece)
+      for (const r of smooth.filter((x) => x.properties.state === code)) {
+        const polys = r.geometry.type === "Polygon" ? [r.geometry.coordinates] : r.geometry.coordinates;
+        const biggest = Math.max(...polys.map((poly) => kmArea(poly[0])));
+        const kept = polys.filter((poly) => kmArea(poly[0]) >= 25 || kmArea(poly[0]) === biggest);
+        out.push({ type: "Feature", id: r.id, properties: r.properties, geometry: { type: "MultiPolygon", coordinates: kept } });
+      }
+      continue;
+    }
     let polys;
     if (cfg.land) {
       const all = JSON.parse(fs.readFileSync(download(wfsUrl(cfg.land.layer), path.join(CACHE, "canada", cfg.land.file)), "utf8")).features;
@@ -370,16 +470,26 @@ for (const code of CODES) {
 }
 
 // ---------- Region names and ids ----------
-const idOf = (s) => s.toLowerCase().replace(/[^a-z]+/g, "-");
+const idOf = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const regionKey = new Map(); // county index -> region id
 const regionInfo = new Map(); // region id -> { name, state, members }
 for (const [i, members] of groupOf) {
   const code = stateOf(counties[i]);
-  const base = members.map((j) => counties[j].properties.name).sort().join("-");
+  const base = members.every((j) => counties[j].properties.numbered)
+    ? `${counties[members[0]].properties.name.replace(/ \d+$/, "")} ${members.map((j) => +counties[j].properties.name.match(/\d+$/)[0]).sort((a, b) => a - b).join("-")}`
+    : members.map((j) => counties[j].properties.name).sort().join("-");
   const id = code === "CA" ? idOf(base) : `${code.toLowerCase()}-${idOf(base)}`; // California keeps its old ids
-  // "Kern County"; in Canada "Capital Regional District", "Stikine Region"...
+  // "Kern County"; in Canada "Capital Regional District", "Simcoe County", "Charlevoix", or
+  // for numbered census divisions "Calgary area (Division No. 6)"
   const kinds = [...new Set(members.map((j) => counties[j].properties.kind))];
-  const label = isCanadian(code) ? `${base} ${kinds.length === 1 ? kinds[0] : "Regional District"}` : /City$/.test(base) ? base : `${base} County`;
+  let label;
+  if (isCanadian(code) && members.every((j) => counties[j].properties.numbered)) {
+    const nums = members.map((j) => +counties[j].properties.name.match(/\d+$/)[0]).sort((a, b) => a - b);
+    const word = counties[members[0]].properties.name.replace(/ \d+$/, "");
+    const big = members.map((j) => biggestTown(String(counties[j].id))).filter(Boolean).sort((a, b) => b.pop - a.pop)[0];
+    label = `${big ? big.name : STATES[code].name} area (${word} ${nums.join(" & ")})`;
+  } else if (isCanadian(code)) label = kinds.length === 1 && kinds[0] ? `${base} ${kinds[0]}` : sourceOf(code) === "databc" ? `${base} Regional District` : base;
+  else label = /City$/.test(base) ? base : `${base} County`;
   regionKey.set(i, id);
   regionInfo.set(id, { name: code === "CA" ? label : `${label}, ${STATES[code].name}`, state: code, members });
 }
@@ -437,7 +547,7 @@ const stateBorders = Object.fromEntries(CODES.map((code) => [code, []]));
 for (let i = 0; i < CODES.length; i++)
   for (let j = i + 1; j < CODES.length; j++) {
     const [A, B] = [CODES[i], CODES[j]].sort();
-    if (isCanadian(A) !== isCanadian(B)) continue; // across the US–Canada border: found by distance, below
+    if (sourceOf(A) !== sourceOf(B)) continue; // between maps from different sources: found by distance, below
     const lines = tc.mesh(topoOf(A), collection(geomsOf(A)), (a, b) => (stateOf(a) === A && stateOf(b) === B) || (stateOf(a) === B && stateOf(b) === A)).coordinates;
     lines.forEach((line, k) => {
       const item = { id: `${A}-${B}-${k}`, line: flat(line) };
@@ -545,11 +655,22 @@ function splitNear(lines, near) {
   }
   return out;
 }
-for (const A of US_CODES)
-  for (const B of CA_CODES) {
+// Regions count as neighbors across such a border within NEIGHBOR of each other (a little more
+// than NEAR: rivers like the Detroit and St. Clair separate the two maps' shores)
+const NEIGHBOR = 0.03;
+const crossPairs = [];
+for (let i = 0; i < CODES.length; i++) for (let j = i + 1; j < CODES.length; j++) if (sourceOf(CODES[i]) !== sourceOf(CODES[j])) crossPairs.push([CODES[i], CODES[j]]);
+// Bounding boxes, to skip pairs nowhere near each other
+const ringBox = (rings) => {
+  const b = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const r of rings) for (let i = 0; i < r.length; i += 2) (b[0] = Math.min(b[0], r[i])), (b[1] = Math.min(b[1], r[i + 1])), (b[2] = Math.max(b[2], r[i])), (b[3] = Math.max(b[3], r[i + 1]));
+  return b;
+};
+const boxNear = (p, q, d) => p[0] - d < q[2] && q[0] - d < p[2] && p[1] - d < q[3] && q[1] - d < p[3];
+for (const [A, B] of crossPairs) {
+  if (!boxNear(ringBox(stateLand[A]), ringBox(stateLand[B]), NEIGHBOR)) continue;
     const nearB = edgeGrid(stateLand[B]);
     const a = splitNear(coast[A], nearB);
-    if (!a.near.length) continue;
     coast[A] = a.far;
     coast[B] = splitNear(coast[B], edgeGrid(stateLand[A])).far;
     const [X, Y] = [A, B].sort();
@@ -562,13 +683,14 @@ for (const A of US_CODES)
       const nearS = edgeGrid(s.rings);
       for (const r of regions.filter((x) => x.state === A)) {
         let hits = 0;
-        for (const ring of r.rings) for (const [x, y] of along(ring, 0.02)) if (hits < 2 && nearS(x, y, NEAR)) hits++;
+        if (!boxNear(ringBox(r.rings), ringBox(s.rings), NEIGHBOR)) continue;
+        for (const ring of r.rings) for (const [x, y] of along(ring, 0.02)) if (hits < 2 && nearS(x, y, NEIGHBOR)) hits++;
         if (hits < 2) continue;
         r.neighbors = [...new Set([...r.neighbors, s.id])].sort();
         s.neighbors = [...new Set([...s.neighbors, r.id])].sort();
       }
     }
-    console.log(`${A}–${B} border: ${a.near.length} lines, ${a.near.reduce((n, l) => n + l.length / 2, 0)} points`);
+    if (a.near.length) console.log(`${A}–${B} border: ${a.near.length} lines, ${a.near.reduce((n, l) => n + l.length / 2, 0)} points`);
   }
 
 // ---------- Every state (and Mexico and Canada): rough outlines, for packs/index.js ----------
