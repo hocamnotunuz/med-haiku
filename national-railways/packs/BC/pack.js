@@ -117,7 +117,7 @@ NR.addPack({
     // The north
     { id: "MCK", name: "Mackenzie", county: "bc-fraser-fort-george", lat: 55.32, lon: -123.09, type: "mountain", size: 1 },
     // Mount Robson: the highest peak of the Canadian Rockies, by the Yellowhead Highway.
-    { id: "ROB", name: "Mount Robson", county: "bc-fraser-fort-george", lat: 53.01, lon: -119.29, scenic: true, type: "mountain", size: 1 },
+    { id: "ROB", name: "Mount Robson", county: "bc-fraser-fort-george", lat: 53.03, lon: -119.23, scenic: true, type: "mountain", size: 1 },
     { id: "VDH", name: "Vanderhoof", county: "bc-bulkley-nechako", lat: 54.02, lon: -124.01, type: "farm", size: 1 },
     { id: "TER", name: "Terrace", county: "bc-kitimat-stikine-north-coast-stikine", lat: 54.52, lon: -128.6, type: "mountain", size: 1 },
     { id: "KIT", name: "Kitimat", county: "bc-kitimat-stikine-north-coast-stikine", lat: 54.05, lon: -128.65, type: "coast", size: 1 },
@@ -197,5 +197,105 @@ NR.addPack({
     ["Pine Pass", 55.4, -122.63],
     ["Summit Lake (Alaska Highway)", 58.65, -124.63],
   ],
-  bridges: [],
+  bridges: [
+    // Ferries that work like bridges: the only way track crosses the straits (see bays below).
+    // Each route has two or three points along the crossing.
+    ["Tsawwassen–Swartz Bay ferry (Tsawwassen)", 49.0, -123.16],
+    ["Tsawwassen–Swartz Bay ferry (mid-strait)", 48.94, -123.23],
+    ["Tsawwassen–Swartz Bay ferry (Active Pass)", 48.875, -123.29],
+    ["Tsawwassen–Swartz Bay ferry (Swanson Channel)", 48.745, -123.32],
+    ["Tsawwassen–Duke Point ferry (east)", 49.05, -123.3],
+    ["Tsawwassen–Duke Point ferry (mid-strait)", 49.12, -123.55],
+    ["Tsawwassen–Duke Point ferry (Gabriola)", 49.2, -123.76],
+    ["Horseshoe Bay–Departure Bay ferry (east)", 49.35, -123.36],
+    ["Horseshoe Bay–Departure Bay ferry (mid-strait)", 49.29, -123.58],
+    ["Horseshoe Bay–Departure Bay ferry (Departure Bay)", 49.22, -123.87],
+    ["Horseshoe Bay–Langdale ferry (Horseshoe Bay)", 49.37, -123.29],
+    ["Horseshoe Bay–Langdale ferry (Queen Charlotte Channel)", 49.39, -123.35],
+    ["Horseshoe Bay–Langdale ferry (Keats Island)", 49.41, -123.45],
+    ["Earls Cove–Saltery Bay ferry (east)", 49.765, -124.07],
+    ["Earls Cove–Saltery Bay ferry (west)", 49.78, -124.14],
+    ["Comox–Powell River ferry (west)", 49.75, -124.82],
+    ["Comox–Powell River ferry (mid-strait)", 49.79, -124.68],
+    ["Comox–Powell River ferry (east)", 49.83, -124.57],
+    ["Port Angeles–Victoria ferry (mid-strait)", 48.31, -123.4],
+    ["Port Angeles–Victoria ferry (Victoria)", 48.38, -123.38],
+    // Prince Rupert–Skidegate crosses open water: a point by each shore (track is checked against
+    // the whole crossing, and points must sit within 10 miles of land).
+    ["Prince Rupert–Skidegate ferry (Chatham Sound)", 54.18, -130.58],
+    ["Prince Rupert–Skidegate ferry (off Graham Island)", 53.45, -131.7],
+    // Burrard Inlet
+    ["Lions Gate Bridge", 49.32, -123.14],
+    ["Ironworkers Memorial Bridge", 49.3, -123.03],
+    // Lakes and rivers of the Interior
+    ["W. R. Bennett Bridge (Okanagan Lake)", 49.88, -119.51],
+    ["Big Orange Bridge (Nelson)", 49.5, -117.29],
+    ["Overlanders Bridge (Kamloops)", 50.68, -120.33],
+    ["Kinnaird Bridge (Castlegar)", 49.29, -117.65],
+    ["Victoria Street Bridge (Trail)", 49.1, -117.71],
+    ["Columbia River bridge (Revelstoke)", 51.0, -118.21],
+    ["Simon Fraser Bridge (Prince George)", 53.89, -122.73],
+    ["Peace River Bridge (Taylor)", 56.14, -120.68],
+  ],
+  // Straits where water needs a real bridge (here, a ferry). Elsewhere, sea between two places
+  // just means track follows the coast. Rough outlines along the international boundary on the
+  // US side; land inside them is still land. Haro Strait and the others come before the Strait of
+  // Georgia so a crossing is named after the narrower water.
+  bays: [
+    {
+      name: "Howe Sound",
+      ring: [-123.25, 49.3, -123.21, 49.4, -123.19, 49.5, -123.17, 49.6, -123.17, 49.65, -123.26, 49.66, -123.4, 49.58, -123.52, 49.5, -123.53, 49.42, -123.55, 49.37, -123.45, 49.3],
+    },
+    {
+      name: "Haro Strait",
+      ring: [-123.3, 48.45, -123.33, 48.47, -123.39, 48.53, -123.41, 48.62, -123.41, 48.7, -123.33, 48.74, -123.2, 48.77, -123.05, 48.81, -123.02, 48.785, -123.1, 48.72, -123.17, 48.66, -123.15, 48.6, -123.14, 48.53, -123.1, 48.48, -123.2, 48.43, -123.24, 48.44],
+    },
+    {
+      name: "Strait of Juan de Fuca",
+      ring: [-123.3, 48.45, -123.24, 48.44, -123.2, 48.38, -123.3, 48.28, -123.6, 48.26, -124.0, 48.3, -124.4, 48.4, -124.75, 48.49, -124.85, 48.55, -124.75, 48.66, -124.45, 48.58, -124.05, 48.45, -123.75, 48.4, -123.55, 48.39, -123.45, 48.43, -123.37, 48.425],
+    },
+    {
+      name: "Strait of Georgia",
+      ring: [
+        -123.1, 49.0, -123.06, 48.96, -122.99, 48.8, -123.02, 48.785, -123.045, 48.79, -123.15, 48.82, -123.24, 48.85, -123.28, 48.875, -123.4, 48.94,
+        -123.5, 49.0, -123.58, 49.06, -123.63, 49.1, -123.69, 49.14, -123.74, 49.18, -123.8, 49.21, -123.9, 49.24, -124.03, 49.29, -124.15, 49.32,
+        -124.3, 49.37, -124.45, 49.4, -124.55, 49.52, -124.7, 49.62, -124.8, 49.7, -124.9, 49.78, -125.05, 49.88, -125.18, 49.98, -124.95, 50.0,
+        -124.8, 50.02, -124.62, 49.92, -124.58, 49.84, -124.62, 49.79, -124.45, 49.7, -124.25, 49.58, -124.05, 49.47, -123.95, 49.47, -123.8, 49.44,
+        -123.65, 49.38, -123.55, 49.35, -123.4, 49.3, -123.3, 49.31, -123.26, 49.28, -123.28, 49.25, -123.25, 49.2, -123.2, 49.1, -123.15, 49.02,
+      ],
+    },
+    {
+      name: "Johnstone Strait",
+      ring: [-125.27, 50.02, -125.36, 50.15, -125.45, 50.3, -125.7, 50.36, -125.95, 50.36, -126.3, 50.42, -126.7, 50.5, -127.05, 50.56, -127.12, 50.6, -126.95, 50.69, -126.6, 50.61, -126.2, 50.53, -125.8, 50.47, -125.45, 50.4, -125.3, 50.22, -125.22, 50.07, -125.18, 49.98],
+    },
+    {
+      name: "Queen Charlotte Strait",
+      ring: [-127.05, 50.56, -127.3, 50.62, -127.5, 50.7, -127.8, 50.76, -128.1, 50.8, -128.1, 50.95, -127.8, 51.15, -127.5, 51.0, -127.2, 50.9, -126.95, 50.75, -126.95, 50.69, -127.12, 50.6],
+    },
+    {
+      name: "Queen Charlotte Sound",
+      ring: [-128.1, 50.8, -128.45, 50.76, -128.8, 50.7, -130.5, 51.4, -131.6, 51.8, -131.3, 52.2, -128.4, 52.05, -128.2, 51.7, -128.05, 51.4, -127.8, 51.15, -128.1, 50.95],
+    },
+    {
+      name: "Hecate Strait",
+      ring: [-128.3, 51.95, -128.6, 52.2, -129.2, 52.55, -129.55, 52.95, -130.2, 53.4, -130.55, 53.75, -130.6, 54.0, -130.42, 54.2, -130.45, 54.32, -130.48, 54.45, -130.62, 54.7, -131.5, 54.68, -132.68, 54.66, -133.3, 54.5, -133.6, 53.6, -133.1, 52.7, -131.8, 51.85, -131.0, 51.9],
+    },
+  ],
+  // Cartoon look: forest = trees even on the flats; wooded = trees on the hills;
+  // dry = sand, cacti or sagebrush. Regions not listed are green farmland and grassland.
+  biomes: {
+    forest: [
+      "bc-alberni-clayoquot", "bc-comox-valley", "bc-cowichan-valley", "bc-kitimat-stikine-north-coast-stikine",
+      "bc-mount-waddington-strathcona", "bc-nanaimo", "bc-sunshine-coast-qathet",
+    ],
+    wooded: [
+      "bc-bulkley-nechako", "bc-capital", "bc-cariboo-central-coast", "bc-central-kootenay-kootenay-boundary",
+      "bc-columbia-shuswap", "bc-east-kootenay", "bc-fraser-fort-george", "bc-fraser-valley", "bc-metro-vancouver",
+      "bc-north-okanagan", "bc-squamish-lillooet",
+    ],
+    dry: [
+      "bc-central-okanagan", "bc-okanagan-similkameen", "bc-thompson-nicola",
+    ],
+    // Not listed (farmland): bc-northern-rockies-peace-river, the Peace River country's grain farms.
+  },
 });
