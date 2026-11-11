@@ -425,6 +425,22 @@
     );
   }
 
+  // Test mode: stations where riders gave up. The first is told at once; the next ones are
+  // grouped into one message every few seconds, so a busy map doesn't flood the screen.
+  let gaveUp = [];
+  let gaveUpTimer = 0;
+  function tellGaveUp() {
+    const names = [...new Set(gaveUp)];
+    gaveUp = [];
+    gaveUpTimer = setTimeout(() => {
+      gaveUpTimer = 0;
+      if (gaveUp.length) tellGaveUp();
+    }, 4000);
+    if (!names.length) return;
+    const list = names.length > 3 ? `${names.slice(0, 3).join(", ")} and ${plural(names.length - 3, "more stop")}` : NR.listWords(names);
+    toast(`Riders gave up and left at ${list}. Test mode is on, so nothing is lost.`);
+  }
+
   function handleEvents(now) {
     const events = NR.runtime.events.splice(0);
     for (const ev of events) {
@@ -514,8 +530,8 @@
       else if (ev.type === "level") enqueue(openLevel);
       else if (ev.type === "giveUp") {
         // Test mode: an overflowing station or city stop clears instead of ending the game
-        const where = ev.cityStop ? `${NR.cityStop(ev.at, ev.cityStop).name} in ${NR.METROS[ev.at].name}` : NR.cityById[ev.at].name;
-        toast(`Riders at ${where} gave up and left. Test mode is on, so nothing is lost.`);
+        gaveUp.push(ev.cityStop ? `${NR.cityStop(ev.at, ev.cityStop).name} in ${NR.METROS[ev.at].name}` : NR.cityById[ev.at].name);
+        if (!gaveUpTimer) tellGaveUp();
       } else if (ev.type === "cityTakenOver") {
         // A city map overflowed: a head of transportation took over, and the game carries on
         const name = NR.METROS[ev.key].name;
@@ -1413,18 +1429,27 @@
   }
 
   // ---------- Fitting everything on screen ----------
+  // The screen's size, or the room the top bar and bottom bar leave, changed: fit the map again.
+  // (They are watched for size changes. When a number in a bar just gets a little wider, nothing
+  // that matters for the map changes, and the map must not be wiped and redrawn: with a big
+  // network that flashed the whole screen in the Arcade look, whose digits differ in width.)
+  let laidOut = "";
   function layout() {
     const rect = app.getBoundingClientRect();
     const w = Math.max(1, rect.width);
     const h = Math.max(1, rect.height);
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    canvas.style.width = w + "px";
-    canvas.style.height = h + "px";
     const top = $("hud-top").getBoundingClientRect().bottom - rect.top + 10;
     const barTop = $("bar").getBoundingClientRect().top - rect.top;
-    NR.layout(w, h, dpr, { top, bottom: h - barTop + 10, left: 18, right: 18 });
+    const sig = [w, h, dpr, Math.round(top), Math.round(barTop)].join("|");
+    if (sig !== laidOut) {
+      laidOut = sig;
+      canvas.width = Math.round(w * dpr); // (this clears the canvas, so only when needed)
+      canvas.height = Math.round(h * dpr);
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      NR.layout(w, h, dpr, { top, bottom: h - barTop + 10, left: 18, right: 18 });
+    }
     $("line-panel").style.bottom = `${h - barTop + 10}px`;
     $("county-panel").style.bottom = `${h - barTop + 10}px`;
     $("contracts-panel").style.bottom = `${h - barTop + 10}px`;

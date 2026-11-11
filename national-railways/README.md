@@ -16,9 +16,16 @@ Five states share one map: **California, Nevada, Arizona, Oregon and Washington*
 
 Every region has one main station at its biggest city, with a few exceptions to keep stations apart or names clear: Yuba County uses Wheatland (its larger towns sit across the river from Yuba City), Clackamas County uses Oregon City (Lake Oswego is right next to Portland), Pinal County uses Casa Grande (the city of Maricopa shares its name with Maricopa County), and Thurston County uses Olympia, the capital, over the slightly bigger Lacey. Washington's small counties are merged by their real metro areas (Chelan and Douglas around Wenatchee; Whitman, Asotin and Garfield around Pullman), and the San Juan Islands, which no bridge reaches, are part of Skagit's region. Regions outside California are named with their state, like "Clark County, Nevada".
 
+### Busy maps
+
+When your network grows, stations crowd together on the screen when you zoom out. Then:
+- a station close to others shows a small **fullness bar** instead of its rows of riders and cargo: green, then yellow, then red once it's over its room;
+- when most stations on screen are that close, **towns get smaller, lines and trains thinner, and only main stations are named** (names never overlap);
+- zoom in on an area and the full detail comes back.
+
 ### Test mode
 
-**Settings → Test mode → On** starts games where nothing can be lost: when a station or a city neighborhood overflows, its riders give up and leave (a message says so) and the game carries on. Everything else plays as usual. The top bar says "Test mode", and these games don't count for best scores. The setting is remembered for your next game.
+**Settings → Test mode → On** starts games where nothing can be lost: when a station or a city neighborhood overflows, its riders give up and leave (a message says so, grouped every few seconds) and the game carries on. Everything else plays as usual. The top bar says "Test mode", and these games don't count for best scores. The setting is remembered for your next game.
 
 ### Two looks: Arcade and Classic
 
@@ -85,8 +92,8 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 - **Every week** a new Regular train arrives and you choose one upgrade.
 - **Rush hour:** now and then a big city gets very busy for a few seconds. Commuter trains help.
 - **New stations** (towns that appear, and main stations of counties you unlock) get about 25 seconds before their first passengers, so you have time to connect them. Rush hours and flights leave them alone during that time.
-- **Lose** when a station stays overcrowded too long (red ring fills up). The game-over screen says why: never connected, no train stopping there, damaged track, or not enough trains. **Show on map** takes you to the station; **Back to results** returns to the card.
-- **Stations you can't see:** an arrow at the edge of the screen points to any station off-screen that is new, not yet on a line, or crowded (red). Tap the arrow to go there. When a new station appears outside the view, the map zooms out to show all your stations (not while you are drawing a line).
+- **Lose** when a station stays overcrowded too long (a red ring appears half way and fills up). The game-over screen says why: never connected, no train stopping there, damaged track, or not enough trains. **Show on map** takes you to the station; **Back to results** returns to the card.
+- **Stations you can't see:** an arrow at the edge of the screen points to stations off-screen that are new, not yet on a line, or crowded (red): the 8 most urgent, crowded ones first. Tap the arrow to go there. When a new station appears outside the view, the map zooms out to show all your stations (not while you are drawing a line).
 - **Counties:** a county's panel also says what connecting its main station would cost, and from where.
 - **Contracts:** tap a "New contract" message to open the list.
 

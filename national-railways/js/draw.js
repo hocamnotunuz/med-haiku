@@ -827,9 +827,10 @@
   function drawLines(ctx, s, segs) {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    const lw = busy.far ? Math.max(2, view.lw * 0.65) : view.lw; // thinner when zoomed out
     if (toon) {
       // Cartoon look: a dark outline under all the lines first
-      ctx.lineWidth = view.lw + 4;
+      ctx.lineWidth = lw + (busy.far ? 3 : 4);
       ctx.strokeStyle = colors.outline;
       ctx.beginPath();
       s.lines.forEach((l) => {
@@ -841,7 +842,7 @@
       });
       ctx.stroke();
     }
-    ctx.lineWidth = view.lw;
+    ctx.lineWidth = lw;
     s.lines.forEach((l) => {
       ctx.strokeStyle = NR.lineColor(l.color);
       ctx.beginPath();
@@ -854,9 +855,9 @@
       if (l.grade === "high") {
         // High-speed track: a dashed white stripe down the middle of the line
         ctx.save();
-        ctx.lineWidth = Math.max(1.2, view.lw * 0.32);
+        ctx.lineWidth = Math.max(1.2, lw * 0.32);
         ctx.strokeStyle = colors.station;
-        ctx.setLineDash([view.lw * 1.3, view.lw * 1.1]);
+        ctx.setLineDash([lw * 1.3, lw * 1.1]);
         ctx.stroke();
         ctx.restore();
       }
@@ -931,6 +932,68 @@
         halo(ctx, draft.note, pointer.x + 16, pointer.y - 4, colors.muted, colors.land);
       }
     }
+  }
+
+  // ---- Busy maps ----
+  // Where stations sit close together on the screen (zoomed out on a big network), each one is
+  // drawn simpler: a fullness meter instead of rows of riders and cargo, and no small markers.
+  // When most stations on screen are that close, the view counts as zoomed out: towns get
+  // smaller, lines and trains thinner, and only main stations are named. Zoom in and the full
+  // detail comes back. Worked out once per frame.
+  const TIGHT = 40; // pixels from a station to its nearest neighbor
+  let busy = { tight: new Set(), far: false };
+  function measureBusy(s) {
+    const grid = new Map();
+    const cellOf = (x, y) => Math.floor(x / TIGHT) * 100003 + Math.floor(y / TIGHT);
+    for (const st of s.stations) {
+      const p = pos[st.id];
+      if (!p) continue;
+      const k = cellOf(p[0], p[1]);
+      if (!grid.has(k)) grid.set(k, []);
+      grid.get(k).push(st.id);
+    }
+    const tight = new Set();
+    let visible = 0, tightVisible = 0;
+    for (const st of s.stations) {
+      const p = pos[st.id];
+      if (!p) continue;
+      const [x, y] = p;
+      const ci = Math.floor(x / TIGHT), cj = Math.floor(y / TIGHT);
+      let near = false;
+      for (let di = -1; di <= 1 && !near; di++)
+        for (let dj = -1; dj <= 1 && !near; dj++)
+          for (const id of grid.get((ci + di) * 100003 + (cj + dj)) || []) {
+            if (id === st.id) continue;
+            const q = pos[id];
+            if (Math.hypot(q[0] - x, q[1] - y) < TIGHT) {
+              near = true;
+              break;
+            }
+          }
+      if (near) tight.add(st.id);
+      if (x > -20 && y > -20 && x < view.w + 20 && y < view.h + 20) {
+        visible++;
+        if (near) tightVisible++;
+      }
+    }
+    busy = { tight, far: visible > 12 && tightVisible > visible * 0.4 };
+  }
+  // A station's fullness at a glance (busy maps): a short bar to its right, green, then yellow,
+  // then red once it is over its room and the overflow clock is running.
+  function drawMeter(ctx, st, x, y, r) {
+    const n = st.waiting.length;
+    if (!n) return;
+    const f = Math.min(1, n / NR.TUNING.stationRoom);
+    const w = Math.max(10, r * 1.7), h = 3.5;
+    const bx = x + r + 3, by = y - h / 2;
+    roundRect(ctx, bx, by, w, h, h / 2);
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = colors.ink;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    roundRect(ctx, bx, by, Math.max(h, w * f), h, h / 2);
+    ctx.fillStyle = n > NR.TUNING.stationRoom ? colors.danger : f > 0.6 ? colors.accent : colors.cargo.produce;
+    ctx.fill();
   }
 
   function drawWaiting(ctx, s, st, x, y, r) {
@@ -1036,7 +1099,7 @@
   // red when a stop in that city is getting crowded.
   function drawMetroBadge(ctx, s, key, x, y) {
     const c = s.cities[key];
-    const crowded = c && c.stations.some((st) => st.crowd > 0);
+    const crowded = c && c.stations.some((st) => st.crowd >= 0.5);
     const managed = c && NR.cityFrozen(s, key);
     roundRect(ctx, x - 7, y - 7, 14, 14, 3);
     ctx.fillStyle = crowded ? colors.danger : managed ? colors.ink : c ? colors.accent : colors.panel;
@@ -1151,10 +1214,13 @@
       const c = NR.cityById[st.id];
       const [x, y] = pos[st.id];
       const grow = clamp((s.time - st.born) / 0.45, 0, 1);
-      const r = view.r * (c.size >= 4 ? 1.15 : 1) * (grow < 1 ? backOut(grow) : 1);
+      const small = busy.far && !c.main ? 0.62 : 1; // towns are smaller when zoomed out
+      const r = view.r * (c.size >= 4 ? 1.15 : 1) * small * (grow < 1 ? backOut(grow) : 1);
       if (r <= 0.5) continue;
+      const tight = busy.tight.has(st.id);
 
-      if (st.crowd > 0) {
+      // The overflow warning: a red ring that fills up, shown once the clock is half way
+      if (st.crowd >= 0.5) {
         ctx.lineWidth = 3;
         ctx.strokeStyle = colors.danger;
         ctx.globalAlpha = 0.22;
@@ -1194,21 +1260,31 @@
       ctx.strokeStyle = colors.ink;
       ctx.stroke();
 
-      labels.push({
-        text: s.style === "city" ? (view.big ? `${c.id} · ${c.name}` : c.id) : view.big ? c.name : c.id,
-        font: `${s.style === "city" ? 700 : 600} ${view.big ? 11 : 10}px ${DISPLAY}`,
-        color: s.style === "city" ? colors.ink : colors.muted,
-        x,
-        y,
-        r,
-        rank: c.size + (c.main ? 0.5 : 0),
-        marked: !!(c.port || c.airport || c.scenic),
-      });
+      // Zoomed out, only main stations are named
+      if (!(busy.far && !c.main))
+        labels.push({
+          text: s.style === "city" ? (view.big ? `${c.id} · ${c.name}` : c.id) : view.big ? c.name : c.id,
+          font: `${s.style === "city" ? 700 : 600} ${view.big ? 11 : 10}px ${DISPLAY}`,
+          color: s.style === "city" ? colors.ink : colors.muted,
+          x,
+          y,
+          r,
+          rank: c.size + (c.main ? 0.5 : 0),
+          marked: !!(c.port || c.airport || c.scenic),
+        });
 
-      drawWaiting(ctx, s, st, x, y, r);
-      drawYard(ctx, st, x, y, r);
+      if (tight) {
+        drawMeter(ctx, st, x, y, r); // close to other stations: just how full it is
+      } else {
+        drawWaiting(ctx, s, st, x, y, r);
+        drawYard(ctx, st, x, y, r);
+      }
       // Small markers above the station: anchor (port), plane (airport), star (scenic place)
       const k = Math.max(4, r * 0.55);
+      if (tight) {
+        if (NR.METROS && NR.METROS[st.id] && NR.cityAvailable(s, st.id)) drawMetroBadge(ctx, s, st.id, x - r - 9, y - r - 6);
+        continue;
+      }
       let mx = x + r + 4;
       if (c.port) {
         drawAnchor(ctx, mx, y - r - 4, k);
@@ -1225,7 +1301,8 @@
       }
       if (NR.METROS && NR.METROS[st.id] && NR.cityAvailable(s, st.id)) drawMetroBadge(ctx, s, st.id, x - r - 9, y - r - 6);
     }
-    drawStationLabels(ctx, labels, s.style === "city");
+    // (In "a specific city" every code is shown, except when zoomed out: then none overlap)
+    drawStationLabels(ctx, labels, s.style === "city" && !busy.far);
   }
 
   // Arrows at the edge of the screen pointing to stations you can't see that need you:
@@ -1237,12 +1314,23 @@
     const x0 = b.left + 18, x1 = view.w - b.right - 18, y0 = b.top + 18, y1 = view.h - b.bottom - 18;
     if (x1 <= x0 || y1 <= y0) return;
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    // At most 8 arrows, the most urgent first: crowded stations (the fullest first), then new
+    // ones, then ones not on a line yet, each group nearest first. A big network would
+    // otherwise ring the screen with them.
+    const onLine = new Set(s.lines.flatMap((l) => l.stops));
+    const wanted = [];
     for (const st of s.stations) {
       const [x, y] = pos[st.id];
       if (x >= x0 - 6 && x <= x1 + 6 && y >= y0 - 6 && y <= y1 + 6) continue; // on screen
       const fresh = st.born > 0 && s.time - st.born < 20;
-      const lonely = !s.lines.some((l) => l.stops.includes(st.id));
+      const lonely = !onLine.has(st.id);
       if (!(st.crowd > 0 || fresh || lonely)) continue;
+      const urgency = st.crowd > 0 ? 2 + st.crowd : fresh ? 1 : 0;
+      wanted.push({ st, urgency, far: Math.hypot(x - cx, y - cy) });
+    }
+    wanted.sort((a, b) => b.urgency - a.urgency || a.far - b.far);
+    for (const { st } of wanted.slice(0, 8)) {
+      const [x, y] = pos[st.id];
       // Where the line from the middle of the screen to the station leaves the screen
       const dx = x - cx, dy = y - cy;
       const t = Math.min(dx ? (dx > 0 ? x1 - cx : x0 - cx) / dx : Infinity, dy ? (dy > 0 ? y1 - cy : y0 - cy) / dy : Infinity);
@@ -1330,7 +1418,8 @@
   }
 
   function drawTrains(ctx, s, segs) {
-    const H = view.r * 1.15;
+    const k = busy.far ? 0.7 : 1; // smaller when zoomed out
+    const H = view.r * 1.15 * k;
     for (const tr of s.trains) {
       const l = NR.lineById(s, tr.lineId);
       if (!l) continue;
@@ -1339,7 +1428,7 @@
       if (!a || !b) continue;
       const seats = NR.seatsOf(s, tr);
       const nose = tr.type === "bullet" ? H * 1.6 : tr.type === "highspeed" ? H : tr.type === "airport" ? H * 0.6 : 0;
-      const body = view.r * (1.9 + 0.12 * seats);
+      const body = view.r * (1.9 + 0.12 * seats) * k;
       const L = body + nose;
       const dx = (body - H * 0.6) / Math.ceil(seats / 2);
       const dot = Math.max(1.2, Math.min(dx, H / 2) * 0.28);
@@ -1648,7 +1737,7 @@
     for (const st of c.stations) {
       const stop = NR.cityStop(key, st.id);
       const [x, y] = cityPos[st.id];
-      if (st.crowd > 0) {
+      if (st.crowd >= 0.5) {
         ctx.lineWidth = 3;
         ctx.strokeStyle = colors.danger;
         ctx.globalAlpha = 0.22;
@@ -1799,6 +1888,7 @@
       NR.resetCamera();
     }
     updatePositions();
+    if (s) measureBusy(s);
     if (toon) NR.cartoon.drawState(ctx);
     else drawGraticule(ctx);
     drawLand(ctx, s, ui.county);
