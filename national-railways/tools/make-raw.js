@@ -214,7 +214,10 @@ async function geonames(sgc, concise) {
     } else items.forEach((i) => seen.set(i.id, i));
   };
   await ask(box);
-  return [...seen.values()].filter((i) => (i.status && i.status.code) === "official").sort((a, b) => a.id.localeCompare(b.id));
+  // (an answer for a box holds every province's names in it: keep this province's)
+  return [...seen.values()]
+    .filter((i) => (i.status && i.status.code) === "official" && i.province && i.province.code === sgc)
+    .sort((a, b) => a.id.localeCompare(b.id));
 }
 
 async function canadaRaw() {

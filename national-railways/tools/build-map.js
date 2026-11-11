@@ -139,7 +139,22 @@ const STATES = {
   },
   // The other provinces and territories: their census divisions from Statistics Canada (see
   // CANADA below). Small ones merge automatically until each pack agent reviews them.
-  AB: { country: "CAN", name: "Alberta", pop: "statcan", merge: [] }, // (all 19 separate for the pack agent's review)
+  // Merged by the pack agent's review: the dry east-central prairie (Hanna, Wainwright); the Peace
+  // Country around Grande Prairie; Rocky Mountain House on Red Deer's road west; the southwest
+  // around Lethbridge (Fort Macleod, Pincher Creek, Cardston, the Crowsnest); the Rockies (Banff
+  // and Canmore with the Yellowhead corridor: Jasper, Hinton, Edson)
+  AB: {
+    country: "CAN",
+    name: "Alberta",
+    pop: "statcan",
+    merge: [
+      ["Division No. 4", "Division No. 7"],
+      ["Division No. 18", "Division No. 19"],
+      ["Division No. 8", "Division No. 9"],
+      ["Division No. 2", "Division No. 3"],
+      ["Division No. 14", "Division No. 15"],
+    ],
+  },
   SK: { country: "CAN", name: "Saskatchewan", pop: "statcan" },
   MB: { country: "CAN", name: "Manitoba", pop: "statcan" },
   ON: { country: "CAN", name: "Ontario", pop: "statcan" },
@@ -299,21 +314,27 @@ function canadaTopology(codes) {
       const cds = list.features.map((f) => f.attributes.CDUID).sort();
       const all = cds.flatMap((cd) => JSON.parse(fs.readFileSync(download(`${service}${where(`CDUID='${cd}'`)}&f=geojson&geometryPrecision=5&returnGeometry=true`, path.join(CACHE, "canada", "cd", `${cd}.json`)), "utf8")).features);
       // Lighter before the shared borders are worked out (the full files are too big for that):
-      // points rounded to the map's 3 decimals (both sides of a shared border round the same
+      // points rounded to 4 decimals (about 10 m; both sides of a shared border round the same
       // way, so it stays shared), repeats dropped, and islets under 25 km² left out (each
-      // division keeps its biggest piece)
-      const r3 = (v) => Math.round(v * 1000) / 1000;
-      const lighter = (ring) => {
+      // division keeps its biggest piece). If rounding makes an outline touch itself (two of
+      // its points land on the same spot), that division keeps every point as it came: a
+      // touching outline splits into pieces later (Alberta lost 970 km² between two divisions
+      // when points were rounded to 3 decimals)
+      const lighter = (ring, k) => {
         const out = [];
         for (const [x, y] of ring) {
-          const q = [r3(x), r3(y)];
+          const q = [Math.round(x * k) / k, Math.round(y * k) / k];
           const last = out[out.length - 1];
           if (!last || last[0] !== q[0] || last[1] !== q[1]) out.push(q);
         }
         return out;
       };
+      const touches = (ring) => new Set(ring.slice(1).map((q) => q.join())).size < ring.length - 1;
       for (const f of all) {
-        const polys = (f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates).map((poly) => poly.map(lighter).filter((ring) => ring.length >= 4));
+        const raw = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+        let k = 1e4;
+        if (raw.some((poly) => poly.some((ring) => touches(lighter(ring, k))))) k = 1e5;
+        const polys = raw.map((poly) => poly.map((ring) => lighter(ring, k)).filter((ring) => ring.length >= 4));
         const areas = polys.map((poly) => (poly.length ? kmArea(poly[0]) : 0));
         const biggest = Math.max(...areas);
         f.geometry = { type: "MultiPolygon", coordinates: polys.filter((poly, i) => poly.length && (areas[i] >= 25 || areas[i] === biggest)) };
