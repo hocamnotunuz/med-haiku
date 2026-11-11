@@ -600,6 +600,12 @@ for (let i = 0; i < CODES.length; i++)
     });
   }
 
+// A flat ring's area (square degrees)
+const flatArea = (r) => {
+  let a = 0;
+  for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) a += (r[j] - r[i]) * (r[j + 1] + r[i + 1]);
+  return a / 2;
+};
 // One label point per region: the centroid of its largest piece.
 const cosLat = Math.cos((40 * Math.PI) / 180);
 function centroid(ring) {
@@ -638,7 +644,8 @@ const regions = [...regionInfo.entries()]
       fips: info.members.map((i) => String(counties[i].id)).sort(),
       label: [Math.round(best.lon * 100) / 100, Math.round(best.lat * 100) / 100],
       neighbors: [...near].sort(),
-      rings: shape.coordinates.flatMap((poly) => poly.map(flat)),
+      // (rings with no area are slivers where merged members' borders meet: left out)
+      rings: shape.coordinates.flatMap((poly) => poly.map(flat)).filter((ring) => Math.abs(flatArea(ring)) > 1e-6),
     };
   });
 
