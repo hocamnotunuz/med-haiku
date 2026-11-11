@@ -63,6 +63,8 @@
   let pointer = null;
   let openLineId = null;
   let openCountyId = null; // county shown in the county panel
+  let openStationId = null; // the station tapped to open the county panel (its Station section)
+  let stArmed = { id: null, until: 0 }; // the station upgrade tapped once, waiting for the second tap
   let cityKey = null; // the city map being shown (e.g. "LA"), or null for the state map
   let cityMode = "tram"; // kind of line to build on city maps
   let failCityStop = null; // the city stop that overflowed, if any
@@ -1148,18 +1150,21 @@
   $("bp-close").addEventListener("click", closeBudgetPanel);
 
   // ---------- County panel ----------
-  function openCountyPanel(id) {
+  // stationId: the station that was tapped (its Station section shows), if any
+  function openCountyPanel(id, stationId) {
     closeLinesPanel();
     closeLinePanel();
     closeContracts();
     closeCityPanel();
     closeBudgetPanel();
     openCountyId = id;
+    openStationId = stationId || null;
     renderCountyPanel();
     $("county-panel").hidden = false;
   }
   function closeCountyPanel() {
     openCountyId = null;
+    openStationId = null;
     $("county-panel").hidden = true;
     closeLinesPanel(); // (every panel that closes this one closes the lines menu too)
   }
@@ -1230,6 +1235,30 @@
       $("cp-buy").disabled = !NR.canPay(game, { [st.payer]: st.price });
       $("cp-buy").title = `Paid from the ${NR.STATE_NAMES[st.payer]} budget (${NR.nationalName(st.payer)} covers what it can't).`;
     }
+    renderStationSection();
+  }
+
+  // The Station section of the county panel: the tapped station's size, and its next upgrade.
+  // What a level gives, in words
+  const levelText = (lv) =>
+    `holds ${NR.TUNING.stationRoom * lv.room} riders and ${NR.TUNING.yardRoom * lv.room} loads of cargo` + (lv.change < 1 ? `, people change trains ${Math.round((1 - lv.change) * 100)}% faster` : "");
+  function renderStationSection() {
+    const st = openStationId && game && NR.stationById(game, openStationId);
+    $("cp-station").hidden = !st;
+    if (!st) return;
+    const name = NR.cityById[st.id].name;
+    const lv = NR.stationLevel(st);
+    const next = NR.nextStationLevel(st);
+    setText("cp-st-head", `${name} · ${lv.name}`);
+    setText("cp-st-info", `It ${levelText(lv)}.` + (next ? ` ${NR.article(next.name) === "an" ? "An" : "A"} ${next.name} ${levelText(next)}.` : " It's as big as a station gets."));
+    const up = $("cp-st-up");
+    up.hidden = !next;
+    if (!next) return;
+    const armed = stArmed.id === st.id && performance.now() < stArmed.until;
+    const problem = NR.stationUpgradeProblem(game, st);
+    setText("cp-st-up", armed ? `Tap again to build the ${next.name}` : `Upgrade to ${next.name} · ${NR.billMoney(NR.stationUpgradeBill(st))}`);
+    up.disabled = !!problem && !/money/.test(problem);
+    up.title = `Paid from the ${NR.STATE_NAMES[NR.stateOf(st.id)]} budget (${NR.nationalName(NR.stateOf(st.id))} covers what it can't).`;
   }
 
   // ---------- Line options panel ----------
@@ -1909,7 +1938,7 @@
       if (e.type === "pointerup") finishDraft();
       draft = null;
       pointer = null;
-      if (tappedStation) openCountyPanel(NR.cityById[tappedStation].county);
+      if (tappedStation) openCountyPanel(NR.cityById[tappedStation].county, tappedStation);
     }
     if (!touches.size) {
       gesture = null;
@@ -2023,6 +2052,23 @@
   $("lsp-close").addEventListener("click", closeLinesPanel);
   $("ct-close").addEventListener("click", closeContracts);
   $("btn-contracts").addEventListener("click", () => game && (contractsOpen() ? closeContracts() : openContracts()));
+  // Upgrade the tapped station: tap twice
+  $("cp-st-up").addEventListener("click", () => {
+    const st = openStationId && game && NR.stationById(game, openStationId);
+    if (!st) return;
+    const problem = NR.stationUpgradeProblem(game, st);
+    if (problem) return toast(problem);
+    const next = NR.nextStationLevel(st);
+    if (!(stArmed.id === st.id && performance.now() < stArmed.until)) {
+      stArmed = { id: st.id, until: performance.now() + 4000 };
+      return renderStationSection();
+    }
+    stArmed = { id: null, until: 0 };
+    if (NR.upgradeStation(game, st)) {
+      renderStationSection();
+      toast(`${NR.cityById[st.id].name} is ${NR.article(next.name)} ${next.name} now: it ${levelText(next)}.`);
+    }
+  });
   $("cp-buy").addEventListener("click", () => {
     if (game && openCountyId && NR.unlockCounty(game, openCountyId, false)) renderCountyPanel();
   });

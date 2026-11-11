@@ -32,6 +32,13 @@
     cityEvery: [14, 22], // seconds between new towns (random in this range; Gentle uses NR.GEO's townEvery)
     levelReward: 150, // $k for finishing a level
     yardRoom: 12, // loads of cargo a station's yard holds (more is turned away)
+    // Station upgrades: each level holds more riders and cargo, and riders change trains faster.
+    // room: × stationRoom and yardRoom; change: × the time each rider or load takes to get on or off
+    stationLevels: [
+      { name: "Station", price: 0, room: 1, change: 1 },
+      { name: "Interchange", price: 150, room: 2, change: 0.6 },
+      { name: "Grand terminal", price: 400, room: 3, change: 0.4 },
+    ],
     cargoEvery: [10, 16], // seconds between loads of produce or trucks at a station
     shipEvery: [35, 55], // seconds between ships docking at one of your ports
     shipLoad: 8, // containers a ship unloads
@@ -572,7 +579,7 @@
   // Put cargo in a station's yard. Returns how many loads fit.
   function addCargo(s, st, kind, n) {
     let landed = 0;
-    while (landed < n && st.cargo.length < T.yardRoom) {
+    while (landed < n && st.cargo.length < NR.yardRoom(st)) {
       st.cargo.push({ id: s.nextId++, kind, to: "@" + kind, from: st.id });
       landed++;
     }
@@ -580,6 +587,35 @@
   }
 
   NR.stationById = (s, id) => s.stations.find((st) => st.id === id);
+
+  // ---------- Station upgrades: Interchange and Grand terminal ----------
+  // "a" or "an" before a word ("an Interchange", "a Grand terminal")
+  NR.article = (word) => (/^[aeiou]/i.test(word) ? "an" : "a");
+  NR.stationLevel = (st) => T.stationLevels[Math.min(st.level || 0, T.stationLevels.length - 1)];
+  // Riders a station holds before it starts to overflow, and loads of cargo its yard holds
+  NR.stationRoom = (st) => T.stationRoom * NR.stationLevel(st).room;
+  NR.yardRoom = (st) => T.yardRoom * NR.stationLevel(st).room;
+  // The next level, or null at the top; it's paid from the station's state budget
+  NR.nextStationLevel = (st) => T.stationLevels[(st.level || 0) + 1] || null;
+  NR.stationUpgradeBill = (st) => {
+    const next = NR.nextStationLevel(st);
+    return next ? { [NR.stateOf(st.id)]: next.price } : null;
+  };
+  // Why a station can't be upgraded now, or null
+  NR.stationUpgradeProblem = function (s, st) {
+    const next = NR.nextStationLevel(st);
+    if (!next) return `${NR.cityById[st.id].name} is ${NR.article(NR.stationLevel(st).name)} ${NR.stationLevel(st).name} already: the biggest there is.`;
+    if (NR.stateFrozen(s, NR.stateOf(st.id))) return "Its state's head of transportation manages its stations for now.";
+    if (!NR.canPay(s, NR.stationUpgradeBill(st))) return `${NR.article(next.name) === "an" ? "An" : "A"} ${next.name} costs ${NR.billMoney(NR.stationUpgradeBill(st))}. Not enough money yet.`;
+    return null;
+  };
+  NR.upgradeStation = function (s, st) {
+    if (NR.stationUpgradeProblem(s, st)) return false;
+    NR.pay(s, NR.stationUpgradeBill(st));
+    st.level = (st.level || 0) + 1;
+    emit("stationUpgraded", { id: st.id, level: st.level });
+    return true;
+  };
   NR.lineById = (s, id) => s.lines.find((l) => l.id === id);
   NR.trainsOn = (s, line) => s.trains.filter((t) => t.lineId === line.id);
   // Towns that can still appear: inside counties you own, not on the map yet
@@ -902,7 +938,8 @@
       });
     if (type.carries) st.cargo = board(st.cargo);
     else st.waiting = board(st.waiting);
-    return 0.35 + moved * (type.quick ? 0.03 : 0.08);
+    // Bigger stations (Interchange, Grand terminal) get people on and off faster
+    return 0.35 + moved * (type.quick ? 0.03 : 0.08) * NR.stationLevel(st).change;
   }
 
   function updateTrain(s, train, dt) {
@@ -1258,12 +1295,12 @@
     // passengers take the bus): only the map you're looking at can be lost.
     for (const st of s.stations) {
       if (rt.viewing || NR.stateFrozen(s, NR.stateOf(st.id))) {
-        const calm = Math.floor(T.stationRoom / 2);
+        const calm = Math.floor(NR.stationRoom(st) / 2);
         if (st.waiting.length > calm) st.waiting.length = calm;
         st.crowd = 0;
         continue;
       }
-      if (st.waiting.length > T.stationRoom) st.crowd = Math.min(1, st.crowd + dt / T.overflowSeconds);
+      if (st.waiting.length > NR.stationRoom(st)) st.crowd = Math.min(1, st.crowd + dt / T.overflowSeconds);
       else st.crowd = Math.max(0, st.crowd - dt / (T.overflowSeconds * 1.5));
       if (st.crowd >= 1) {
         if (s.test) {
@@ -1815,7 +1852,7 @@
   NR.rewardText = (r) => NR.billMoney(NR.addShares({}, rewardShares(r), r.money)) + (r.train ? ` + a free ${NR.trainLabel(r.train)}` : "");
 
   function updateGoals(s, dt) {
-    const crowded = s.stations.some((st) => st.waiting.length > T.stationRoom);
+    const crowded = s.stations.some((st) => st.waiting.length > NR.stationRoom(st));
     s.levelGoals.forEach((g) => refreshGoal(s, g, dt, crowded));
     for (const c of s.contracts.slice()) {
       refreshGoal(s, c, dt, crowded);

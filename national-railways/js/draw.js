@@ -1131,7 +1131,8 @@
   function drawMeter(ctx, st, x, y, r) {
     const n = st.waiting.length;
     if (!n) return;
-    const f = Math.min(1, n / NR.TUNING.stationRoom);
+    const room = NR.stationRoom(st);
+    const f = Math.min(1, n / room);
     const w = Math.max(10, r * 1.7), h = 3.5;
     const bx = x + r + 3, by = y - h / 2;
     roundRect(ctx, bx, by, w, h, h / 2);
@@ -1140,14 +1141,14 @@
     ctx.fill();
     ctx.globalAlpha = 1;
     roundRect(ctx, bx, by, Math.max(h, w * f), h, h / 2);
-    ctx.fillStyle = n > NR.TUNING.stationRoom ? colors.danger : f > 0.6 ? colors.accent : colors.cargo.produce;
+    ctx.fillStyle = n > room ? colors.danger : f > 0.6 ? colors.accent : colors.cargo.produce;
     ctx.fill();
   }
 
   function drawWaiting(ctx, s, st, x, y, r) {
     const n = st.waiting.length;
     if (!n) return;
-    const over = n > NR.TUNING.stationRoom;
+    const over = n > NR.stationRoom(st);
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     if (s.style === "type") {
@@ -1363,7 +1364,8 @@
       const [x, y] = pos[st.id];
       const grow = clamp((s.time - st.born) / 0.45, 0, 1);
       const small = busy.far && !c.main ? 0.62 : 1; // towns are smaller when zoomed out
-      const r = view.r * (c.size >= 4 ? 1.15 : 1) * small * (grow < 1 ? backOut(grow) : 1);
+      const level = st.level || 0; // Interchange (1) and Grand terminal (2) are a little bigger
+      const r = view.r * (c.size >= 4 ? 1.15 : 1) * (1 + 0.12 * level) * small * (grow < 1 ? backOut(grow) : 1);
       if (r <= 0.5) continue;
       const tight = busy.tight.has(st.id);
 
@@ -1407,6 +1409,12 @@
       ctx.lineJoin = toon ? "round" : "miter";
       ctx.strokeStyle = colors.ink;
       ctx.stroke();
+      // Upgraded stations: one ring for an Interchange, two for a Grand terminal
+      for (let k = 1; k <= level; k++) {
+        NR.shapePath(ctx, NR.PLACE_TYPES[c.type].shape, x, y, r + k * Math.max(3.5, r * 0.38));
+        ctx.lineWidth = Math.max(1.4, r * 0.14);
+        ctx.stroke();
+      }
 
       // Zoomed out, only main stations are named
       if (!(busy.far && !c.main))

@@ -98,6 +98,15 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 - **Manage your lines by tapping the map:** tap a county you own and that state's **lines menu** opens: its own lines, plus the national and international lines that run through it. Tap Nevada and you get Nevada's. The **Lines** button at the bottom opens the menu of the state in the middle of the screen. Tap a county you don't own to see its unlock price; tap a station to see its county (and its city map).
 - **Manage a line:** tap it in the lines menu to buy trains, send them to the depot, upgrade to high-speed track, or delete the line. Trains you can use on that line are listed first; the others wait under **More trains**, with the reason they can't run yet.
 - **Loop lines:** drag a line's end to its **other end** (3 stations or more) and it closes into a circle: trains go round and round instead of turning back, and passengers can ride either way round. You pay for the closing track like any track. A loop has no end tabs, so it can't be extended. **Close into a loop** in the line panel does the same; **Open the loop** takes the closing track up again and gives back half its price.
+- **Station upgrades:** tap a station to see its county, with a **Station** section at the bottom. Upgrade it (tap twice) from its state's budget:
+
+  | Level | Price | Riders it holds | Cargo its yard holds | Changing trains |
+  | --- | --- | --- | --- | --- |
+  | Station | — | 8 | 12 | normal |
+  | **Interchange** (one ring) | FB150k | 16 | 24 | 40% faster |
+  | **Grand terminal** (two rings) | FB400k more | 24 | 36 | 60% faster |
+
+  A busy hub where many lines meet holds more people before it overflows, and trains spend less time there.
 - **All lines of a kind in use?** Dragging from any station that ends a line then extends that line (the shortest one, if several end there), even at a busy hub like Los Angeles.
 - **More lines:** tap **+** in the lines menu twice to buy one more of that kind (FB100k, then FB150k, FB200k and so on). The weekly upgrade choice always includes **New line** while a kind is full: it names which one (your home state's first).
 - **Money:** track costs FB1k per mile (high-speed track FB2.5k per mile). Passengers pay a fare when they arrive: more for long trips and fast trains. Every train costs a little to run each week. Who pays is explained under **Budgets** below.
