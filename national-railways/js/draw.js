@@ -77,12 +77,13 @@
     return palettes[kind] || palettes.state;
   }
   NR.groupColor = (group, c) => {
+    if (group === "link") return colors.ink; // emergency links: thin, dotted and dark
     const p = paletteFor(group ? NR.groupKind(group) : "state");
     return c >= 0 ? p[c % p.length] || colors.ink : colors.muted;
   };
   NR.lineColorOf = (line) => NR.groupColor(line.group, line.color);
   // International lines are drawn twice as thick
-  const lineWidthOf = (line, lw) => (line.group === "intl" ? lw * 2 : lw);
+  const lineWidthOf = (line, lw) => (line.group === "intl" ? lw * 2 : line.group === "link" ? Math.max(1.5, lw * 0.5) : lw);
 
   // ---------- Map projection ----------
   // Lambert conformal conic, the usual projection for maps of the US and Canada: shapes stay
@@ -440,7 +441,7 @@
   NR.lineHandles = function (s) {
     const out = [];
     for (const l of s.lines) {
-      if (l.loop) continue; // a loop has no ends
+      if (l.loop || l.group === "link") continue; // a loop has no ends; a link can't be extended
       const n = l.stops.length;
       for (const atHead of [true, false]) {
         const end = atHead ? l.stops[0] : l.stops[n - 1];
@@ -978,7 +979,7 @@
         ctx.lineWidth = (wide ? lw * 2 : lw) + (busy.far ? 3 : 4);
         ctx.beginPath();
         s.lines.forEach((l) => {
-          if ((l.group === "intl") !== wide) return;
+          if ((l.group === "intl") !== wide || l.group === "link") return; // links have no outline
           for (const [a, b] of NR.lineLegs(l)) {
             const [x1, y1, x2, y2] = segPoints(a, b, offsetFor(segs, a, b, l.id));
             ctx.moveTo(x1, y1);
@@ -999,7 +1000,9 @@
         for (let k = 2; k < p.length; k += 2) ctx.lineTo(p[k], p[k + 1]);
       });
       if (mini && l.loop) ctx.closePath(); // a clean join where a loop meets itself
+      if (l.group === "link") ctx.setLineDash([lw * 0.5, lw * 0.9]); // emergency link: dotted
       ctx.stroke();
+      ctx.setLineDash([]);
       if (l.grade === "high") {
         // High-speed track: a dashed white stripe down the middle of the line
         ctx.save();

@@ -107,6 +107,7 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
   | **Grand terminal** (two rings) | FB400k more | 24 | 36 | 60% faster |
 
   A busy hub where many lines meet holds more people before it overflows, and trains spend less time there.
+- **Emergency links:** for a quick fix between two stations close together. Tap a station; under **Emergency link to…** its nearest stations (up to 5, within 60 miles of track) are listed with their price: **20 times** the price of normal track. Tap one twice to build it. A link uses **no line slot**, comes with its **own shuttle** (a Regular train that stays on it), and can't take other trains, be extended, loop or be upgraded. It's drawn thin, dotted and dark, and listed under **Emergency links** in the state's lines menu. Deleting it gives back half its price.
 - **All lines of a kind in use?** Dragging from any station that ends a line then extends that line (the shortest one, if several end there), even at a busy hub like Los Angeles.
 - **More lines:** tap **+** in the lines menu twice to buy one more of that kind (FB100k, then FB150k, FB200k and so on). The weekly upgrade choice always includes **New line** while a kind is full: it names which one (your home state's first).
 - **Money:** track costs FB1k per mile (high-speed track FB2.5k per mile). Passengers pay a fare when they arrive: more for long trips and fast trains. Every train costs a little to run each week. Who pays is explained under **Budgets** below.

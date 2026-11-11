@@ -34,6 +34,8 @@
     yardRoom: 12, // loads of cargo a station's yard holds (more is turned away)
     // Station upgrades: each level holds more riders and cargo, and riders change trains faster.
     // room: × stationRoom and yardRoom; change: × the time each rider or load takes to get on or off
+    linkMiles: 60, // emergency links join two stations up to this many track miles apart
+    linkPriceFactor: 20, // and cost this many times the price of normal track
     stationLevels: [
       { name: "Station", price: 0, room: 1, change: 1 },
       { name: "Interchange", price: 150, room: 2, change: 0.6 },
@@ -375,6 +377,49 @@
     const total = parts.reduce((n, [, k]) => n + k, 0);
     return parts.map(([code, k]) => [code, k / total]).sort((p, q) => q[1] - p[1]);
   };
+  // ---------- Emergency links ----------
+  // A link joins two stations close together (up to T.linkMiles of track) for emergencies. It costs
+  // T.linkPriceFactor times normal track, uses no line slot, and runs its own shuttle (a Regular
+  // train that can't be moved) and no other trains. Its group is "link".
+  NR.isLink = (l) => l.group === "link";
+  NR.linkBill = (a, b) => NR.chainBill([a, b], "standard", T.linkPriceFactor);
+  NR.linkBetween = (s, a, b) => s.lines.some((l) => NR.isLink(l) && l.stops.includes(a) && l.stops.includes(b));
+  // Why these two stations can't be linked, or null
+  NR.linkProblem = function (s, a, b) {
+    if (a === b || !NR.stationById(s, a) || !NR.stationById(s, b)) return "Pick two stations on the map.";
+    const mi = NR.trackMiles(a, b);
+    if (mi > T.linkMiles) return `Emergency links reach ${T.linkMiles} miles of track at most: ${city(b).name} is ${mi}.`;
+    const blocked = NR.blockedReason && NR.blockedReason(a, b);
+    if (blocked) return `No track from ${city(a).name} to ${city(b).name}: ${blocked}`;
+    if (NR.linkBetween(s, a, b)) return `${city(a).name} and ${city(b).name} are linked already.`;
+    if (NR.chainFrozen(s, [a, b])) return "Track there can't change while its state is managed.";
+    if (!NR.canPay(s, NR.linkBill(a, b))) return `This link costs ${NR.billMoney(NR.linkBill(a, b))}. Not enough money yet.`;
+    return null;
+  };
+  // Up to 5 of the nearest stations a station could be linked to (money aside), nearest first
+  NR.linkOptions = (s, id) =>
+    s.stations
+      .filter((st) => st.id !== id)
+      .map((st) => ({ id: st.id, miles: NR.trackMiles(id, st.id) }))
+      .filter((o) => o.miles <= T.linkMiles && !(NR.blockedReason && NR.blockedReason(id, o.id)) && !NR.linkBetween(s, id, o.id) && !NR.chainFrozen(s, [id, o.id]))
+      .sort((p, q) => p.miles - q.miles)
+      .slice(0, 5)
+      .map((o) => Object.assign(o, { bill: NR.linkBill(id, o.id) }));
+  NR.createLink = function (s, a, b) {
+    if (NR.linkProblem(s, a, b)) return null;
+    NR.pay(s, NR.linkBill(a, b));
+    const line = { id: s.nextId++, group: "link", color: 0, stops: [a, b], grade: "standard", tunnels: [] };
+    s.lines.push(line);
+    // Its shuttle comes with it
+    const train = { id: s.nextId++, lineId: line.id, type: "regular", shuttle: true, i: 0, dir: 1, t: 0, moving: false, wait: 0, segLen: 1, pax: [] };
+    s.trains.push(train);
+    rt.dirty = true;
+    train.wait = serveStation(s, train, line);
+    return line;
+  };
+  // A line's track, as a bill (an emergency link's at its higher price); share: the part of it
+  NR.trackBill = (line, share = 1) => NR.chainBill(NR.lineChain(line), line.grade, share * (NR.isLink(line) ? T.linkPriceFactor : 1), line);
+
   // ---------- Loop lines ----------
   // A line can close into a circle (line.loop): its last stop then joins its first, which isn't
   // repeated in line.stops. These three helpers walk any line, loop or not.
@@ -1424,6 +1469,7 @@
   };
   // "California Golden Line", "National Golden Line", "International Golden Line 2"
   NR.lineName = (line) => {
+    if (NR.isLink(line)) return `Emergency link ${city(line.stops[0]).name}–${city(line.stops[line.stops.length - 1]).name}`;
     const names = NR.LINE_NAMES;
     const name = `${names[line.color % names.length]} Line${line.color >= names.length ? ` ${Math.floor(line.color / names.length) + 1}` : ""}`;
     const group = NR.groupName(line.group);
@@ -1491,7 +1537,7 @@
   // added = new stops in the order they were dragged, starting next to the old end.
   NR.extendLine = function (s, line, atHead, added) {
     const end = atHead ? line.stops[0] : line.stops[line.stops.length - 1];
-    if (line.loop || NR.chainBlocked([end, ...added]) || NR.extendProblem(s, line, atHead, added)) return false;
+    if (line.loop || NR.isLink(line) || NR.chainBlocked([end, ...added]) || NR.extendProblem(s, line, atHead, added)) return false;
     NR.pay(s, NR.chainBill([end, ...added], line.grade));
     if (atHead) {
       line.stops.unshift(...added.slice().reverse());
@@ -1515,6 +1561,7 @@
   // Why a line can't close into a loop, or null
   NR.closeLoopProblem = function (s, line) {
     if (line.loop) return "It's a loop already.";
+    if (NR.isLink(line)) return "An emergency link joins two stations only.";
     if (line.stops.length < 3) return "A loop needs 3 stations or more.";
     if (NR.chainFrozen(s, closingLeg(line))) return "Its track can't change while its state is managed.";
     const blocked = NR.chainBlocked(closingLeg(line));
@@ -1563,7 +1610,7 @@
   NR.highSpeedUpgradePrice = (line) => Object.values(NR.upgradeBill(line)).reduce((a, b) => a + b, 0);
   NR.upgradeLine = function (s, line) {
     const bill = NR.upgradeBill(line);
-    if (line.grade === "high" || NR.lineFrozen(s, line) || !NR.canPay(s, bill)) return false;
+    if (line.grade === "high" || NR.isLink(line) || NR.lineFrozen(s, line) || !NR.canPay(s, bill)) return false;
     NR.pay(s, bill);
     line.grade = "high";
     return true;
@@ -1572,6 +1619,7 @@
   // Can a train of this type run on this line? Returns { ok, reason, fromDepot }.
   NR.canAddTrain = function (s, line, type) {
     const t = NR.TRAIN_TYPES[type];
+    if (NR.isLink(line)) return { ok: false, reason: "Emergency links run their own shuttle only" };
     if (s.week < t.unlockWeek) return { ok: false, reason: `Unlocks in week ${t.unlockWeek + 1}` };
     if (NR.lineFrozen(s, line)) return { ok: false, reason: "Frozen while managed" };
     if (t.needsHighSpeed && line.grade !== "high") return { ok: false, reason: "Needs high-speed track" };
@@ -1623,7 +1671,7 @@
   // Take one train off its line and send it back to the depot.
   NR.removeTrain = function (s, trainId) {
     const train = s.trains.find((t) => t.id === trainId);
-    if (!train) return false;
+    if (!train || train.shuttle) return false; // an emergency link's shuttle stays on it
     const line = NR.lineById(s, train.lineId);
     if (line && NR.lineFrozen(s, line)) return false;
     if (line) dropOff(s, train, line);
@@ -1638,11 +1686,11 @@
     if (NR.lineFrozen(s, line)) return false;
     NR.trainsOn(s, line).forEach((t) => {
       dropOff(s, t, line);
-      s.depot[t.type]++;
+      if (!t.shuttle) s.depot[t.type]++; // an emergency link's shuttle goes with it
     });
     s.trains = s.trains.filter((t) => t.lineId !== line.id);
     s.lines = s.lines.filter((l) => l !== line);
-    NR.refund(s, NR.chainBill(NR.lineChain(line), line.grade, T.refundShare, line));
+    NR.refund(s, NR.trackBill(line, T.refundShare));
     rt.dirty = true;
     return true;
   };

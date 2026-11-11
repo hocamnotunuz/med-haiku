@@ -65,6 +65,7 @@
   let openCountyId = null; // county shown in the county panel
   let openStationId = null; // the station tapped to open the county panel (its Station section)
   let stArmed = { id: null, until: 0 }; // the station upgrade tapped once, waiting for the second tap
+  let linkArmed = { from: null, to: null, until: 0 }; // an emergency link tapped once, waiting for the second tap
   let cityKey = null; // the city map being shown (e.g. "LA"), or null for the state map
   let cityMode = "tram"; // kind of line to build on city maps
   let failCityStop = null; // the city stop that overflowed, if any
@@ -636,9 +637,10 @@
     label.textContent = "Lines";
     const value = document.createElement("span");
     value.className = "res-value";
-    value.textContent = game.lines.length;
+    const built = game.lines.filter((l) => !NR.isLink(l)).length;
+    value.textContent = built;
     b.append(label, value);
-    b.setAttribute("aria-label", `Lines: ${game.lines.length} built. Open the lines of the state in view.`);
+    b.setAttribute("aria-label", `Lines: ${built} built. Open the lines of the state in view.`);
     b.addEventListener("click", () => (linesState ? closeLinesPanel() : openLinesPanel(stateInView())));
     box.appendChild(b);
   }
@@ -692,6 +694,21 @@
     const body = $("lsp-body");
     body.textContent = "";
     groups.forEach((g) => body.append(linesSection(g, code, through.filter((l) => l.group === g))));
+    const links = through.filter((l) => NR.isLink(l));
+    if (links.length) body.append(linksSection(links));
+  }
+  // Emergency links through a state: one button each (they use no line slot)
+  function linksSection(links) {
+    const sec = document.createElement("div");
+    sec.className = "ls-section";
+    const head = document.createElement("p");
+    head.className = "lp-section";
+    head.textContent = `Emergency links · ${links.length}`;
+    const row = document.createElement("div");
+    row.className = "lp-actions";
+    for (const l of links) row.append(button(lineName(l).replace("Emergency link ", ""), "btn btn-small", () => openLinePanel(l.id)));
+    sec.append(head, row);
+    return sec;
   }
   function linesSection(g, code, lines) {
     const kind = NR.groupKind(g);
@@ -1242,6 +1259,37 @@
   // What a level gives, in words
   const levelText = (lv) =>
     `holds ${NR.TUNING.stationRoom * lv.room} riders and ${NR.TUNING.yardRoom * lv.room} loads of cargo` + (lv.change < 1 ? `, people change trains ${Math.round((1 - lv.change) * 100)}% faster` : "");
+  // "Emergency link to…": up to 5 nearby stations, each with its price (tap twice to build).
+  // Rebuilt only when something on it changes, so the buttons stay put while you tap them.
+  let linkSig = "";
+  function renderLinkOptions(st) {
+    const opts = NR.linkOptions(game, st.id);
+    const armed = linkArmed.from === st.id && performance.now() < linkArmed.until ? linkArmed.to : null;
+    const sig = JSON.stringify([st.id, armed, opts.map((o) => [o.id, NR.billMoney(o.bill), NR.canPay(game, o.bill)])]);
+    if (sig === linkSig) return;
+    linkSig = sig;
+    $("cp-links-head").hidden = !opts.length;
+    const box = $("cp-links");
+    box.textContent = "";
+    for (const o of opts) {
+      const name = NR.cityById[o.id].name;
+      const b = button(o.id === armed ? `Tap again: link to ${name}` : `${name} · ${o.miles} mi · ${NR.billMoney(o.bill)}`, "btn btn-small", () => {
+        const why = NR.linkProblem(game, st.id, o.id);
+        if (why) return toast(why);
+        if (!(linkArmed.from === st.id && linkArmed.to === o.id && performance.now() < linkArmed.until)) {
+          linkArmed = { from: st.id, to: o.id, until: performance.now() + 4000 };
+          setTimeout(() => (linkSig = ""), 4000);
+          return renderLinkOptions(st);
+        }
+        linkArmed = { from: null, to: null, until: 0 };
+        const line = NR.createLink(game, st.id, o.id);
+        if (line) toast(`${lineName(line)} built, with its own shuttle. It uses no line slot; you'll find it in the ${NR.STATE_NAMES[NR.stateOf(st.id)]} lines menu.`);
+        renderLinkOptions(st);
+      });
+      b.title = `An emergency link: ${NR.TUNING.linkPriceFactor}× the price of normal track, its own shuttle and no other trains.`;
+      box.append(b);
+    }
+  }
   function renderStationSection() {
     const st = openStationId && game && NR.stationById(game, openStationId);
     $("cp-station").hidden = !st;
@@ -1251,6 +1299,7 @@
     const next = NR.nextStationLevel(st);
     setText("cp-st-head", `${name} · ${lv.name}`);
     setText("cp-st-info", `It ${levelText(lv)}.` + (next ? ` ${NR.article(next.name) === "an" ? "An" : "A"} ${next.name} ${levelText(next)}.` : " It's as big as a station gets."));
+    renderLinkOptions(st);
     const up = $("cp-st-up");
     up.hidden = !next;
     if (!next) return;
@@ -1346,6 +1395,8 @@
     $("lp-upgrade").hidden = true;
     $("lp-tunnel").hidden = true;
     $("lp-loop").hidden = true; // city lines don't loop
+    $("lp-buy-head").hidden = false;
+    $("lp-buy").hidden = false;
     $("lp-delete").disabled = frozen;
     if (!$("lp-delete").dataset.armed) {
       const value = NR.cityLinePrice(cityKey, line) + vehicles.length * m.price;
@@ -1412,7 +1463,9 @@
     // states it runs through, by how much of it is on each one's land.
     const paidBy = NR.STATE_NAMES[shares[0][0]] && shares.length === 1 ? `paid from the ${NR.STATE_NAMES[shares[0][0]]} budget` : `crosses a border: ${NR.sharesName(shares)} ${shares.length > 1 ? "share it" : "pays"}`;
     $("lp-meta").textContent =
-      `${line.loop ? "loop · " : ""}${plural(line.stops.length, "stop")} · ${NR.lineMiles(line)} mi · ${line.grade === "high" ? "high-speed" : "standard"} track · ${paidBy}` +
+      (NR.isLink(line)
+        ? `emergency link · ${NR.lineMiles(line)} mi · its own shuttle, no other trains · ${paidBy}`
+        : `${line.loop ? "loop · " : ""}${plural(line.stops.length, "stop")} · ${NR.lineMiles(line)} mi · ${line.grade === "high" ? "high-speed" : "standard"} track · ${paidBy}`) +
       (frozen ? " · frozen while its state is managed" : "");
     $("lp-stops").textContent = line.stops.map((id) => NR.cityById[id].name).join(" – ") + (line.loop ? ` – back to ${NR.cityById[line.stops[0]].name}` : "");
     // What the track crosses: passes, tunnels, bridges...
@@ -1438,14 +1491,17 @@
       label.textContent = NR.TRAIN_TYPES[t.type].repairs
         ? `${NR.TRAIN_TYPES[t.type].name} · repairs track`
         : `${NR.TRAIN_TYPES[t.type].name} · ${NR.seatsOf(game, t)} ${NR.unitOf(t.type)}`;
-      li.append(
-        label,
-        button("To depot", "btn btn-small", () => {
-          NR.removeTrain(game, t.id);
-          renderLinePanel();
-        })
-      );
-      li.lastChild.disabled = frozen;
+      if (t.shuttle) label.textContent += " · the link's own shuttle";
+      li.append(label);
+      if (!t.shuttle) {
+        li.append(
+          button("To depot", "btn btn-small", () => {
+            NR.removeTrain(game, t.id);
+            renderLinePanel();
+          })
+        );
+        li.lastChild.disabled = frozen;
+      }
       list.appendChild(li);
     });
 
@@ -1495,10 +1551,19 @@
     tun.textContent = `Dig tunnels under the passes · ${NR.billMoney(tunnelBill)}`;
     tun.title = "Trains stop slowing down on the climbs over mountain passes on this line.";
     tun.disabled = !canTunnel || frozen;
-    if (!$("lp-delete").dataset.armed) $("lp-delete").textContent = `Delete line (get back ${NR.billMoney(NR.chainBill(NR.lineChain(line), line.grade, T.refundShare, line))})`;
+    if (!$("lp-delete").dataset.armed) $("lp-delete").textContent = `Delete ${NR.isLink(line) ? "link" : "line"} (get back ${NR.billMoney(NR.trackBill(line, T.refundShare))})`;
+    // An emergency link: its own shuttle only, no other trains, no track upgrades
+    const link = NR.isLink(line);
+    $("lp-buy-head").hidden = link;
+    $("lp-buy").hidden = link;
+    document.querySelectorAll("#line-panel .more-trains").forEach((el) => (el.hidden = link));
+    if (link) {
+      up.hidden = true;
+      tun.hidden = true;
+    }
     // Close the line into a loop (3 stops or more), or open a loop again
     const loop = $("lp-loop");
-    loop.hidden = !line.loop && line.stops.length < 3;
+    loop.hidden = link || (!line.loop && line.stops.length < 3);
     loop.dataset.armed = "";
     loop.textContent = line.loop
       ? `Open the loop (get back ${NR.billMoney(NR.openLoopRefund(line))})`
@@ -1632,12 +1697,12 @@
   // returns { line, atHead }: dragging from it extends that line.
   function lineEndAt(ends, all, id) {
     if (all.filter((l) => l.stops.includes(id)).length !== 1) return null;
-    const line = ends.find((l) => !l.loop && (l.stops[0] === id || l.stops[l.stops.length - 1] === id));
+    const line = ends.find((l) => !l.loop && !NR.isLink(l) && (l.stops[0] === id || l.stops[l.stops.length - 1] === id));
     return line ? { line, atHead: line.stops[0] === id } : null;
   }
   // Any line that ends at this station (the shortest one, if several do).
   function anyLineEnd(lines, id) {
-    const ends = lines.filter((l) => !l.loop && (l.stops[0] === id || l.stops[l.stops.length - 1] === id)).sort((a, b) => a.stops.length - b.stops.length);
+    const ends = lines.filter((l) => !l.loop && !NR.isLink(l) && (l.stops[0] === id || l.stops[l.stops.length - 1] === id)).sort((a, b) => a.stops.length - b.stops.length);
     return ends.length ? { line: ends[0], atHead: ends[0].stops[0] === id } : null;
   }
   // The first few times, explain how to start a new line instead.
