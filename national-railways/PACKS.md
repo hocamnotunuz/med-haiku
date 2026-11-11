@@ -4,8 +4,9 @@ Every state (and later every Canadian province) has a **pack**: `packs/<code>/pa
 
 | Comes from | What |
 | --- | --- |
-| `packs/<code>/map.js` (made by `tools/build-map.js`) | The state's county regions and their neighbors, land, coast and borders |
-| `packs/index.js` (made by `tools/build-map.js`) | Every state, Mexico and Canada as rough outlines, with neighbors (for clouds and the land outside the game) |
+| `packs/<code>/map.js` (made by `tools/build-map.js`) | The state's county regions (a province's census divisions) and their neighbors, land, coast and borders |
+| `packs/index.js` (made by `tools/build-map.js`) | Every state, Mexico, and Canada's provinces and territories as rough outlines, with neighbors (for clouds and the land outside the game) |
+| `packs/<code>/raw/` (made by `tools/make-raw.js`, not saved to git) | The facts a pack is made from: region populations, every city and town with its population and location, and (in Canada) parks |
 | `packs/<code>/terrain.js` (made by `tools/build-terrain.js`) | The state's mountains grid, lakes, rivers, named ranges, and its city maps' hills and water (with `relief.png` and `city-<key>.png`) |
 | **the pack** (hand-made) | Main stations, towns, levels, starting counties, city maps, passes, bridges, bays, biomes |
 
@@ -112,8 +113,9 @@ Keyed by a main station id. Each has a `name`, a `size` and 10–12 `stops` (the
 
 ## Adding a state
 
-1. **Map:** add the state to `tools/build-map.js` (its FIPS code, and either a merge list or populations so small counties merge automatically). Run it with every state's code: it writes the state's `map.js` (and rewrites its neighbors', whose borders change).
+1. **Map:** add the state to `tools/build-map.js` (its FIPS code, and either a merge list or populations so small counties merge automatically). Run it with every state's code: it writes the state's `map.js` (and rewrites its neighbors', whose borders change). Then run `tools/make-raw.js` for it: the facts its pack is made from land in `packs/<code>/raw/`.
+   - **A Canadian province** (`country: "CAN"` in `STATES`, `pop: "statcan"`) is made from its census divisions: add where its borders and coastline come from to `CANADA` in the tool (British Columbia's come from DataBC's open map service). Its populations come from Statistics Canada's 2021 Census tables, its places from the Canadian Geographical Names Database, and `raw/parks.json` lists its parks for scenic places. Its border with the US is found by distance (the two maps come from different sources), and so are neighbors across it.
 2. **Pack:** create `packs/<code>/pack.js` with the fields above. Add the code to `NR.PACK_LIST` in `js/packs.js` and a `<script>` tag for its `pack.js` in `index.html` (its `map.js` and `terrain.js` load by themselves when needed).
-3. **Terrain:** run `tools/build-terrain.js`: it writes the state's `terrain.js` and relief pictures (and hills and water for its city maps), and warns about passes with no mountains nearby.
+3. **Terrain:** run `tools/build-terrain.js` (add the state's code to build only it): it writes the state's `terrain.js` and relief pictures (and hills and water for its city maps), and warns about passes with no mountains nearby. Add its big rivers to `RIVERS` in the tool first.
 4. **Check:** run `node tools/check-pack.js <code>` until it passes with no errors.
 5. **Test:** run `node tools/test-pack.js <code>` until it passes, and look over its screenshots in `test-out/<code>/`.

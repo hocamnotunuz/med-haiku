@@ -7,7 +7,8 @@
 //
 // Usage (from the national-railways folder):
 //   cd tools && npm install && cd ..
-//   node tools/build-terrain.js tools/node_modules <cache folder>
+//   node tools/build-terrain.js tools/node_modules <cache folder> [state codes...]
+// With state codes (e.g. BC), only those states are built; the others' files stay as they are.
 //
 // Downloads (kept in the cache folder, so a second run is quick):
 //   - Elevation: AWS Terrain Tiles ("terrarium" PNG tiles, public data from SRTM, USGS and others)
@@ -23,6 +24,7 @@ const vm = require("vm");
 const { execFileSync } = require("child_process");
 
 const [MODS, CACHE] = process.argv.slice(2);
+const ONLY = process.argv.slice(4).map((c) => c.toUpperCase());
 if (!MODS || !CACHE) {
   console.error("Usage: node tools/build-terrain.js <node_modules> <cache folder>");
   process.exit(1);
@@ -37,6 +39,10 @@ const RIVERS = [
   "Colorado", "Columbia", "Sacramento", "San Joaquin", "Klamath", "Willamette", "Gila", "Rogue", "Eel", "Trinity", "Pit",
   "Feather", "Stanislaus", "Humboldt", "John Day", "Salinas", "Snake", "Deschutes", "American", "Umpqua", "Truckee",
   "Yakima", "Skagit", "Cowlitz", "Chehalis", "Okanogan", "Pend Orielle",
+  // British Columbia
+  "Fraser", "Thompson", "North Thompson", "Kootenay", "Skeena", "Peace", "Stikine", "Nechako", "Liard", "Nass", "Quesnel",
+  "Chilcotin", "Similkameen", "Kettle", "Bulkley", "Elk", "Fort Nelson", "Finlay", "Parsnip", "Harrison", "Lillooet", "Squamish",
+  "Bella Coola",
 ];
 // Natural Earth spellings to fix
 const RIVER_NAMES = { "Pend Orielle": "Pend Oreille" };
@@ -182,7 +188,7 @@ const onLand = (lon, lat) => NR.MAP.land.reduce((inside, ring) => (inRing(lon, l
 // hills and water. Written to packs/<code>/terrain.js, packs/<code>/relief.png and
 // packs/<code>/city-<key>.png.
 const STEP = 0.05;
-const RSTEP = 0.02; // relief picture: one pixel every 0.02°
+const RSTEP_BASE = 0.02; // relief picture: one pixel every 0.02° (0.03° for a very big state)
 const elev8 = elevation(8);
 const elev11 = elevation(11);
 // Each cell: 0 flat (or sea), 1 hills, 2 mountains, 3 high mountains, from the average
@@ -220,7 +226,7 @@ const lines = (g) => (g.type === "LineString" ? [g.coordinates] : g.type === "Mu
 const LAKES = [...NE("ne_10m_lakes").features, ...NE("ne_10m_lakes_north_america").features];
 const RIVER_FEATURES = [...NE("ne_10m_rivers_lake_centerlines").features, ...NE("ne_10m_rivers_north_america").features];
 // Mountain range names (Natural Earth), used only to name a range in messages.
-const RANGE_NAMES = { "SIERRA NEVADA": "the Sierra Nevada", "COAST RANGES": "the Coast Ranges", "CASCADE RANGE": "the Cascade Range", "Klamath Mts.": "the Klamath Mountains", "Mogollon Rim": "the Mogollon Rim", "COLUMBIA MTS.": "the Columbia Mountains", "ROCKY MOUNTAINS": "the Rocky Mountains" };
+const RANGE_NAMES = { "SIERRA NEVADA": "the Sierra Nevada", "COAST RANGES": "the Coast Ranges", "CASCADE RANGE": "the Cascade Range", "Klamath Mts.": "the Klamath Mountains", "Mogollon Rim": "the Mogollon Rim", "COLUMBIA MTS.": "the Columbia Mountains", "ROCKY MOUNTAINS": "the Rocky Mountains", "COAST MOUNTAINS": "the Coast Mountains", "Cassiar Mts.": "the Cassiar Mountains" };
 const RANGES = NE("ne_10m_geography_regions_polys").features.filter((f) => RANGE_NAMES[f.properties.name || f.properties.NAME]);
 const idOf = (name, x, y) => `${name}@${round(x)},${round(y)}`;
 
@@ -259,7 +265,9 @@ function buildState(code) {
     }
   }
 
-  // Relief picture (Classic look), kept only over and right next to this state
+  // Relief picture (Classic look), kept only over and right next to this state. A very big state
+  // (British Columbia) gets a coarser one, so its picture stays a reasonable size.
+  const RSTEP = (box[2] - box[0]) * (box[3] - box[1]) > 150 ? 0.03 : RSTEP_BASE;
   const rw = Math.round((box[2] - box[0]) / RSTEP), rh = Math.round((box[3] - box[1]) / RSTEP);
   const keep = (lon, lat) => {
     const c = Math.floor((lon - box[0]) / STEP), r = Math.floor((box[3] - lat) / STEP);
@@ -444,7 +452,7 @@ async function buildCity(code, key, metro) {
 // ---------- Build every state, check the passes, and write ----------
 (async () => {
   const built = [];
-  for (const code of NR.PACK_LIST) {
+  for (const code of NR.PACK_LIST.filter((c) => !ONLY.length || ONLY.includes(c))) {
     const t = buildState(code);
     for (const [key, metro] of Object.entries((NR.PACKS[code] && NR.PACKS[code].metros) || {})) t.cities[key] = await buildCity(code, key, metro);
     built.push(t);
@@ -457,7 +465,8 @@ async function buildCity(code, key, metro) {
     }
     return 0;
   };
-  const flatPasses = PASSES.filter(([, lat, lon]) => {
+  const covered = (lon, lat) => built.some((t) => lon >= t.box[0] && lon <= t.box[2] && lat >= t.box[1] && lat <= t.box[3]);
+  const flatPasses = PASSES.filter(([, lat, lon]) => covered(lon, lat)).filter(([, lat, lon]) => {
     let most = 0;
     for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) most = Math.max(most, heightAt(lon + dx * STEP, lat + dy * STEP));
     return most < 2;

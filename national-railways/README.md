@@ -257,7 +257,7 @@ Tap the **clipboard** on the bottom bar.
 | `tools/build-map.js` | Rebuilds `packs/index.js` and each state's `map.js` from Census data and Natural Earth outlines (see below). |
 | `tools/build-terrain.js` | Rebuilds every state's geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. It reads the city maps and passes from the packs. |
 | `tools/check-pack.js` | Checks the state packs for mistakes (`node tools/check-pack.js`). Every pack must pass. |
-| `tools/make-raw.js` | Writes the facts a state's pack is made from into `packs/<code>/raw/` (not saved to git): county region populations, and every city and town with its population and location, from U.S. Census Bureau data. |
+| `tools/make-raw.js` | Writes the facts a state's pack is made from into `packs/<code>/raw/` (not saved to git): county region populations, and every city and town with its population and location, from U.S. Census Bureau data (for a Canadian province: Statistics Canada and the Canadian Geographical Names Database, plus its parks). |
 | `tools/test-pack.js` | Plays a short game in one state in a real browser and takes screenshots (`node tools/test-pack.js CA`). Every pack must pass. |
 | `js/game.js` | The rules. The `TUNING` numbers at the top set the difficulty. |
 | `js/metro.js` | City maps: neighborhoods, trams, metro and cable cars. |
@@ -267,19 +267,19 @@ Tap the **clipboard** on the bottom bar.
 
 ## Rebuilding the map (or adding a state)
 
-The map file is generated from U.S. Census Bureau county boundaries (the `us-atlas` package):
+The map files are generated from U.S. Census Bureau county boundaries (the `us-atlas` package) and, for British Columbia, BC's own open data:
 
 ```
 cd national-railways/tools
 npm install
 cd ..
-node tools/build-map.js tools/node_modules <cache folder> CA NV AZ OR WA
-node tools/build-terrain.js tools/node_modules .terrain-cache
+node tools/build-map.js tools/node_modules <cache folder> CA NV AZ OR WA BC
+node tools/build-terrain.js tools/node_modules .terrain-cache        (add codes, like BC, to build only those)
 node tools/make-raw.js .terrain-cache WA
 ```
 
 `build-terrain.js` downloads its data into the cache folder (about 30 MB, so a second run takes seconds) and needs `curl` and `unzip`. Run it after `build-map.js`, and again after adding city maps or editing the passes in the packs.
 
-Data: county shapes, city coastlines and populations (county and city totals, 2020 census base) from the U.S. Census Bureau; elevation from [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (SRTM, USGS and other public sources); lakes, rivers and mountain range names from [Natural Earth](https://www.naturalearthdata.com/) (public domain).
+Data: county shapes, city coastlines and populations (county and city totals, 2020 census base) from the U.S. Census Bureau; British Columbia's regional districts and 1:250,000 coastline from [DataBC](https://openmaps.gov.bc.ca/) (Open Government Licence – British Columbia); Canadian populations from Statistics Canada's 2021 Census (Statistics Canada Open Licence); Canadian place names and locations from Natural Resources Canada's Geographical Names Database (Open Government Licence – Canada); elevation from [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (SRTM, USGS and other public sources); lakes, rivers and mountain range names from [Natural Earth](https://www.naturalearthdata.com/) (public domain).
 
 To add another state later: add it to `STATES` in `tools/build-map.js` (its FIPS code, and either a list of which small counties to merge or `pop: "census"` so small ones merge automatically by their census populations; `join` puts an island county that no bridge reaches together with a mainland one), add its code to the command above, run it, run `tools/make-raw.js` for it, then make its pack: `packs/<code>/pack.js` with its main stations, towns, passes and bridges (`PACKS.md` explains every field), and check it with `node tools/check-pack.js <code>` and `node tools/test-pack.js <code>`. Every game starts in the `start` counties of the home pack (`NR.HOME_PACK` in `js/packs.js`, California), and owning all of a state opens its neighbors.
