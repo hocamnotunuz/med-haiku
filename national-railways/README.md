@@ -35,7 +35,7 @@ When your network grows, stations crowd together on the screen when you zoom out
 - **Classic**: a calm atlas-style map with shaded relief.
 - **Neo minimalist**: a flat transit-map style. Plain land and water, fine borders, bold flat lines that run straight and bend at 45° between stations (trains follow the bends; prices and travel times are the same as in the other looks), a clean geometric typeface (Jost) and flat panels. States that aren't open yet are flat grey with their name. **Settings → Neo minimalist: mountains** picks **Hidden** (plain land, county borders only around the counties you own) or **Faint** (soft flat mountain areas and every county border).
 
-Every look has a light and a dark version that follow your device.
+Every look has a light and a dark version. **Settings → Theme** picks **Automatic** (follow your device), **Light** or **Dark**; it's remembered, and you can change it during a game from the menu (☰).
 
 ### Real geography
 

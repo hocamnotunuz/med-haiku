@@ -49,7 +49,7 @@
       }
     },
   };
-  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle", look: "arcade", miniBg: "bare", home: "CA", test: "off" }, store.get("nr-settings", {}));
+  const settings = Object.assign({ mode: "endless", style: "type", geo: "gentle", look: "arcade", miniBg: "bare", theme: "auto", home: "CA", test: "off" }, store.get("nr-settings", {}));
   const best = store.get("nr-best", {});
 
   // ---------- What is happening right now ----------
@@ -173,6 +173,8 @@
     if (test) test.checked = true;
     const miniBg = document.querySelector(`input[name="miniBg"][value="${settings.miniBg === "hints" ? "hints" : "bare"}"]`);
     if (miniBg) miniBg.checked = true;
+    const theme = document.querySelector(`input[name="theme"][value="${["light", "dark"].includes(settings.theme) ? settings.theme : "auto"}"]`);
+    if (theme) theme.checked = true;
     const home = document.querySelector(`input[name="home"][value="${settings.home}"]`) || document.querySelector('input[name="home"]');
     if (home) home.checked = true;
     if (mode) mode.checked = true;
@@ -1852,6 +1854,9 @@
   // The look changes as soon as you pick it in Settings, and is remembered in this browser.
   // (The Neo minimalist look's mountains choice shows only while that look is picked.)
   const applyLook = () => {
+    // Theme: Light or Dark always, or Automatic (no data-theme: the device decides)
+    if (settings.theme === "light" || settings.theme === "dark") document.documentElement.dataset.theme = settings.theme;
+    else delete document.documentElement.dataset.theme;
     document.documentElement.dataset.look = ["classic", "minimal"].includes(settings.look) ? settings.look : "arcade";
     document.documentElement.dataset.miniBg = settings.miniBg === "hints" ? "hints" : "bare";
     $("mini-bg-choice").hidden = settings.look !== "minimal";
@@ -1860,6 +1865,13 @@
   document.querySelectorAll('input[name="look"]').forEach((input) =>
     input.addEventListener("change", () => {
       settings.look = input.value;
+      store.set("nr-settings", settings);
+      applyLook();
+    })
+  );
+  document.querySelectorAll('input[name="theme"]').forEach((input) =>
+    input.addEventListener("change", () => {
+      settings.theme = input.value;
       store.set("nr-settings", settings);
       applyLook();
     })
