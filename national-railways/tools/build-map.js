@@ -892,7 +892,40 @@ const STATES = {
       ["Ford", "Iroquois", "Livingston"],
     ],
   },
-  MI: { fips: "26", name: "Michigan", pop: "census", merge: [] },
+  // Reviewed by the Michigan pack agent (packs/MI/NOTES.md): 83 counties to 54 regions: the Thumb
+  // (Bad Axe), the southern tier (Coldwater), the northwest (Cadillac, Ludington, Frankfort,
+  // Petoskey), the northeast (Cheboygan, Alpena, East Tawas), the middle (Big Rapids, Clare,
+  // Gaylord) and the Upper Peninsula (Sault Ste. Marie, Escanaba, Menominee, Ironwood, Houghton).
+  // The counties of 50k or more stay alone, and Gratiot, whose neighbours are all 50k or more. The
+  // Mackinac Bridge joins the two peninsulas (Mackinaw City to St. Ignace).
+  MI: {
+    fips: "26",
+    name: "Michigan",
+    pop: "census",
+    merge: [
+      ["Branch", "Hillsdale"],
+      ["Huron", "Sanilac"],
+      ["Mecosta", "Osceola"],
+      ["Lake", "Missaukee", "Wexford"],
+      ["Manistee", "Mason", "Oceana"],
+      ["Benzie", "Leelanau"],
+      ["Antrim", "Charlevoix", "Emmet"],
+      ["Cheboygan", "Montmorency", "Presque Isle"],
+      ["Alcona", "Alpena", "Oscoda"],
+      ["Arenac", "Iosco", "Ogemaw"],
+      ["Clare", "Gladwin", "Roscommon"],
+      ["Crawford", "Kalkaska", "Otsego"],
+      ["Chippewa", "Luce", "Mackinac"],
+      ["Alger", "Delta", "Schoolcraft"],
+      ["Dickinson", "Iron", "Menominee"],
+      ["Gogebic", "Ontonagon"],
+      ["Baraga", "Houghton", "Keweenaw"],
+    ],
+    bridges: [
+      ["Emmet", "Mackinac"],
+      ["Cheboygan", "Mackinac"],
+    ],
+  },
   IN: { fips: "18", name: "Indiana", pop: "census", merge: [] },
   OH: { fips: "39", name: "Ohio", pop: "census", merge: [] },
   KY: { fips: "21", name: "Kentucky", pop: "census", merge: [] },
