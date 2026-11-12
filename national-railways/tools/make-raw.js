@@ -237,8 +237,9 @@ async function canadaRaw() {
   // Municipalities (census subdivisions) of the province, by name: there can be two with one name
   const csds = await statcan("98100002");
   const byName = {};
+  const areaCol = csds.data[0].findIndex((h) => /Land area/i.test(h));
   for (const r of csds.data.slice(1))
-    if (r[2] && r[2].slice(4, 9) === "A0005" && r[2].slice(9, 11) === SGC) (byName[r[1]] ||= []).push({ code: r[2].slice(-7), pop: +r[4] });
+    if (r[2] && r[2].slice(4, 9) === "A0005" && r[2].slice(9, 11) === SGC) (byName[r[1]] ||= []).push({ code: r[2].slice(-7), pop: +r[4], km2: +r[areaCol] });
   // Population centres in the province (their parent in the table's metadata is the province)
   const pcs = await statcan("98100011");
   const memberCol = pcs.meta.findIndex((r) => r[0] === "Dimension ID" && r[1] === "Member Name");
@@ -265,7 +266,17 @@ async function canadaRaw() {
       // municipality's population; communities (often First Nations) and localities can share a
       // town's name without being it
       const isMuni = !["community", "locality"].includes(kind);
-      const munis = isMuni ? byName[g.name] || [] : [];
+      let munis = isMuni ? byName[g.name] || [] : [];
+      // Two municipalities with one name: first keep the one in the place's own census division
+      // (Manitoba's city of Thompson, not the rural municipality of Thompson far south); then a
+      // city, town or village is the densest one, not the rural municipality around it (the city of
+      // Portage la Prairie inside the rural municipality of Portage la Prairie) or a tiny one nearby
+      if (munis.length > 1) {
+        const at = inside || nearestRegion(g.longitude, g.latitude);
+        const here = munis.filter((m) => at.fips.includes(m.code.slice(0, 4)));
+        if (here.length) munis = here;
+      }
+      if (munis.length > 1 && ["city", "town", "village"].includes(kind)) munis = [munis.reduce((a, b) => (b.pop / b.km2 > a.pop / a.km2 ? b : a))];
       // A municipality's region comes from its census code (first 4 digits: its census division)
       // when it has one: places on the coast can sit just off the simplified outline
       const byCode = munis.length === 1 && regions.find((r) => r.fips.includes(munis[0].code.slice(0, 4)));
