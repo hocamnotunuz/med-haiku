@@ -220,7 +220,28 @@ const STATES = {
       ["Division No. 5", "Division No. 9", "Division No. 10"],
     ],
   },
-  MB: { country: "CAN", name: "Manitoba", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  // Reviewed by the Manitoba pack agent (packs/MB/NOTES.md): 23 census divisions to 13 regions. The
+  // far north looks to Thompson (the Hudson Bay Railway runs on to Gillam and Churchill); the
+  // Parkland around Dauphin; the Yellowhead corridor (Neepawa); the Trans-Canada west of Winnipeg
+  // to Portage la Prairie; the southwest corner; the Pembina Valley; the Interlake (Highway 6
+  // north); Eastman and the Winnipeg River. Winnipeg, Steinbach, Brandon and Selkirk stay alone
+  // (over 50,000), and so does The Pas (22,000): it has The Pas and Flin Flon, sits 305 km from
+  // Thompson, and is where the Hudson Bay Railway starts.
+  MB: {
+    country: "CAN",
+    name: "Manitoba",
+    pop: "statcan",
+    merge: [
+      ["Division No. 22", "Division No. 23"],
+      ["Division No. 16", "Division No. 17", "Division No. 20"],
+      ["Division No. 8", "Division No. 15"],
+      ["Division No. 9", "Division No. 10"],
+      ["Division No. 5", "Division No. 6"],
+      ["Division No. 3", "Division No. 4"],
+      ["Division No. 14", "Division No. 18", "Division No. 19"],
+      ["Division No. 1", "Division No. 12"],
+    ],
+  },
   ON: { country: "CAN", name: "Ontario", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   QC: { country: "CAN", name: "Quebec", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NB: { country: "CAN", name: "New Brunswick", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
@@ -278,16 +299,30 @@ const CD_KIND = { CTY: "County", CT: "County", UC: "Counties", RM: "Region", DM:
 const numbered = (name) => /^(Division No\.|Region) \d+$/.test(name);
 // The biggest municipality of a census division (2021 population), for naming numbered ones
 let csdCache = null;
+// Census subdivision types that can be countryside around a town: rural municipalities
+// (Manitoba's "Rockwood" around Stonewall, "St. Andrews" around Selkirk), municipal districts,
+// special areas, improvement districts and unorganized land. (Some Manitoba "rural municipalities"
+// are a town and its countryside, merged in 2015: Gimli, Killarney - Turtle Mountain.)
+const RURAL_TYPES = new Set(["RM", "MD", "SA", "ID", "NO", "SNO", "UNO"]);
+const URBAN_TYPES = new Set(["CY", "C", "CV", "T", "TV", "V", "VL", "VC", "VN"]); // cities, towns, villages
 function biggestTown(cd) {
   if (!csdCache) {
+    const service = "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/9/query";
+    const list = JSON.parse(fs.readFileSync(download(`${service}?where=1%3D1&outFields=CSDUID,CSDTYPE&returnGeometry=false&f=json`, path.join(CACHE, "canada", "csd-types.json")), "utf8"));
+    if (list.exceededTransferLimit) throw new Error("Census subdivision types: the answer was cut short");
+    const type = Object.fromEntries(list.features.map((f) => [f.attributes.CSDUID, f.attributes.CSDTYPE]));
     csdCache = [];
     for (const r of readCsv(statcanTable("98100002")).slice(1))
-      if (r[2] && r[2].slice(4, 9) === "A0005") csdCache.push({ code: r[2].slice(-7), name: r[1], pop: +r[4] });
+      if (r[2] && r[2].slice(4, 9) === "A0005") csdCache.push({ code: r[2].slice(-7), name: r[1], pop: +r[4], type: type[r[2].slice(-7)] });
   }
   // (not unorganized areas, subdivisions, rural municipalities like "Sherwood No. 159" or reserves "... 135")
   // (rural municipalities don't count: "Clearwater County", "Municipal District of ...")
   const towns = csdCache.filter((c) => c.code.startsWith(cd) && !/Unorganized|Subd\.|No\. \d+$| \d+[A-Z]?$|County|Municipal District|Improvement District|Special Area/.test(c.name));
-  return towns.sort((a, b) => b.pop - a.pop)[0];
+  towns.sort((a, b) => b.pop - a.pop);
+  // The biggest, unless it's countryside and a city, town or village has at least half its people
+  const big = towns[0];
+  const town = big && RURAL_TYPES.has(big.type) && towns.find((c) => URBAN_TYPES.has(c.type) && c.pop >= big.pop / 2);
+  return town || big;
 }
 function download(url, file) {
   if (fs.existsSync(file) && fs.statSync(file).size > 0) return file;
@@ -378,12 +413,11 @@ function canadaTopology(codes) {
       const cds = list.features.map((f) => f.attributes.CDUID).sort();
       const all = cds.flatMap((cd) => JSON.parse(fs.readFileSync(download(`${service}${where(`CDUID='${cd}'`)}&f=geojson&geometryPrecision=5&returnGeometry=true`, path.join(CACHE, "canada", "cd", `${cd}.json`)), "utf8")).features);
       // Lighter before the shared borders are worked out (the full files are too big for that):
-      // points rounded to 4 decimals (about 10 m; both sides of a shared border round the same
-      // way, so it stays shared), repeats dropped, and islets under 25 km² left out (each
-      // division keeps its biggest piece). If rounding makes an outline touch itself (two of
-      // its points land on the same spot), that division keeps every point as it came: a
-      // touching outline splits into pieces later (Alberta lost 970 km² between two divisions
-      // when points were rounded to 3 decimals)
+      // repeated points dropped and islets under 25 km² left out (each division keeps its biggest
+      // piece). Every division keeps its points as they came (5 decimals, about 1 m), so both
+      // sides of a shared border stay exactly the same. (Rounding to 4 decimals made some
+      // outlines touch themselves, which splits them later, and rounding only the others broke
+      // the borders between the two kinds: Manitoba's Division 19 and 22 stopped being neighbours.)
       const lighter = (ring, k) => {
         const out = [];
         for (const [x, y] of ring) {
@@ -393,11 +427,9 @@ function canadaTopology(codes) {
         }
         return out;
       };
-      const touches = (ring) => new Set(ring.slice(1).map((q) => q.join())).size < ring.length - 1;
       for (const f of all) {
         const raw = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
-        let k = 1e4;
-        if (raw.some((poly) => poly.some((ring) => touches(lighter(ring, k))))) k = 1e5;
+        const k = 1e5;
         const polys = raw.map((poly) => poly.map((ring) => lighter(ring, k)).filter((ring) => ring.length >= 4));
         const areas = polys.map((poly) => (poly.length ? kmArea(poly[0]) : 0));
         const biggest = Math.max(...areas);
