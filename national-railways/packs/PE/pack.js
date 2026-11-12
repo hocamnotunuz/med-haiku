@@ -37,7 +37,7 @@ NR.addPack({
     { id: "CAV", name: "Cavendish", county: "pe-queens", lat: 46.49, lon: -63.38, scenic: true, type: "coast", size: 1 },
     // Prince Edward Island National Park: the dunes and red-sand beaches of the north shore, at
     // Brackley Beach (the park's point, 1 km north, is in the sea on the map).
-    { id: "PNP", name: "PEI National Park", county: "pe-queens", lat: 46.42, lon: -63.19, scenic: true, type: "coast", size: 1 },
+    { id: "PNP", name: "PEI National Park", county: "pe-queens", lat: 46.41, lon: -63.19, scenic: true, type: "coast", size: 1 },
     // Wood Islands: where the ferry to Caribou, Nova Scotia leaves.
     { id: "WDI", name: "Wood Islands", county: "pe-queens", lat: 45.97, lon: -62.75, type: "coast", size: 1 },
     // Prince

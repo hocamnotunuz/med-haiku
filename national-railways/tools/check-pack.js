@@ -169,7 +169,10 @@ function check(code) {
     if (!ok) warn("the starting counties should join up (each next to an earlier one)");
     // In "A type of place" (the default style) passengers only travel to a different type of
     // place, so a start where every station is the same type gives the first track no riders
-    const startTypes = new Set(p.stations.filter((x) => x.main && p.start.includes(x.county)).map((x) => x.type));
+    // (a start of one region also opens its nearest town of another type: js/game.js, newGame)
+    const mains = p.stations.filter((x) => x.main && p.start.includes(x.county));
+    const firstTown = mains.length === 1 ? (p.towns || []).filter((t) => p.start.includes(t.county) && t.type !== mains[0].type).sort((a, b) => miles(a, mains[0]) - miles(b, mains[0]))[0] : null;
+    const startTypes = new Set([...mains, ...(firstTown ? [firstTown] : [])].map((x) => x.type));
     if (startTypes.size < 2) err(`the starting counties' main stations are all "${[...startTypes][0]}": they need at least two types of place, or the first track carries nobody`);
   }
 

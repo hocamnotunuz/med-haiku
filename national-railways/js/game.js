@@ -609,6 +609,13 @@
     s.money = T.nationalStart; // the home country's national money
     syncOpen(s);
     NR.START_COUNTIES.forEach((id) => ownCounty(s, id, true));
+    // A start of one region (Yukon) has one main station: its nearest town of another type opens
+    // with it, so the first track has riders.
+    if (s.stations.length === 1) {
+      const first = city(s.stations[0].id);
+      const town = NR.townPool(s).filter((t) => t.type !== first.type).sort((a, b) => miles(a, first) - miles(b, first))[0];
+      if (town) addStation(s, town.id, true);
+    }
     openMoreStates(s); // (a start that is the whole state, like Prince Edward Island's, opens its neighbors)
     rt.dirty = true;
     rt.events.length = 0;
