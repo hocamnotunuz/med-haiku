@@ -359,7 +359,18 @@ const STATES = {
       "Communauté maritime des Îles-de-la-Madeleine": "Îles-de-la-Madeleine",
     },
   },
-  NB: { country: "CAN", name: "New Brunswick", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  NB: {
+    country: "CAN",
+    name: "New Brunswick",
+    pop: "statcan",
+    // The Confederation Bridge (Cape Jourimain to Borden-Carleton) and the Saint John-Digby ferry
+    // (each counts once Prince Edward Island or Nova Scotia is in the game)
+    bridges: [
+      ["Westmorland", "PE:Prince"],
+      ["Saint John", "NS:Digby"],
+    ],
+    merge: [],
+  },
   NS: { country: "CAN", name: "Nova Scotia", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   PE: { country: "CAN", name: "Prince Edward Island", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NL: { country: "CAN", name: "Newfoundland and Labrador", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
