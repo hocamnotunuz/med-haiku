@@ -56,3 +56,34 @@ Second variant: Calhoun-Clarendon-Williamsburg (76k) with Orangeburg alone; con:
 - Some "places" in the list (Burnettown, Pawleys Island 131, Plum Branch 79) are tiny; use only larger towns as stations.
 - Neighbour lists look symmetrical and plausible; no GA link missing seen (Aiken-Richmond, Hampton-Effingham, Jasper-Chatham present). Charleston/Berkeley/Dorchester and the Horry-Georgetown coast need no bridges.
 - Not checked visually: ring shapes in map.js (not printed per brief).
+
+## Pack build (phase 2)
+
+32 main stations (one per region), 47 towns, 0 passes, 8 bridges, 0 bays, 4 levels (Upstate, Midlands, Pee Dee and Grand Strand, Lowcountry), biomes forest and wooded (no dry). Populations and coordinates come from packs/SC/raw; station comments in pack.js give the Census place populations. Ids were generated to be unique across every packs/*/pack.js (the checker confirms).
+
+### Judgment calls
+- **Start:** Greenville (526k, the biggest), Anderson and Pickens (both touch Greenville and each other). Types metro, farm, mountain, so the first track (Greenville-Easley, 13 mi) has riders. A Charleston start (Charleston, Berkeley, Dorchester) would also work but Greenville is the biggest.
+- **Colleton-Hampton-Jasper:** Walterboro (central, I-95 and US-17A, the Colleton seat) not Hardeeville (the biggest, 45 miles away in the Georgia corner). Hardeeville, Ridgeland and Hampton are towns, so the I-95 and US-17 link to Savannah stays open.
+- **Clarendon-Williamsburg:** Manning (biggest, on I-95, US-301, Lake Marion); Kingstree is a town.
+- **Beaufort:** Hilton Head Island (biggest, resort island). Beaufort and Bluffton are towns. The map's land runs continuously to the island, so no bay or bridge is needed; no Hilton Head bridge was added.
+- **Aiken:** Aiken town (biggest). North Augusta (24k) is a town at 33.53, -81.93, about 4 miles from Augusta's station (33.47, -81.97) across the Savannah.
+- **Columbia:** at the Statehouse (34.00, -81.03). The Census point is 7 miles east. Columbia Metropolitan Airport is actually in Lexington County (West Columbia/Cayce); listed on Richland as the capital's airport (CAE, a mid-size airport; remove if the bar is higher).
+- **Rock Hill** at downtown; Charlotte's future station (Uptown, 35.23, -80.84) is about 22 miles away, so the 4-mile spacing is not an issue.
+- **Charleston** at the downtown peninsula (32.78, -79.93). Port of Charleston and Charleston International (CHS airport, in North Charleston) are real. Sizes: Greenville, Richland, Charleston, Spartanburg and Horry are 3; the rest follow the PACKS.md guide, rural groups are 1.
+- **Lexington** (town) rather than West Columbia or Cayce, which are under 4 miles from the Statehouse.
+- **Airports:** Greenville-Spartanburg (GSP), Columbia (CAE), Charleston (CHS), Myrtle Beach (MYR). Savannah/Hilton Head is Georgia's.
+
+### Scenic places (all real and well known)
+Charleston's historic district (the Charleston station), Hilton Head Island and Myrtle Beach (their stations), Caesars Head State Park (35.11, -82.63) and Table Rock State Park (35.03, -82.70) in the Blue Ridge Escarpment, Cowpens National Battlefield (Cherokee County, National Park Service), Congaree National Park (33.79, -80.78, Richland County, NPS), Brookgreen Gardens (33.52, -79.10, Georgetown County, Murrells Inlet), Kiawah Island (32.61, -80.08), Middleton Place (32.90, -80.14, Dorchester County, on the Ashley River). Fort Sumter is on a harbor island that is water on the map, so it is not a point.
+
+### Bridges (well known; points are within a mile or two of the real structure)
+Arthur Ravenel Jr. Bridge, Don Holt Bridge (I-526) and the US-17 Ashley River bridge at Charleston; Pinopolis Dam (SC-6, Lake Moultrie); I-95 across Lake Marion (position approximate, on the map's lake); Lake Murray Dam (SC-6); Gervais Street Bridge (Congaree, Columbia); the US-501 Waccamaw bridge at Conway. The Savannah crossings are Georgia's (Fifth Street Bridge, Augusta; Houlihan Bridge, US-17; Hartwell, Russell and Thurmond dams). A Woods Memorial Bridge (Beaufort) point was dropped because the map has no water there.
+
+### Passes
+None: the Blue Ridge edge is only along the North Carolina line and the checker finds no mountains on any line; Caesars Head and Sassafras were not needed.
+
+### Reachability (NR.blockedReason in Gentle and Tough)
+Every main station reaches 3 or more neighbouring stations (Myrtle Beach 2, Hilton Head 1: its only neighbour is Colleton-Hampton-Jasper), and every town links to its main station, in both modes. The one blocked pair in Tough is Lexington-Newberry, across Lake Murray (4 miles, the dam is 5 miles from the line); both have other open neighbours (Columbia, Aiken...), and I-26 goes through Columbia. Chains open in both modes: I-26 (Greenville, Spartanburg, Newberry, Columbia, Orangeburg, Summerville, Charleston), I-95 (Savannah, Hardeeville, Walterboro, Orangeburg, Manning, Florence, Dillon), I-20 (Augusta, Aiken, Lexington, Columbia, Camden, Florence), I-77 (Columbia, Chester, Rock Hill), US-17 coast (Savannah to Myrtle Beach) and the Upstate (Greenwood, Laurens, Greenville, Easley, Seneca, Anderson). Georgia: Hartwell, Elberton, Augusta and Savannah all link to South Carolina stations; Toccoa-Anderson and Royston-Anderson are blocked in Tough by Lake Hartwell (no I-85 bridge point was added since its position is uncertain), Hartwell-Anderson is open.
+
+### Checks
+`node tools/check-pack.js SC`: passed, 0 errors, 0 warnings. All packs passed. `node tools/test-pack.js SC`: PASSED, 17 passed, 0 warnings, 0 failed. Screenshot SC-arcade-light.png: the start (Greenville, Anderson, Pickens) and the first track Greenville-Easley look right.
