@@ -286,6 +286,11 @@ The online game stays at version 38 (California to British Columbia) until **eve
 ### Size
 About 57 more packs, two agent phases each. One at a time that is roughly 35–45 hours of agent work; the tokens add up to about 25 million.
 
+### The owner's decisions for this (settled)
+- **One agent at a time**, as before.
+- **City maps before publishing:** the 36 Tier 1 city maps (section 6) are made after the states and provinces, and before the single publish.
+- **One report at the end** (no check-ins in between).
+
 ## Appendix: brief for a pack agent (template)
 
 > You are building the **{STATE}** pack for National Railways to the standard in `PLAN-north-america.md` section 1.
