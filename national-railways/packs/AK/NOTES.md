@@ -246,7 +246,7 @@ The rings stay a few miles off the main shores, and land inside them is still la
 
 **Bridges:**
 - **Mears Memorial Bridge (Nenana),** 64.57, -149.08 (Wikipedia, 64.5671, -149.0786): the Alaska Railroad over the Tanana.
-- **Dropped:** the Yukon River (E. L. Patton) Bridge, because the map's Yukon has a gap there (see "For the main agent"). The Million Dollar Bridge (60.67, -144.75), because it is 5.5 mi from the map's Copper River, which ends upstream. Both tripped the checker's "far from water" warning.
+- **Dropped, then restored by the main agent:** the Yukon River (E. L. Patton) Bridge. The map's Yukon had a gap there (see "For the main agent"); the main agent fixed `tools/build-terrain.js` (river stretches were told apart by their first point only, so a stray two-point piece at Fort Yukon hid the Yukon Flats stretch), rebuilt Alaska's terrain and listed the bridge on the map's river, 2 mi east of the real one. **Dropped:** the Million Dollar Bridge (60.67, -144.75), because it is 5.5 mi from the map's Copper River, which ends upstream. Both tripped the checker's "far from water" warning.
 
 ### Reachability (`NR.blockedReason`, Gentle and Tough)
 
@@ -315,7 +315,7 @@ Checked by loading the game files as `tools/check-pack.js` does, plus `js/geogra
   - The pass and ferry marks show near Anchorage.
 
 ### For the main agent
-1. **The map's Yukon River has a gap** from the Canadian border (64.8, -141.1) to Tanana (65.2, -152.0). The whole Yukon Flats section is missing from `terrain.js`'s rivers, so lines across it pay no river crossing, and the Dalton's Yukon River Bridge could not be listed. The Copper River line also stops about 5 mi above its delta. This is a `tools/build-terrain.js` matter.
+1. **(Fixed by the main agent: the stretch is back, see Bridges.) The map's Yukon River had a gap** from the Canadian border (64.8, -141.1) to Tanana (65.2, -152.0). The whole Yukon Flats section is missing from `terrain.js`'s rivers, so lines across it pay no river crossing, and the Dalton's Yukon River Bridge could not be listed. The Copper River line also stops about 5 mi above its delta. This is a `tools/build-terrain.js` matter.
 2. **The northern panhandle in Tough** (Juneau, Petersburg, Wrangell, Hoonah, Gustavus) reaches the rest of the game only through Ketchikan and BC. It depends on Wrangell's nudged point (see Towns): with the downtown point it would be cut off in Tough.
 3. **Haines–Haines Junction (the Haines Highway) is blocked in both modes** (46 mi of the Coast Mountains). Chilkat Pass is in BC, 18 mi from the line. Haines–Whitehorse is open instead.
 4. **Kluane Lake blocks Tok–Haines Junction in Tough.** It is in Yukon's terrain; Northway–Whitehorse is the Tough route.

@@ -444,8 +444,14 @@ function buildState(code) {
       let part = [];
       let name = nameAt(line[0]);
       const flush = () => {
-        if (part.length > 1 && part.some(([x, y]) => onState(x, y))) {
-          const key = name + ":" + flat([part[0]]).join(",");
+        // (a stretch is known by both its ends: Natural Earth has stray two-point pieces that start
+        // where a real stretch starts, like the Yukon's at Fort Yukon. Pieces under about a kilometre
+        // are left out: the game knows a stretch by its name and first point, so a stub would hide
+        // the real stretch)
+        const ends = part.length > 1 ? flat([part[0], part[part.length - 1]]) : [];
+        const length = part.reduce((n, p, i) => (i ? n + Math.hypot(p[0] - part[i - 1][0], p[1] - part[i - 1][1]) : 0), 0);
+        if (part.length > 1 && length >= 0.01 && part.some(([x, y]) => onState(x, y))) {
+          const key = name + ":" + ends.join(",");
           if (!seen.has(key)) {
             seen.add(key); // the same river can come from both files: one copy
             rivers.push({ id: idOf(name, part[0][0], part[0][1]), name, line: flat(simplify(part, 0.006)) });

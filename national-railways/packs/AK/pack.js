@@ -272,6 +272,9 @@ NR.addPack({
     ["Whittier–Cordova ferry (Orca Bay)", 60.6, -146.4],
     // The Alaska Railroad's bridge over the Tanana at Nenana (the Mears Memorial Bridge)
     ["Mears Memorial Bridge (Nenana)", 64.57, -149.08],
+    // The Dalton Highway's bridge over the Yukon (the E. L. Patton Yukon River Bridge, 65.88 N
+    // 149.72 W), on the map's river 2 mi east of the real one
+    ["E. L. Patton Yukon River Bridge", 65.89, -149.66],
   ],
   // Cartoon look: forest = trees even on the flats; wooded = trees on the hills;
   // dry = sand, cacti or sagebrush. Regions not listed are plain land with hills and peaks.
