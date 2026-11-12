@@ -260,10 +260,15 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 
 The online game stays at version 38 (California to British Columbia) until **every** province, territory and state is done, checked and tested. Then it is published once. Work is still saved to GitHub as it goes (that is only the safety copy).
 
+**Version 38 as a separate demo** (the owner's request): `demos/national-railways-v38/` is a frozen copy of what was published as version 38 (commit `b731b0d`, every file byte for byte), published on its own as "National Railways Demo (v38)": https://claude.ai/artifact/P1LgLnWH2NL8LJ5F46ojVw. Nothing ever edits that folder or that artifact. The tag `v38-demo` was made on that commit, but this session can only push its own branch (GitHub answered 403 to the tag), so the owner adds the tag on GitHub. **Version 39** is the finished North America: it goes to the main artifact (https://claude.ai/artifact/B3xxM73EELf8PkLpCJkjMj) once everything is done, with the version number updated wherever the game and its docs show it, the README saying what v39 adds (all of Canada and the US, the city maps, the fixes found along the way), and the tag `v39`.
+
+**Models:** from Missouri on, the pack agents run on Sonnet 5.5, while the main session (reviews, spot-checks, tool fixes, commits) stays on Opus 5.5. Every Canadian pack and every state through Iowa was built by Opus pack agents.
+
 ### Order
 1. **Canada:** Alberta → Saskatchewan → Manitoba → Ontario → Quebec → New Brunswick → Nova Scotia → Prince Edward Island → Newfoundland and Labrador → Yukon → Northwest Territories → Nunavut (**all done**). The territories are a few huge regions, as decided: Yukon is one, the Northwest Territories four.
 2. **US West:** Idaho, Montana, Wyoming, Utah, Colorado, New Mexico, Alaska (opens from Yukon and British Columbia) (**all done**; the group check passed: every game test and pack test, and with all 25 packs loaded (489 regions, 1,421 places) loading takes 0.1–0.25 s, memory 40–114 MB, 60 frames a second).
 3. **Plains & Texas:** North Dakota, South Dakota, Nebraska, Kansas, Oklahoma, Texas, Minnesota, Iowa.
+3a. (**Plains & Texas all done**, checked as a group: see below.)
 4. **Midwest & South Central:** Missouri, Arkansas, Louisiana, Wisconsin, Illinois, Michigan, Indiana, Ohio.
 5. **South:** Kentucky, Tennessee, Mississippi, Alabama, Georgia, Florida, South Carolina, North Carolina.
 6. **Mid-Atlantic:** Virginia, West Virginia, Maryland (with DC), Delaware, Pennsylvania, New Jersey, New York, Connecticut.

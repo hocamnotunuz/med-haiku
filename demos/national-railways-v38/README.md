@@ -8,8 +8,9 @@ of Los Angeles, San Francisco, San Diego, Sacramento and San Jose.
   full hash b731b0d32418dc333e0ca716ff48df49222dd657, the `national-railways/` folder). Every file here is that commit's file, byte for byte, and
   matches what was published as version 38 (40 files; the published index.html only adds the page
   wrapper the artifact host puts around every page).
-- **Published separately** as the artifact "National Railways Demo (v38)". That artifact is never
-  updated.
+- **Published separately** as the artifact "National Railways Demo (v38)":
+  https://claude.ai/artifact/P1LgLnWH2NL8LJ5F46ojVw (its page title reads "National Railways Demo
+  (v38)"; every other byte is as here). That artifact is never updated.
 - **Frozen:** nothing may edit this folder: no tool, no pack agent, no later change. The game
   keeps growing in `national-railways/` (version 39: all of Canada and the US).
 
