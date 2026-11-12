@@ -17,7 +17,7 @@ window.NR = window.NR || {};
   "use strict";
   const NR = window.NR;
   // Every pack, in load order (the order of stations and towns follows it).
-  NR.PACK_LIST = ["CA", "NV", "AZ", "OR", "WA", "BC", "AB", "SK", "MB", "ON", "QC", "NB", "NS", "PE", "NL", "YT", "NT", "NU", "ID", "MT", "WY", "UT", "CO", "NM", "AK", "ND"];
+  NR.PACK_LIST = ["CA", "NV", "AZ", "OR", "WA", "BC", "AB", "SK", "MB", "ON", "QC", "NB", "NS", "PE", "NL", "YT", "NT", "NU", "ID", "MT", "WY", "UT", "CO", "NM", "AK", "ND", "SD"];
   // The countries. Each has its own national money in its own currency, and the two currencies
   // are always worth the same (1 Freedom Buck = 1 Maple Coin), so nothing ever needs converting.
   // A pack says which country it is in with `country` (the US when left out).
