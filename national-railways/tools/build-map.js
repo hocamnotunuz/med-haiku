@@ -170,7 +170,24 @@ const STATES = {
       ["Big Horn", "Rosebud", "Treasure"],
     ],
   },
-  WY: { fips: "56", name: "Wyoming", pop: "census", merge: [] },
+  // Reviewed by the Wyoming pack agent (packs/WY/NOTES.md): 23 counties to 15 regions. Wyoming's
+  // Black Hills; the east foot of the Bighorns; the Bighorn Basin; the Green River; the southwest
+  // corner on I-80; the North Platte valley; Douglas and Lusk. Campbell (Gillette), Albany (Laramie),
+  // Fremont (the Wind River Basin), Park (Cody), Teton (Jackson) and Carbon (Rawlins, on I-80) stay alone.
+  WY: {
+    fips: "56",
+    name: "Wyoming",
+    pop: "census",
+    merge: [
+      ["Crook", "Weston"],
+      ["Johnson", "Sheridan"],
+      ["Big Horn", "Hot Springs", "Washakie"],
+      ["Sublette", "Sweetwater"],
+      ["Lincoln", "Uinta"],
+      ["Goshen", "Platte"],
+      ["Converse", "Niobrara"],
+    ],
+  },
   UT: { fips: "49", name: "Utah", pop: "census", merge: [] },
   CO: { fips: "08", name: "Colorado", pop: "census", merge: [] },
   NM: { fips: "35", name: "New Mexico", pop: "census", merge: [] },
