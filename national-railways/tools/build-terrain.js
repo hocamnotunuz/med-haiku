@@ -72,6 +72,9 @@ const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottaw
 // Natural Earth rivers misnamed, by river number: the Snake (from Pasco up through Idaho to
 // Wyoming) is labelled "Columbia" as river 103 (the Columbia itself is river 64)
 const RIVER_FIX = { 103: "Snake" };
+// ...and a river that runs on under another's name: the Madison (river 7) carries on down the
+// Missouri from Three Forks (45.93° N) to Canyon Ferry Lake
+const RIVER_SPLIT = { 7: { north: 45.93, name: "Missouri" } };
 
 // ---------- Load the game's map and cities ----------
 const ctx = {};
@@ -431,9 +434,12 @@ function buildState(code) {
   for (const f of RIVER_FEATURES) {
     const neName = f.properties.name || f.properties.NAME;
     if (!RIVERS.includes(neName) || !/river/i.test(f.properties.featurecla || "")) continue;
-    const name = RIVER_FIX[f.properties.rivernum] || RIVER_NAMES[neName] || neName;
+    const base = RIVER_FIX[f.properties.rivernum] || RIVER_NAMES[neName] || neName;
+    const split = RIVER_SPLIT[f.properties.rivernum];
+    const nameAt = (p) => (split && p[1] > split.north ? split.name : base);
     for (const line of lines(f.geometry)) {
       let part = [];
+      let name = nameAt(line[0]);
       const flush = () => {
         if (part.length > 1 && part.some(([x, y]) => onState(x, y))) {
           const key = name + ":" + flat([part[0]]).join(",");
@@ -445,6 +451,12 @@ function buildState(code) {
         part = [];
       };
       for (const p of line) {
+        if (nameAt(p) !== name) {
+          // the river takes its other name here: the stretch so far ends at this point
+          if (inBox(p[0], p[1])) part.push(p);
+          flush();
+          name = nameAt(p);
+        }
         if (inBox(p[0], p[1])) part.push(p);
         else flush();
       }
