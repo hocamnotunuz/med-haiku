@@ -1,0 +1,14 @@
+// National Railways pack: Alaska.
+// Everything hand-made for one state: main stations, towns, levels, mountain passes, bridges,
+// and where the forests and deserts are. The county borders come from map.js and the
+// mountains, lakes and rivers from terrain.js. What each field means: PACKS.md. Judgment calls
+// and sources: packs/AK/NOTES.md. Cities and populations: U.S. Census Bureau (2020), packs/AK/raw.
+// This starter is filled in by the Alaska pack agent.
+NR.addPack({
+  code: "AK",
+  name: "Alaska",
+  stations: [],
+  towns: [],
+  passes: [],
+  bridges: [],
+});

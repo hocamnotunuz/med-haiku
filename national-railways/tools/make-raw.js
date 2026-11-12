@@ -132,6 +132,20 @@ async function usRaw() {
   const col = (name) => head.indexOf(name);
   const countyPop = {};
   for (const r of rows.slice(1)) if (r[col("SUMLEV")] === "050" && r[col("STATE")] === FIPS) countyPop[r[col("STATE")] + r[col("COUNTY")]] = { name: r[col("CTYNAME")], pop: +r[col("ESTIMATESBASE2020")] };
+  // Counties that changed after the map's (2017) boundaries, as in build-map.js: Alaska's
+  // Valdez-Cordova split in 2019 (Chugach plus Copper River), and Connecticut's old counties
+  // (planning regions since 2022) come from the 2010–2020 county totals (POPESTIMATE2020)
+  const SPLIT = { "02261": { name: "Valdez-Cordova Census Area", parts: ["02063", "02066"] } };
+  for (const [was, { name, parts }] of Object.entries(SPLIT))
+    if (was.slice(0, 2) === FIPS && !countyPop[was] && parts.every((f) => countyPop[f])) countyPop[was] = { name, pop: parts.reduce((n, f) => n + countyPop[f].pop, 0) };
+  if (regions.some((r) => r.fips.some((f) => !countyPop[f]))) {
+    const old = await get(`${base}/programs-surveys/popest/datasets/2010-2020/counties/totals/co-est2020-alldata.csv`, "co-est2020-alldata.csv");
+    const orows = csv(fs.readFileSync(old, "latin1"));
+    const ocol = (name) => orows[0].indexOf(name);
+    for (const r of orows.slice(1))
+      if (r[ocol("SUMLEV")] === "050" && r[ocol("STATE")] === FIPS && !countyPop[r[ocol("STATE")] + r[ocol("COUNTY")]])
+        countyPop[r[ocol("STATE")] + r[ocol("COUNTY")]] = { name: r[ocol("CTYNAME")], pop: +r[ocol("POPESTIMATE2020")] };
+  }
   const outCounties = regions.map((r) => ({
     id: r.id,
     name: r.name,
