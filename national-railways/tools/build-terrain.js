@@ -73,6 +73,13 @@ const RIVERS = [
   "Sheyenne", "Heart", "Cannonball", "Belle Fourche", "Loup", "Elk Horn", "Big Blue", "Republican", "Smoky Hill", "Solomon",
   "North Canadian", "Washita", "Verdigris", "Osage", "Nueces", "Guadalupe", "San Antonio", "Crow", "Little Sioux",
   "Wapsipinicon",
+  // The Midwest and South Central
+  "St. Francis", "Little Red", "Black", "Kaskaskia", "Sangamon", "Gasconade", "Meramec", "Current", "Fox", "Wolf",
+  "Menominee", "Muskegon", "Kalamazoo", "St. Joseph", "Tahquamenon", "Great Miami", "Tippecanoe", "Licking", "Calcasieu",
+  "Mermentau", "Amite",
+  // The South
+  "Big Black", "Big Sunflower", "Black Warrior", "Cahaba", "Duck", "Clinch", "French Broad", "Ocmulgee", "Oconee",
+  "Ogeechee", "Satilla", "St. Marys", "Ochlockonee", "New", "Guyandotte", "Conecuh",
 ];
 // Natural Earth spellings to fix
 const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa", "Elk Horn": "Elkhorn" };
