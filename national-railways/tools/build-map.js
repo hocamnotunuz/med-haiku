@@ -14,7 +14,9 @@
 // To add a state: add it to STATES below (FIPS code, name, and either a hand-made `merge`
 // list or `pop` so small counties are merged automatically), run the script with it, then
 // make its pack (see PACKS.md). join: [["Island county", "Mainland county"]] puts a county of
-// islands that no bridge reaches in one region with a mainland county. pop: "census" reads every county's population from the U.S.
+// islands that no bridge reaches in one region with a mainland county. bridges: [["A", "B"]] makes two
+// regions neighbors across water (a bridge or ferry); "NB:Westmorland" names another state's or
+// province's region (that link counts once both are in the game). pop: "census" reads every county's population from the U.S.
 // Census Bureau's county totals (the 2020 census base), downloaded into the cache folder, so
 // nothing is typed by hand.
 //
@@ -155,17 +157,17 @@ const STATES = {
       ["Division No. 14", "Division No. 15"],
     ],
   },
-  SK: { country: "CAN", name: "Saskatchewan", pop: "statcan" },
-  MB: { country: "CAN", name: "Manitoba", pop: "statcan" },
-  ON: { country: "CAN", name: "Ontario", pop: "statcan" },
-  QC: { country: "CAN", name: "Quebec", pop: "statcan" },
-  NB: { country: "CAN", name: "New Brunswick", pop: "statcan" },
-  NS: { country: "CAN", name: "Nova Scotia", pop: "statcan" },
-  PE: { country: "CAN", name: "Prince Edward Island", pop: "statcan" },
-  NL: { country: "CAN", name: "Newfoundland and Labrador", pop: "statcan" },
-  YT: { country: "CAN", name: "Yukon", pop: "statcan" },
-  NT: { country: "CAN", name: "Northwest Territories", pop: "statcan" },
-  NU: { country: "CAN", name: "Nunavut", pop: "statcan" },
+  SK: { country: "CAN", name: "Saskatchewan", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  MB: { country: "CAN", name: "Manitoba", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  ON: { country: "CAN", name: "Ontario", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  QC: { country: "CAN", name: "Quebec", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  NB: { country: "CAN", name: "New Brunswick", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  NS: { country: "CAN", name: "Nova Scotia", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  PE: { country: "CAN", name: "Prince Edward Island", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  NL: { country: "CAN", name: "Newfoundland and Labrador", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  YT: { country: "CAN", name: "Yukon", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  NT: { country: "CAN", name: "Northwest Territories", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  NU: { country: "CAN", name: "Nunavut", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
 };
 
 // ---------- Canadian provinces: regions from each province's own open data ----------
@@ -630,9 +632,18 @@ const regions = [...regionInfo.entries()]
     const near = new Set();
     info.members.forEach((i) => neighbors[i].forEach((j) => near.add(regionKey.get(j))));
     const cfg = STATES[info.state];
-    for (const [a, b] of cfg.bridges || []) {
-      const ra = regionKey.get(find(info.state, a));
-      const rb = regionKey.get(find(info.state, b));
+    // Bridges and ferries that count as borders. A name may be another state's ("NB:Westmorland"):
+    // such a link counts only once that state is in the game too.
+    const where = (name) => {
+      const m = name.match(/^([A-Z]{2}):(.*)$/);
+      if (!m) return regionKey.get(find(info.state, name));
+      return CODES.includes(m[1]) ? regionKey.get(find(m[1], m[2])) : null;
+    };
+    const links = [...(cfg.bridges || []), ...Object.entries(STATES).filter(([code]) => code !== info.state && CODES.includes(code)).flatMap(([code, other]) => (other.bridges || []).filter(([x, y]) => /^[A-Z]{2}:/.test(x + y)).map(([x, y]) => [/^[A-Z]{2}:/.test(x) ? x : `${code}:${x}`, /^[A-Z]{2}:/.test(y) ? y : `${code}:${y}`]))];
+    for (const [a, b] of links) {
+      const ra = where(a);
+      const rb = where(b);
+      if (!ra || !rb) continue;
       if (ra === id) near.add(rb);
       if (rb === id) near.add(ra);
     }
