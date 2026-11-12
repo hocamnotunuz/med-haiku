@@ -433,7 +433,20 @@ const STATES = {
     ],
   },
   YT: { country: "CAN", name: "Yukon", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
-  NT: { country: "CAN", name: "Northwest Territories", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  // Reviewed by the Northwest Territories pack agent (packs/NT/NOTES.md): 6 census regions to 4.
+  // Region 3 (Tlicho, Behchoko) is an enclave inside Region 6, 95 km from Yellowknife on Highway 3;
+  // the Sahtu (Region 2, Norman Wells) has no all-season road, only the winter road from Wrigley in
+  // Region 4. Hay River (South Slave) and Inuvik (the Mackenzie Delta and the Arctic islands) stay
+  // alone, each with its own town and road.
+  NT: {
+    country: "CAN",
+    name: "Northwest Territories",
+    pop: "statcan",
+    merge: [
+      ["Region 3", "Region 6"],
+      ["Region 2", "Region 4"],
+    ],
+  },
   NU: { country: "CAN", name: "Nunavut", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
 };
 
