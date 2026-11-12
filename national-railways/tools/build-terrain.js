@@ -76,7 +76,7 @@ const RIVERS = [
   // The Midwest and South Central
   "St. Francis", "Little Red", "Black", "Kaskaskia", "Sangamon", "Gasconade", "Meramec", "Current", "Fox", "Wolf",
   "Menominee", "Muskegon", "Kalamazoo", "St. Joseph", "Tahquamenon", "Great Miami", "Tippecanoe", "Licking", "Calcasieu",
-  "Mermentau", "Amite",
+  "Mermentau", "Amite", "Atchafalaya River",
   // The South
   "Big Black", "Big Sunflower", "Black Warrior", "Cahaba", "Duck", "Clinch", "French Broad", "Ocmulgee", "Oconee",
   "Ogeechee", "Satilla", "St. Marys", "Ochlockonee", "New", "Guyandotte", "Conecuh",
@@ -87,7 +87,7 @@ const UNNAMED_LAKES = [
   [-93.35, 29.96, "Calcasieu Lake"], [-90.25, 29.77, "Lake Salvador"],
 ];
 // Natural Earth spellings to fix
-const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa", "Elk Horn": "Elkhorn" };
+const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa", "Elk Horn": "Elkhorn", "Atchafalaya River": "Atchafalaya" };
 // Natural Earth rivers misnamed, by river number: the Snake (from Pasco up through Idaho to
 // Wyoming) is labelled "Columbia" as river 103 (the Columbia itself is river 64)
 const RIVER_FIX = { 103: "Snake" };
