@@ -256,6 +256,17 @@ async function canadaRaw() {
   // Municipalities (census subdivisions) of the province, by name: there can be two with one name
   const csds = await statcan("98100002");
   const byName = {};
+  // The forms a census name can be found by: as written; its English part ("Greater Sudbury /
+  // Grand Sudbury"); for a city, town or village, without what follows a comma or in brackets
+  // ("Woody Point, Bonne Bay", "Seal Cove (Fortune Bay)", "Lloydminster (Part)"; not "Sudbury,
+  // Unorganized" or "Sechelt (Part)", a First Nations district); and every form with tidy hyphens
+  // and apostrophes ("Happy Valley - Goose Bay" for "Happy Valley-Goose Bay")
+  const tidy = (n) => n.replace(/\s*-\s*/g, "-").replace(/[\u2019`]/g, "'");
+  const nameForms = (n, type) => {
+    const forms = [n, n.replace(/ \/ .*$/, "")];
+    if (URBAN.has(type)) forms.push(n.replace(/, .*$/, ""), n.replace(/ \([^)]*\)$/, ""));
+    return [...new Set([...forms, ...forms.map(tidy)])];
+  };
   const areaCol = csds.data[0].findIndex((h) => /Land area/i.test(h));
   // Each subdivision's type (city, town, village, parish, rural municipality...), from Statistics
   // Canada's boundary service
@@ -268,7 +279,7 @@ async function canadaRaw() {
   for (const r of csds.data.slice(1))
     if (r[2] && r[2].slice(4, 9) === "A0005" && r[2].slice(9, 11) === SGC)
       // (a bilingual name is listed under its English part too: "Greater Sudbury / Grand Sudbury")
-      for (const name of new Set([r[1], r[1].replace(/ \/ .*$/, "")])) (byName[name] ||= []).push({ code: r[2].slice(-7), pop: +r[4], km2: +r[areaCol], type: csdType[r[2].slice(-7)] });
+      for (const name of nameForms(r[1], csdType[r[2].slice(-7)])) (byName[name] ||= []).push({ code: r[2].slice(-7), pop: +r[4], km2: +r[areaCol], type: csdType[r[2].slice(-7)] });
   // Population centres in the province (their parent in the table's metadata is the province)
   const pcs = await statcan("98100011");
   const memberCol = pcs.meta.findIndex((r) => r[0] === "Dimension ID" && r[1] === "Member Name");
@@ -280,6 +291,8 @@ async function canadaRaw() {
   const pcPop = {};
   const pcPart = {}; // "Sydney" -> { pop, of: "Cape Breton - Sydney" } (centres named after two places)
   for (const r of pcs.data.slice(1)) if (r[2] && r[2].slice(4, 9) === "S0510" && pcCodes.has(r[2].slice(9))) pcPop[r[1]] = +r[4];
+  for (const [name, pop] of Object.entries(pcPop)) if (!(tidy(name) in pcPop)) pcPop[tidy(name)] = pop;
+  const pcOf = (name) => (pcPop[name] !== undefined ? pcPop[name] : pcPop[tidy(name)]);
   for (const [name, pop] of Object.entries(pcPop))
     for (const part of name.includes(" - ") ? name.split(" - ") : []) if (!(part in pcPop) && !pcPart[part]) pcPart[part] = { pop, of: name };
 
@@ -298,7 +311,7 @@ async function canadaRaw() {
       // municipality's population; communities (often First Nations) and localities can share a
       // town's name without being it
       const isMuni = !["community", "locality"].includes(kind);
-      let munis = isMuni ? byName[g.name] || [] : [];
+      let munis = isMuni ? byName[g.name] || byName[tidy(g.name)] || [] : [];
       // A municipality far away is a different place with the same name (a "Perth" in Perth County
       // isn't the town of Perth, 300 km east): keep only those in the place's region or next to it
       let farOnly = false; // (then a population centre with the name is far away too)
@@ -328,11 +341,11 @@ async function canadaRaw() {
       const place = { name: g.name, kind, lat: +g.latitude.toFixed(4), lon: +g.longitude.toFixed(4), county: region.id, offMap: !inside || undefined };
       if (munis.length === 1) Object.assign(place, { pop: munis[0].pop, popSource: "municipality", csd: munis[0].code });
       else if (munis.length > 1) Object.assign(place, { pop: null, municipalities: munis });
-      else if (pcPop[g.name] !== undefined && !farOnly && (isMuni || !byName[g.name])) Object.assign(place, { pop: pcPop[g.name], popSource: "population centre" });
+      else if (pcOf(g.name) !== undefined && !farOnly && (isMuni || !byName[g.name])) Object.assign(place, { pop: pcOf(g.name), popSource: "population centre" });
       // (a centre named after two places: "Cape Breton - Sydney" for Sydney)
       else if (pcPart[g.name] && !farOnly && (isMuni || !byName[g.name])) Object.assign(place, { pop: pcPart[g.name].pop, popSource: `population centre (${pcPart[g.name].of})` });
       else place.pop = null;
-      if (pcPop[g.name] !== undefined && !farOnly && place.popSource !== "population centre" && isMuni) place.popCentre = pcPop[g.name];
+      if (pcOf(g.name) !== undefined && !farOnly && place.popSource !== "population centre" && isMuni) place.popCentre = pcOf(g.name);
       places.push(place);
     }
   // The same town is often listed twice: as its municipality and as an unincorporated place a
@@ -349,7 +362,7 @@ async function canadaRaw() {
   for (const p of places) {
     if (p.pop || !["locality", "community"].includes(p.kind)) continue;
     const region = regions.find((r) => r.id === p.county);
-    const towns = (byName[p.name] || []).filter((m) => URBAN.has(m.type) && region && region.fips.includes(m.code.slice(0, 4)) && !used.has(m.code));
+    const towns = (byName[p.name] || byName[tidy(p.name)] || []).filter((m) => URBAN.has(m.type) && region && region.fips.includes(m.code.slice(0, 4)) && !used.has(m.code));
     if (towns.length !== 1) continue;
     Object.assign(p, { pop: towns[0].pop, popSource: "municipality (2021)", csd: towns[0].code });
     used.add(towns[0].code);

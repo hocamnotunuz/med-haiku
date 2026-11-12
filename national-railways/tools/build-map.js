@@ -419,7 +419,18 @@ const STATES = {
       ["Division No. 9", "Division No. 10"],
       ["Division No. 1", "NS:Cape Breton"],
     ],
-    merge: [],
+    // Reviewed by the Newfoundland and Labrador pack agent (packs/NL/NOTES.md): 11 divisions to 6
+    // regions along real roads: the Eastern region on the Trans-Canada (Route 210 to the Burin
+    // Peninsula, Route 230 to Bonavista); the Trans-Canada from the Port aux Basques ferry to Bay
+    // St. George; the Viking Trail from Corner Brook to St. Anthony; Central (the Exploits valley,
+    // Gander and Notre Dame Bay); Labrador. St. John's and the Avalon stay alone.
+    merge: [
+      ["Division No. 2", "Division No. 7"],
+      ["Division No. 3", "Division No. 4"],
+      ["Division No. 5", "Division No. 9"],
+      ["Division No. 6", "Division No. 8"],
+      ["Division No. 10", "Division No. 11"],
+    ],
   },
   YT: { country: "CAN", name: "Yukon", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NT: { country: "CAN", name: "Northwest Territories", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
