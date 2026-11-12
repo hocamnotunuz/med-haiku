@@ -595,9 +595,9 @@
     ctx.stroke();
     // Lakes
     ctx.beginPath();
-    G.lakes.forEach((l) => tracePath(ctx, l.ring, true));
+    G.lakes.forEach((l) => [l.ring, ...(l.holes || [])].forEach((ring) => tracePath(ctx, ring, true))); // (islands: holes)
     ctx.fillStyle = colors.sea;
-    ctx.fill();
+    ctx.fill("evenodd");
     ctx.strokeStyle = colors.coast;
     ctx.lineWidth = 1;
     ctx.stroke();

@@ -107,7 +107,7 @@
   function refresh() {
     G = NR.TERRAIN;
     landRings = NR.MAP.land.map((ring) => ({ ring, box: boxOf(ring) }));
-    lakes = G.lakes.map((l) => ({ name: l.name, ring: l.ring, box: boxOf(l.ring) }));
+    lakes = G.lakes.map((l) => ({ name: l.name, ring: l.ring, box: boxOf(l.ring), islands: (l.holes || []).map((ring) => ({ ring, box: boxOf(ring) })) }));
     bays = (NR.BAYS || []).map((b) => ({ name: b.name, ring: b.ring, box: boxOf(b.ring) }));
     // Land in a state or country whose exact map isn't loaded (outside the game, or not loaded yet),
     // from the rough outlines in packs/index.js
@@ -119,7 +119,8 @@
   // coastal stations just means track follows the coast.
   const foreignLand = (lon, lat) => outsideLand.some((a) => lon >= a.box[0] && lon <= a.box[2] && lat >= a.box[1] && lat <= a.box[3] && inside(a.rings, lon, lat));
   function waterAt(lon, lat) {
-    const lake = lakes.find((l) => lon >= l.box[0] && lon <= l.box[2] && lat >= l.box[1] && lat <= l.box[3] && inRing(lon, lat, l.ring));
+    // (a lake's islands are land: Manitoulin in Lake Huron)
+    const lake = lakes.find((l) => lon >= l.box[0] && lon <= l.box[2] && lat >= l.box[1] && lat <= l.box[3] && inRing(lon, lat, l.ring) && !inside(l.islands, lon, lat));
     if (lake) return { kind: "lake", name: lake.name };
     if (inside(landRings, lon, lat) || foreignLand(lon, lat)) return null; // our land, or a neighbor's
     const bay = bays.find((b) => lon >= b.box[0] && lon <= b.box[2] && lat >= b.box[1] && lat <= b.box[3] && inRing(lon, lat, b.ring));

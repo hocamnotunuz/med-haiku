@@ -161,7 +161,7 @@
     }
     g.globalCompositeOperation = "lighter";
     g.beginPath();
-    NR.TERRAIN.lakes.forEach((l) => trace(l.ring));
+    NR.TERRAIN.lakes.forEach((l) => [l.ring, ...(l.holes || [])].forEach(trace)); // (islands: holes)
     g.fillStyle = "rgb(0,255,0)";
     g.fill("evenodd");
     const px = g.getImageData(0, 0, cols, rows).data;
@@ -694,7 +694,7 @@
     ctx.lineWidth = zoomW;
     ctx.stroke();
     // Lakes: blue, a lighter band along the shore inside, and an outline
-    lakes(ctx, NR.TERRAIN.lakes.map((l) => l.ring), P);
+    lakes(ctx, NR.TERRAIN.lakes.flatMap((l) => [l.ring, ...(l.holes || [])]), P); // (islands: holes)
     // Mountains, trees and cacti, back to front
     const sizes = BLOCKS.map((n) => n * 0.05 * ppd);
     let li = sizes.findIndex((px) => px < 24);

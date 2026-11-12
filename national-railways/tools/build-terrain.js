@@ -399,7 +399,17 @@ function buildState(code) {
       if (ring.length < 4) continue;
       const name = f.properties.name || f.properties.NAME || "Lake";
       if (lakes.some((l) => l.name === name && Math.abs(l.ring[0] - ring[0][0]) < 0.05)) continue; // listed twice
-      lakes.push({ id: idOf(name, ring[0][0], ring[0][1]), name, ring: flat(ring) });
+      // Part of a bigger lake already listed (Natural Earth's North America file has Georgian Bay
+      // on top of Lake Huron): most of nine points inside the bigger one, off its islands. (Two
+      // lakes on top of each other would show as land where they overlap.) A lake on an island
+      // (Lake Mindemoya on Manitoulin) is kept.
+      const samples = [[cx, cy], ...[0, 1, 2, 3, 4, 5, 6, 7].map((k) => outer[Math.floor((k * outer.length) / 8)]).map(([x, y]) => [cx + (x - cx) * 0.7, cy + (y - cy) * 0.7])];
+      const inLake = (l, x, y) => inRing(x, y, l.ring) && !(l.holes || []).some((h) => inRing(x, y, h));
+      if (lakes.some((l) => samples.filter(([x, y]) => inLake(l, x, y)).length >= 6)) continue;
+      // Its islands of 10 km² or more (Manitoulin in Lake Huron, Hecla in Lake Winnipeg) are land
+      const km2 = (r) => Math.abs(r.reduce((a, [x, y], i) => a + x * r[(i + 1) % r.length][1] - r[(i + 1) % r.length][0] * y, 0) / 2) * 111.32 * 111.32 * Math.cos((r[0][1] * Math.PI) / 180);
+      const holes = poly.slice(1).filter((h) => km2(h) >= 10).map((h) => simplify(h, 0.004)).filter((h) => h.length >= 4).map(flat);
+      lakes.push({ id: idOf(name, ring[0][0], ring[0][1]), name, ring: flat(ring), ...(holes.length ? { holes } : {}) });
     }
   // Rivers: the parts inside this state's box that cross its land
   const rivers = [];

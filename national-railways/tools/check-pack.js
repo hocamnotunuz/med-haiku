@@ -225,7 +225,7 @@ function check(code) {
       if (!near(lat, lon, 10)) err(`${kind} "${name}" is more than 10 miles from ${code}`);
       if (kind === "pass" && heightNear(lon, lat, 2) < 2) warn(`pass "${name}" has no mountains within ~7 miles`);
       if (kind === "bridge") {
-        const lakeMi = milesToEdges(T.lakes.map((l) => l.ring), { lat, lon }, true);
+        const lakeMi = milesToEdges(T.lakes.flatMap((l) => [l.ring, ...(l.holes || [])]), { lat, lon }, true);
         const riverMi = milesToEdges(T.rivers.map((r) => r.line), { lat, lon }, false);
         const coastMi = milesToEdges(NR.MAP.land, { lat, lon }, true);
         const inBay = NR.BAYS.some((b) => inRing(lon, lat, b.ring));
