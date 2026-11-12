@@ -242,7 +242,18 @@ const STATES = {
       ["Division No. 1", "Division No. 12"],
     ],
   },
-  ON: { country: "CAN", name: "Ontario", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  ON: {
+    country: "CAN",
+    name: "Ontario",
+    pop: "statcan",
+    // Prince Edward County is cut off by the Bay of Quinte and the Murray Canal: the Bay Bridge
+    // (Belleville, Hastings) and the Glenora Ferry (to Adolphustown, Lennox and Addington)
+    bridges: [
+      ["Prince Edward", "Hastings"],
+      ["Prince Edward", "Lennox and Addington"],
+    ],
+    merge: [],
+  },
   QC: { country: "CAN", name: "Quebec", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NB: { country: "CAN", name: "New Brunswick", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NS: { country: "CAN", name: "Nova Scotia", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
