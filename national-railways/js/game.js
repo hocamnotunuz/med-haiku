@@ -609,6 +609,7 @@
     s.money = T.nationalStart; // the home country's national money
     syncOpen(s);
     NR.START_COUNTIES.forEach((id) => ownCounty(s, id, true));
+    openMoreStates(s); // (a start that is the whole state, like Prince Edward Island's, opens its neighbors)
     rt.dirty = true;
     rt.events.length = 0;
     rt.viewing = null; // the state map
@@ -757,6 +758,7 @@
   // A passenger delivered here counts toward the goals of locked neighboring counties.
   function countGoals(s, stationId) {
     for (const n of NR.countyById[city(stationId).county].neighbors) {
+      if (!NR.countyById[n]) continue; // across a border, in a state not loaded yet
       if (!NR.countyStatus(s, n).ok) continue;
       s.goalProgress[n] = (s.goalProgress[n] || 0) + 1;
       if (s.goalProgress[n] >= NR.countyGoal(n)) NR.unlockCounty(s, n, true);

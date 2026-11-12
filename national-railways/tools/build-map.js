@@ -1204,6 +1204,17 @@ for (const f of JSON.parse(fs.readFileSync(ne1File, "utf8")).features) {
     }
   }
 }
+// A bridge or ferry listed between two states or provinces (the Confederation Bridge, the ferries
+// to Prince Edward Island and Newfoundland) makes them neighbours too, so one opens from the other
+for (const [code, cfg] of Object.entries(STATES))
+  for (const pair of cfg.bridges || [])
+    for (const name of pair) {
+      const m = name.match(/^([A-Z]{2}):/);
+      const a = areas.find((x) => x.code === code), b = m && areas.find((x) => x.code === m[1]);
+      if (!a || !b || a === b) continue;
+      a.neighbors = [...new Set([...a.neighbors, b.code])].sort();
+      b.neighbors = [...new Set([...b.neighbors, a.code])].sort();
+    }
 areas.sort((a, b) => a.code.localeCompare(b.code));
 
 // ---------- Write ----------

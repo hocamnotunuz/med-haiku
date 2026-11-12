@@ -162,6 +162,7 @@ const mapColors = (page) =>
         wrongState: g.stations.filter((st) => NR.stateOf(st.id) !== code).map((st) => st.id),
         off: off.map((st) => st.id),
         open: Object.keys(g.states).filter((c) => g.states[c].open),
+        whole: NR.MAP.regions.filter((r) => r.state === code).every((r) => g.owned.includes(r.id)),
         neighbors: NR.stateNeighbors(code),
         closedSays: closed.map((c) => NR.opensAfter(g, c)),
         regions: NR.MAP.regions.filter((r) => r.state === code).length,
@@ -171,7 +172,9 @@ const mapColors = (page) =>
     check("start counties", start.owned === start.want, `owns ${start.owned}`, `owns ${start.owned}, but the pack's start is ${start.want}`);
     check("start stations", start.stations.length >= 2 && !start.wrongState.length, `${start.stations.join(", ")}`, start.stations.length < 2 ? `only ${start.stations.length} station(s): track needs two` : `stations outside ${start.name}: ${start.wrongState.join(", ")}`);
     check("stations on screen", !start.off.length, "the first camera shows every station", `off the screen at the start: ${start.off.join(", ")}`);
-    check("open states", start.open.length === 1 && start.open[0] === CODE, `only ${start.name} is open`, `open at the start: ${start.open.join(", ")}`);
+    // (a start that is the whole state, like Prince Edward Island's, opens its neighbors at once)
+    const wantOpen = [CODE, ...(start.whole ? start.neighbors : [])].sort().join(", ");
+    check("open states", start.open.slice().sort().join(", ") === wantOpen, start.whole ? `${start.name} and its neighbors are open (the start is all of ${start.name})` : `only ${start.name} is open`, `open at the start: ${start.open.join(", ")}`);
     if (!start.neighbors.length) warn("neighbors", `${start.name} has no neighbors in the game yet: owning it all opens nothing`);
     else pass("neighbors", `${start.neighbors.join(", ")} open once you own all of ${start.name}`);
     if (start.closedSays.some((t) => !t)) fail("closed states", "a closed state can't say what opens it");
