@@ -69,9 +69,13 @@ const RIVERS = [
   // Utah, Colorado, New Mexico and Arizona's other rivers
   "San Juan", "Virgin", "Sevier", "Duchesne", "Gunnison", "Dolores", "Animas", "Yampa", "Rio Chama", "Jordan", "Little Snake",
   "Purgatoire", "Little Colorado", "Verde", "Salt", "San Pedro", "Santa Cruz", "Bill Williams",
+  // The Plains and Texas
+  "Sheyenne", "Heart", "Cannonball", "Belle Fourche", "Loup", "Elk Horn", "Big Blue", "Republican", "Smoky Hill", "Solomon",
+  "North Canadian", "Washita", "Verdigris", "Osage", "Nueces", "Guadalupe", "San Antonio", "Crow", "Little Sioux",
+  "Wapsipinicon",
 ];
 // Natural Earth spellings to fix
-const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa" };
+const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa", "Elk Horn": "Elkhorn" };
 // Natural Earth rivers misnamed, by river number: the Snake (from Pasco up through Idaho to
 // Wyoming) is labelled "Columbia" as river 103 (the Columbia itself is river 64)
 const RIVER_FIX = { 103: "Snake" };
