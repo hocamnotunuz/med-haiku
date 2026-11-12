@@ -94,7 +94,18 @@ fs.mkdirSync(CACHE, { recursive: true });
 function download(url, file, seconds = 120) {
   if (fs.existsSync(file) && fs.statSync(file).size > 0) return file;
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  execFileSync("curl", ["-sS", "-f", "-m", String(seconds), "--retry", "3", "-o", file, url]);
+  // (to a temporary name first: a download cut off halfway must not stay in the cache; a
+  // connection cut off is tried again, up to four times)
+  for (let attempt = 1; ; attempt++) {
+    try {
+      execFileSync("curl", ["-sS", "-f", "-m", String(seconds), "--retry", "3", "-o", file + ".part", url]);
+      break;
+    } catch (e) {
+      if (attempt >= 4) throw e;
+      execFileSync("sleep", [String(2 ** attempt)]);
+    }
+  }
+  fs.renameSync(file + ".part", file);
   return file;
 }
 

@@ -525,7 +525,18 @@ function download(url, file) {
   if (fs.existsSync(file) && fs.statSync(file).size > 0) return file;
   fs.mkdirSync(path.dirname(file), { recursive: true });
   console.log(`downloading ${url}`);
-  execFileSync("curl", ["-sS", "-f", "-m", "600", "--retry", "3", "-o", file, url]);
+  // (to a temporary name first: a download cut off halfway must not stay in the cache; a
+  // connection cut off is tried again, up to four times)
+  for (let attempt = 1; ; attempt++) {
+    try {
+      execFileSync("curl", ["-sS", "-f", "-m", "600", "--retry", "3", "-o", file + ".part", url]);
+      break;
+    } catch (e) {
+      if (attempt >= 4) throw e;
+      execFileSync("sleep", [String(2 ** attempt)]);
+    }
+  }
+  fs.renameSync(file + ".part", file);
   return file;
 }
 // A Statistics Canada table (2021 Census population and dwelling counts), unzipped in the cache
