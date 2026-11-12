@@ -69,6 +69,9 @@ const RIVERS = [
 ];
 // Natural Earth spellings to fix
 const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa" };
+// Natural Earth rivers misnamed, by river number: the Snake (from Pasco up through Idaho to
+// Wyoming) is labelled "Columbia" as river 103 (the Columbia itself is river 64)
+const RIVER_FIX = { 103: "Snake" };
 
 // ---------- Load the game's map and cities ----------
 const ctx = {};
@@ -428,7 +431,7 @@ function buildState(code) {
   for (const f of RIVER_FEATURES) {
     const neName = f.properties.name || f.properties.NAME;
     if (!RIVERS.includes(neName) || !/river/i.test(f.properties.featurecla || "")) continue;
-    const name = RIVER_NAMES[neName] || neName;
+    const name = RIVER_FIX[f.properties.rivernum] || RIVER_NAMES[neName] || neName;
     for (const line of lines(f.geometry)) {
       let part = [];
       const flush = () => {
