@@ -818,7 +818,37 @@ const STATES = {
       ["Plaquemines", "St. Bernard"],
     ],
   },
-  WI: { fips: "55", name: "Wisconsin", pop: "census", merge: [] },
+  // Reviewed by the Wisconsin pack agent (packs/WI/NOTES.md): 72 counties to 49 regions, along the
+  // north woods (Rhinelander, Merrill, Ashland, Ladysmith, Medford), the Bay of Green Bay shore
+  // (Marinette, Shawano, Door-Kewaunee), the Lake Superior and St. Croix side (Superior, Amery,
+  // River Falls), the Mississippi (Prairie du Chien, Arcadia), I-90/94 (Sparta, Mauston) and the
+  // southwest (Monroe, Richland Center). The counties of 50k or more stay alone, and Barron (Rice
+  // Lake) and Dunn (Menomonie), whose neighbours are big or already grouped.
+  WI: {
+    fips: "55",
+    name: "Wisconsin",
+    pop: "census",
+    merge: [
+      ["Florence", "Forest", "Marinette"],
+      ["Menominee", "Oconto", "Shawano"],
+      ["Langlade", "Lincoln"],
+      ["Oneida", "Vilas"],
+      ["Door", "Kewaunee"],
+      ["Ashland", "Bayfield", "Iron"],
+      ["Douglas", "Washburn"],
+      ["Burnett", "Polk"],
+      ["Price", "Rusk", "Sawyer"],
+      ["Clark", "Taylor"],
+      ["Jackson", "Monroe"],
+      ["Adams", "Juneau"],
+      ["Green Lake", "Marquette", "Waushara"],
+      ["Crawford", "Vernon"],
+      ["Green", "Lafayette"],
+      ["Iowa", "Richland"],
+      ["Buffalo", "Trempealeau"],
+      ["Pepin", "Pierce"],
+    ],
+  },
   IL: { fips: "17", name: "Illinois", pop: "census", merge: [] },
   MI: { fips: "26", name: "Michigan", pop: "census", merge: [] },
   IN: { fips: "18", name: "Indiana", pop: "census", merge: [] },
