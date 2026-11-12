@@ -66,6 +66,9 @@ const RIVERS = [
   "Iowa", "Cedar", "Allegheny", "Monongahela", "Kanawha", "Kentucky", "Scioto", "Muskingum", "Maumee", "Penobscot",
   "Kennebec", "Merrimack", "Neosho", "White", "Ouachita", "Sabine", "Neches", "Atchafalaya", "Pearl", "Yazoo", "Coosa",
   "Tallapoosa", "Flint", "St. Croix", "Chippewa", "Little Missouri", "Cheyenne", "Holston", "Madison", "Sprague",
+  // Utah, Colorado, New Mexico and Arizona's other rivers
+  "San Juan", "Virgin", "Sevier", "Duchesne", "Gunnison", "Dolores", "Animas", "Yampa", "Rio Chama", "Jordan", "Little Snake",
+  "Purgatoire", "Little Colorado", "Verde", "Salt", "San Pedro", "Santa Cruz", "Bill Williams",
 ];
 // Natural Earth spellings to fix
 const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa" };
@@ -354,7 +357,7 @@ const RANGE_NAMES = { "SIERRA NEVADA": "the Sierra Nevada", "COAST RANGES": "the
   "MACKENZIE MTS.": "the Mackenzie Mountains", "SELWYN MTS.": "the Selwyn Mountains", "Bitterroot Range": "the Bitterroot Range", "Wasatch Range": "the Wasatch Range",
   "Black Hills": "the Black Hills", "Ouachita Mts.": "the Ouachita Mountains", "Ozark Plateau": "the Ozarks", "APPALACHIAN MTS.": "the Appalachians",
   "Blue Ridge": "the Blue Ridge", "ALLEGHENY PLATEAU": "the Allegheny Plateau", "CUMBERLAND PLAT.": "the Cumberland Plateau", "Adirondack Mts.": "the Adirondacks",
-  "TORNGAT MTS.": "the Torngat Mountains" };
+  "TORNGAT MTS.": "the Torngat Mountains", "Front Range": "the Front Range" };
 const RANGES = NE("ne_10m_geography_regions_polys").features.filter((f) => RANGE_NAMES[f.properties.name || f.properties.NAME]);
 const idOf = (name, x, y) => `${name}@${round(x)},${round(y)}`;
 

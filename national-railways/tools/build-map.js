@@ -188,7 +188,26 @@ const STATES = {
       ["Converse", "Niobrara"],
     ],
   },
-  UT: { fips: "49", name: "Utah", pop: "census", merge: [] },
+  // Reviewed by the Utah pack agent (packs/UT/NOTES.md): 29 counties to 18 regions. Bear Lake over
+  // Logan Canyon to Cache; the Weber valley and Park City; the Uinta Basin and Flaming Gorge; US-6
+  // through Price Canyon; US-191 from Moab to Bluff; the Sevier Valley and Capitol Reef; Panguitch to
+  // Kanab; I-15 and the Union Pacific's Los Angeles line. The Wasatch Front's counties stay apart;
+  // Wasatch (Heber) and Sanpete (between the Wasatch Plateau and the San Pitch Mountains) stay alone.
+  UT: {
+    fips: "49",
+    name: "Utah",
+    pop: "census",
+    merge: [
+      ["Cache", "Rich"],
+      ["Morgan", "Summit"],
+      ["Daggett", "Duchesne", "Uintah"],
+      ["Carbon", "Emery"],
+      ["Grand", "San Juan"],
+      ["Piute", "Sevier", "Wayne"],
+      ["Garfield", "Kane"],
+      ["Beaver", "Juab", "Millard"],
+    ],
+  },
   CO: { fips: "08", name: "Colorado", pop: "census", merge: [] },
   NM: { fips: "35", name: "New Mexico", pop: "census", merge: [] },
   AK: { fips: "02", name: "Alaska", pop: "census", merge: [] },
