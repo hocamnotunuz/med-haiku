@@ -393,7 +393,19 @@ const STATES = {
       ["Pictou", "PE:Queens"],
       ["Cape Breton", "NL:Division No. 3"],
     ],
-    merge: [],
+    // Reviewed by the Nova Scotia pack agent (packs/NS/NOTES.md): 18 counties to 12 regions. The
+    // Annapolis Basin (Digby has the Saint John ferry); the South Shore on Highway 103; the
+    // southern tip; Antigonish with Guysborough, its service town; Cape Breton Island outside the
+    // regional municipality (Port Hawkesbury, at the causeway). Hants, Pictou (New Glasgow) and
+    // Cumberland (Amherst, the land gate to New Brunswick) stay alone: each has real towns.
+    merge: [
+      ["Annapolis", "Digby"],
+      ["Lunenburg", "Queens"],
+      ["Shelburne", "Yarmouth"],
+      ["Antigonish", "Guysborough"],
+      ["Inverness", "Richmond", "Victoria"],
+    ],
+    names: { "Inverness & Richmond & Victoria": "Cabot Trail & Bras d'Or", "Shelburne & Yarmouth": "Yarmouth & Shelburne" },
   },
   PE: { country: "CAN", name: "Prince Edward Island", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NL: { country: "CAN", name: "Newfoundland and Labrador", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
