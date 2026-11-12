@@ -109,6 +109,52 @@ const STATES = {
       Curry: 23, Baker: 17, Morrow: 12, Lake: 8, Wallowa: 7, Harney: 7, Grant: 7, Gilliam: 2, Sherman: 2, Wheeler: 1,
     },
   },
+  // The rest of the US: every county separate until its pack agent's review (Maryland includes DC)
+  ID: { fips: "16", name: "Idaho", pop: "census", merge: [] },
+  MT: { fips: "30", name: "Montana", pop: "census", merge: [] },
+  WY: { fips: "56", name: "Wyoming", pop: "census", merge: [] },
+  UT: { fips: "49", name: "Utah", pop: "census", merge: [] },
+  CO: { fips: "08", name: "Colorado", pop: "census", merge: [] },
+  NM: { fips: "35", name: "New Mexico", pop: "census", merge: [] },
+  AK: { fips: "02", name: "Alaska", pop: "census", merge: [] },
+  HI: { fips: "15", name: "Hawaii", pop: "census", merge: [] },
+  ND: { fips: "38", name: "North Dakota", pop: "census", merge: [] },
+  SD: { fips: "46", name: "South Dakota", pop: "census", merge: [] },
+  NE: { fips: "31", name: "Nebraska", pop: "census", merge: [] },
+  KS: { fips: "20", name: "Kansas", pop: "census", merge: [] },
+  OK: { fips: "40", name: "Oklahoma", pop: "census", merge: [] },
+  TX: { fips: "48", name: "Texas", pop: "census", merge: [] },
+  MN: { fips: "27", name: "Minnesota", pop: "census", merge: [] },
+  IA: { fips: "19", name: "Iowa", pop: "census", merge: [] },
+  MO: { fips: "29", name: "Missouri", pop: "census", merge: [] },
+  AR: { fips: "05", name: "Arkansas", pop: "census", merge: [] },
+  LA: { fips: "22", name: "Louisiana", pop: "census", merge: [] },
+  WI: { fips: "55", name: "Wisconsin", pop: "census", merge: [] },
+  IL: { fips: "17", name: "Illinois", pop: "census", merge: [] },
+  MI: { fips: "26", name: "Michigan", pop: "census", merge: [] },
+  IN: { fips: "18", name: "Indiana", pop: "census", merge: [] },
+  OH: { fips: "39", name: "Ohio", pop: "census", merge: [] },
+  KY: { fips: "21", name: "Kentucky", pop: "census", merge: [] },
+  TN: { fips: "47", name: "Tennessee", pop: "census", merge: [] },
+  MS: { fips: "28", name: "Mississippi", pop: "census", merge: [] },
+  AL: { fips: "01", name: "Alabama", pop: "census", merge: [] },
+  GA: { fips: "13", name: "Georgia", pop: "census", merge: [] },
+  FL: { fips: "12", name: "Florida", pop: "census", merge: [] },
+  SC: { fips: "45", name: "South Carolina", pop: "census", merge: [] },
+  NC: { fips: "37", name: "North Carolina", pop: "census", merge: [] },
+  VA: { fips: "51", name: "Virginia", pop: "census", merge: [] },
+  WV: { fips: "54", name: "West Virginia", pop: "census", merge: [] },
+  MD: { fips: ["24", "11"], name: "Maryland", pop: "census", merge: [] },
+  DE: { fips: "10", name: "Delaware", pop: "census", merge: [] },
+  PA: { fips: "42", name: "Pennsylvania", pop: "census", merge: [] },
+  NJ: { fips: "34", name: "New Jersey", pop: "census", merge: [] },
+  NY: { fips: "36", name: "New York", pop: "census", merge: [] },
+  CT: { fips: "09", name: "Connecticut", pop: "census", merge: [] },
+  RI: { fips: "44", name: "Rhode Island", pop: "census", merge: [] },
+  MA: { fips: "25", name: "Massachusetts", pop: "census", merge: [] },
+  VT: { fips: "50", name: "Vermont", pop: "census", merge: [] },
+  NH: { fips: "33", name: "New Hampshire", pop: "census", merge: [] },
+  ME: { fips: "23", name: "Maine", pop: "census", merge: [] },
   // Canada: regions are census divisions (in British Columbia, its regional districts). Small
   // ones are merged automatically from Statistics Canada's 2021 populations, for the pack
   // agent to review.
@@ -435,7 +481,9 @@ const CA_CODES = CODES.filter(isCanadian);
 
 // Every county (or Canadian census division) of the chosen states, which state it is in, and its
 // neighbors. The US counties and the Canadian regions are two topologies.
-const fipsToCode = Object.fromEntries(US_CODES.map((c) => [STATES[c].fips, c]));
+// (a state's fips may list several codes: Maryland includes DC)
+const fipsList = (c) => [].concat(STATES[c].fips);
+const fipsToCode = Object.fromEntries(US_CODES.flatMap((c) => fipsList(c).map((f) => [f, c])));
 const usCounties = topo.objects.counties.geometries.filter((g) => fipsToCode[String(g.id).slice(0, 2)]);
 const canTopo = CA_CODES.length ? canadaTopology(CA_CODES) : null;
 const canRegions = canTopo ? canTopo.objects.regions.geometries : [];
@@ -619,7 +667,7 @@ const collection = (geoms) => ({ type: "GeometryCollection", geometries: geoms }
 const indexOf = new Map(counties.map((g, i) => [g, i]));
 const allCounties = topo.objects.counties.geometries;
 const fipsOf = (g) => String(g.id).slice(0, 2);
-const inGame = new Set(US_CODES.map((c) => STATES[c].fips));
+const inGame = new Set(US_CODES.flatMap(fipsList));
 const stateLand = Object.fromEntries(
   CODES.map((code) => [code, tc.merge(topoOf(code), counties.filter((g) => stateOf(g) === code)).coordinates.flatMap((poly) => poly.map(flat))])
 );
@@ -635,11 +683,11 @@ const coast = Object.fromEntries(
   CODES.map((code) => {
     // A province's edge: its outer edge (other provinces in the game are in the same topology)
     if (isCanadian(code)) return [code, tc.mesh(canTopo, collection(canRegions), (a, b) => a === b && stateOf(a) === code).coordinates.map(flat)];
-    const fips = STATES[code].fips;
+    const mine = new Set(fipsList(code));
     const lines = tc.mesh(topo, collection(allCounties), (a, b) => {
       const fa = fipsOf(a), fb = fipsOf(b);
-      if (a === b) return fa === fips;
-      return (fa === fips && !inGame.has(fb)) || (fb === fips && !inGame.has(fa));
+      if (a === b) return mine.has(fa);
+      return (mine.has(fa) && !inGame.has(fb)) || (mine.has(fb) && !inGame.has(fa));
     });
     return [code, lines.coordinates.map(flat)];
   })
@@ -876,11 +924,14 @@ const boxOf = (rings) => {
 const statesTopo = JSON.parse(fs.readFileSync(path.join(MODULES, "us-atlas", "states-10m.json"), "utf8"));
 const stateGeoms = statesTopo.objects.states.geometries.filter((g) => POSTAL[g.id]);
 const stateNear = tc.neighbors(stateGeoms);
-const areas = stateGeoms.map((g, i) => {
+// A state that is part of another state's pack (DC, in Maryland's) has no outline of its own
+const partOf = Object.fromEntries(Object.entries(STATES).flatMap(([code, cfg]) => [].concat(cfg.fips || []).slice(1).map((f) => [POSTAL[f], code])));
+const areas = stateGeoms.filter((g) => !partOf[POSTAL[g.id]]).map((g) => {
+  const i = stateGeoms.indexOf(g);
   const geom = tc.feature(statesTopo, g).geometry;
   const outline = roughRings(geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates, POSTAL[g.id] === "AK" ? 0.03 : 0.01);
   // (two pieces of the same state can touch, so leave the state itself out)
-  const near = [...new Set(stateNear[i].filter((j) => j !== i).map((j) => POSTAL[stateGeoms[j].id]))].filter((code) => code !== POSTAL[g.id]).sort();
+  const near = [...new Set(stateNear[i].filter((j) => j !== i).map((j) => partOf[POSTAL[stateGeoms[j].id]] || POSTAL[stateGeoms[j].id]))].filter((code) => code !== POSTAL[g.id]).sort();
   return { code: POSTAL[g.id], name: g.properties.name, country: "USA", box: boxOf(outline), neighbors: near, outline };
 });
 // Mexico, from Natural Earth (public domain), 1:50m
