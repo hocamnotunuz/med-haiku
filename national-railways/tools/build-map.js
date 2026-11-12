@@ -1256,7 +1256,38 @@ const STATES = {
       ["Colleton", "Hampton", "Jasper"],
     ],
   },
-  NC: { fips: "37", name: "North Carolina", pop: "census", merge: [] },
+  // Reviewed by the North Carolina pack agent (packs/NC/NOTES.md): 100 counties to 73 regions: the
+  // mountains (Franklin, Sylva, Sparta, Marion, Mars Hill, Forest City), the Piedmont edges
+  // (Mocksville, Roxboro, Henderson), the Sandhills (Laurinburg), the northeast and the sounds
+  // (Elizabeth City, Edenton, Ahoskie, Williamston, Kill Devil Hills, Washington) and the coastal
+  // plain (Kinston, Whiteville). The counties of 50k or more stay alone; Lenoir, Columbus and
+  // Rutherford take small neighbours that have no other partner; Alexander, Stokes, Transylvania,
+  // Montgomery, Duplin, Edgecombe and Halifax stay alone (big neighbours, or just under 50k).
+  NC: {
+    fips: "37",
+    name: "North Carolina",
+    pop: "census",
+    merge: [
+      ["Cherokee", "Clay", "Macon"],
+      ["Graham", "Jackson", "Swain"],
+      ["Alleghany", "Ashe"],
+      ["Avery", "McDowell", "Mitchell"],
+      ["Madison", "Yancey"],
+      ["Davie", "Yadkin"],
+      ["Caswell", "Person"],
+      ["Anson", "Richmond", "Scotland"],
+      ["Camden", "Currituck", "Pasquotank"],
+      ["Chowan", "Gates", "Perquimans"],
+      ["Bertie", "Hertford", "Northampton"],
+      ["Martin", "Tyrrell", "Washington"],
+      ["Dare", "Hyde"],
+      ["Beaufort", "Pamlico"],
+      ["Greene", "Jones", "Lenoir"],
+      ["Bladen", "Columbus"],
+      ["Polk", "Rutherford"],
+      ["Vance", "Warren"],
+    ],
+  },
   VA: { fips: "51", name: "Virginia", pop: "census", merge: [] },
   WV: { fips: "54", name: "West Virginia", pop: "census", merge: [] },
   MD: { fips: ["24", "11"], name: "Maryland", pop: "census", merge: [] },
