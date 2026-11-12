@@ -157,7 +157,23 @@ const STATES = {
       ["Division No. 14", "Division No. 15"],
     ],
   },
-  SK: { country: "CAN", name: "Saskatchewan", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  // Merged by the pack agent's review: the southeast around Weyburn and Estevan; Assiniboia with
+  // Moose Jaw; the southwest around Swift Current; the west-central grain country (Kindersley); the
+  // northwest around the Battlefords; the Parkland around Yorkton. Melfort and the vast north (La
+  // Ronge) stay on their own.
+  SK: {
+    country: "CAN",
+    name: "Saskatchewan",
+    pop: "statcan",
+    merge: [
+      ["Division No. 1", "Division No. 2"],
+      ["Division No. 3", "Division No. 7"],
+      ["Division No. 4", "Division No. 8"],
+      ["Division No. 12", "Division No. 13"],
+      ["Division No. 16", "Division No. 17"],
+      ["Division No. 5", "Division No. 9", "Division No. 10"],
+    ],
+  },
   MB: { country: "CAN", name: "Manitoba", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   ON: { country: "CAN", name: "Ontario", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   QC: { country: "CAN", name: "Quebec", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
