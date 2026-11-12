@@ -19,10 +19,11 @@ NR.addPack({
   // to downtown (Albuquerque, Santa Fe, Los Lunas, Farmington, Clovis, Hobbs; NOTES.md).
   stations: [
     // Level 1: Albuquerque, Santa Fe and the Rio Grande
-    // Albuquerque: size 3 by its 676k. The Sunport is New Mexico's one big airport. At the
+    // Albuquerque: size 4, the core of a metro of about 900k, like Omaha, Reno, Spokane and Denver
+    // (sizes 3 and 4 overlap in PACKS.md's guide; it was 3 at first). The Sunport is New Mexico's one big airport. At the
     // Alvarado Transportation Center downtown (Amtrak and the Rail Runner); the Census point is
     // 1.5 mi north.
-    { id: "ABQ", name: "Albuquerque", county: "nm-bernalillo", lat: 35.08, lon: -106.65, airport: "Albuquerque International Sunport", type: "metro", size: 3, pop: 676, main: true, level: "rio" },
+    { id: "ABQ", name: "Albuquerque", county: "nm-bernalillo", lat: 35.08, lon: -106.65, airport: "Albuquerque International Sunport", type: "metro", size: 4, pop: 676, main: true, level: "rio" },
     // Los Lunas, not Belen (the BNSF's junction, 7,363): Los Lunas is the county seat and over
     // twice Belen's size (17,250), and nearer Albuquerque. Belen is a town. Valencia is the Rio
     // Grande valley's farms (Bosque Farms, Peralta), so farm. At the village centre; the Census

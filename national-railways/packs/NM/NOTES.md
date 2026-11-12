@@ -114,7 +114,7 @@ Every station is at its region's biggest place in `places.json`. Los Lunas over 
 | Carlsbad (CBAD) | Eddy 62k | desert | 2 | The Chihuahuan Desert (potash, oil, the caverns) |
 | Hobbs (HOB) | Lea 74k | desert | 2 | The Permian Basin's oil field |
 
-**Overall:** 4 metro, 5 farm, 5 mountain, 8 desert. Sizes follow Colorado's: 60k or more is size 2, the rest size 1, and Albuquerque is size 3. Ids are unique across every pack (checked; `ALM`, `ESP`, `CLV`, `LAM`, `SRO`, `BLN`, `FSM` and others were already taken).
+**Overall:** 4 metro, 5 farm, 5 mountain, 8 desert. Sizes follow Colorado's: 60k or more is size 2, the rest size 1, and Albuquerque is size 3 (raised to 4 by the main agent after Nebraska: the core of a metro of about 900k, like Omaha, Reno, Spokane and Denver). Ids are unique across every pack (checked; `ALM`, `ESP`, `CLV`, `LAM`, `SRO`, `BLN`, `FSM` and others were already taken).
 
 **Los Lunas, not Belen (the coordinator's question).**
 - For Los Lunas: it is the biggest place (17,250 to Belen's 7,363) and the county seat, and it is nearer Albuquerque, so the start's first track is short.
