@@ -14,7 +14,13 @@
 //   - Elevation: AWS Terrain Tiles ("terrarium" PNG tiles, public data from SRTM, USGS and others)
 //   - Lakes and rivers: Natural Earth (public domain), 1:10m scale
 //   - Coastlines and water for the city maps: U.S. Census Bureau county shapes (1:500,000)
-//     and TIGER area water
+//     and TIGER area water; in Canada, Statistics Canada census subdivisions (cartographic, 2021)
+//     and lakes and rivers from Natural Resources Canada's CanVec (1:250,000)
+//
+// To try a city map before it goes into a pack (water and hills only, nothing in the game changes):
+//   CITY_PREVIEW=<cities.json> CITY_OUT=<folder> node tools/build-terrain.js tools/node_modules <cache>
+// where cities.json is [{ "code": "ON", "key": "TOR", "metro": { "name": ..., "stops": [...] } }].
+// It writes city-<key>.png, city-<key>.json and preview-<key>.png (water in blue) into the folder.
 // Needs curl and unzip. The real passes and bridges are hand-made in each state's pack
 // (packs/<code>/pack.js); this tool warns about any pass with no mountains nearby.
 "use strict";
@@ -85,10 +91,10 @@ const PASSES = NR.PASSES.map((p) => [p.name, p.lat, p.lon]);
 
 // ---------- Downloads ----------
 fs.mkdirSync(CACHE, { recursive: true });
-function download(url, file) {
+function download(url, file, seconds = 120) {
   if (fs.existsSync(file) && fs.statSync(file).size > 0) return file;
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  execFileSync("curl", ["-sS", "-f", "-m", "120", "--retry", "3", "-o", file, url]);
+  execFileSync("curl", ["-sS", "-f", "-m", String(seconds), "--retry", "3", "-o", file, url]);
   return file;
 }
 
@@ -401,8 +407,50 @@ function fillRings(mask, cb, step, cols, rows, rings) {
   for (let i = 0; i < own.length; i++) if (own[i]) mask[i] = 1;
 }
 
+// ---------- Canada and Mexico near a city ----------
+const boxesMeet = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+// Canadian land in a box: census subdivisions from Statistics Canada's cartographic boundary
+// file, which already leaves out the Great Lakes, the St. Lawrence and other big water.
+function canadaLand(cb) {
+  if (!Object.values(NR.AREAS).some((a) => a.country === "CAN" && boxesMeet(a.box, cb))) return [];
+  const service = "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/9/query";
+  const q = `?geometry=${cb.join(",")}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=CSDUID,CSDNAME&outSR=4326&geometryPrecision=5&returnGeometry=true&f=geojson`;
+  const answer = JSON.parse(fs.readFileSync(download(service + q, path.join(CACHE, "canada", "csd-box", cb.join("_") + ".json"), 600), "utf8"));
+  if (answer.exceededTransferLimit) throw new Error(`Too many census subdivisions in ${cb}: make the city smaller`);
+  return answer.features;
+}
+// Lakes and rivers in a box, from CanVec (Natural Resources Canada, 1:250,000), for one province.
+const SGC = { 10: "NL", 11: "PE", 12: "NS", 13: "NB", 24: "QC", 35: "ON", 46: "MB", 47: "SK", 48: "AB", 59: "BC", 60: "YT", 61: "NT", 62: "NU" };
+async function canvecWater(pr, cb) {
+  const kept = path.join(CACHE, "canvec", `water-${pr}-${cb.join("_")}.json`);
+  if (fs.existsSync(kept)) return JSON.parse(fs.readFileSync(kept, "utf8"));
+  const shapefile = require(path.resolve(MODS, "shapefile"));
+  const name = `canvec_250K_${pr}_Hydro`;
+  const zip = download(`https://ftp.maps.canada.ca/pub/nrcan_rncan/vector/canvec/shp/Hydro/${name}_shp.zip`, path.join(CACHE, "canvec", name + "_shp.zip"), 3600);
+  const shp = path.join(CACHE, "canvec", name, "waterbody_2.shp");
+  if (!fs.existsSync(shp)) execFileSync("unzip", ["-o", "-q", zip, `${name}/waterbody_2.*`, "-d", path.join(CACHE, "canvec")]);
+  const list = [];
+  const src = await shapefile.open(shp, shp.replace(/shp$/, "dbf"));
+  for (let r = await src.read(); !r.done; r = await src.read())
+    for (const poly of polys(r.value.geometry)) {
+      const [x0, y0, x1, y1] = ringsBox([poly[0].flat()]);
+      if (boxesMeet([x0, y0, x1, y1], cb)) list.push(poly);
+    }
+  fs.writeFileSync(kept, JSON.stringify(list));
+  return list;
+}
+const inMexico = NR.AREAS.MEX ? ringTester(NR.AREAS.MEX.outline) : () => false;
+// Does a box come within about 15 km of Mexico? (Land there isn't in our shapes, so the sea is
+// told apart from it by height.)
+function nearMexico(cb) {
+  const b = [cb[0] - 0.15, cb[1] - 0.15, cb[2] + 0.15, cb[3] + 0.15];
+  if (!NR.AREAS.MEX || !boxesMeet(NR.AREAS.MEX.box, b)) return false;
+  for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) if (inMexico(b[0] + ((b[2] - b[0]) * i) / 4, b[1] + ((b[3] - b[1]) * j) / 4)) return true;
+  return NR.AREAS.MEX.outline.some((ring) => ring.some((v, k) => k % 2 === 0 && v > b[0] && v < b[2] && ring[k + 1] > b[1] && ring[k + 1] < b[3]));
+}
+
 let countyShapes = null; // every U.S. county, 1:500,000
-async function buildCity(code, key, metro) {
+async function buildCity(code, key, metro, outDir) {
   const shapefile = require(path.resolve(MODS, "shapefile"));
   const { contours } = await import(path.resolve(MODS, "d3-contour/src/index.js"));
   if (!countyShapes) {
@@ -438,10 +486,21 @@ async function buildCity(code, key, metro) {
       fillRings(land, cb, FSTEP, fc, fr, poly);
       if (!inside.includes(county.fips)) inside.push(county.fips);
     }
+  // Canadian land (census subdivisions), when the city is in or near Canada.
+  const provinces = new Set();
+  for (const f of canadaLand(cb))
+    for (const poly of polys(f.geometry)) {
+      fillRings(land, cb, FSTEP, fc, fr, poly);
+      provinces.add(SGC[f.properties.CSDUID.slice(0, 2)]);
+    }
   // Bays, harbors, lakes and rivers inside the counties are water too.
   const inner = new Uint8Array(fc * fr);
   for (const fips of inside) for (const g of await waterOf(fips)) for (const poly of polys(g)) if (near(poly)) fillRings(inner, cb, FSTEP, fc, fr, poly);
-  // Water: outside the counties and at sea level (so Mexico, south of San Diego, stays land).
+  // And in Canada, CanVec's lakes and rivers (any size: ponds too small to show are left out below).
+  for (const pr of provinces) for (const poly of await canvecWater(pr, cb)) fillRings(inner, cb, FSTEP, fc, fr, poly);
+  // Water: everything outside the land shapes (the sea, the Great Lakes). Near Mexico, whose
+  // land isn't in the shapes, only what is at sea level (so Tijuana, south of San Diego, stays land).
+  const mexico = nearMexico(cb);
   const water = new Float64Array(fc * fr);
   let wet = 0;
   for (let i = 0; i < land.length; i++) {
@@ -452,7 +511,7 @@ async function buildCity(code, key, metro) {
     }
     if (land[i]) continue;
     const lon = cb[0] + ((i % fc) + 0.5) * FSTEP, lat = cb[3] - (Math.floor(i / fc) + 0.5) * FSTEP;
-    if (elev11(lon, lat) < 3) (water[i] = 1), wet++;
+    if (!mexico || elev11(lon, lat) < 3) (water[i] = 1), wet++;
   }
   // Water outlines (and islands in them), leaving out ponds smaller than about 0.2 km².
   const shapes = [];
@@ -484,13 +543,37 @@ async function buildCity(code, key, metro) {
     }
   const rw2 = Math.round((cb[2] - cb[0]) / 0.001), rh2 = Math.round((cb[3] - cb[1]) / 0.001);
   const src = `packs/${code}/city-${key}.png`;
-  const size = reliefPng(path.join(GAME, src), cb[0], cb[3], 0.001, rw2, rh2, (lon, lat) => shadeAt(elev11, lon, lat, 0.0012, 1.6));
+  const size = reliefPng(outDir ? path.join(outDir, `city-${key}.png`) : path.join(GAME, src), cb[0], cb[3], 0.001, rw2, rh2, (lon, lat) => shadeAt(elev11, lon, lat, 0.0012, 1.6));
+  if (outDir) {
+    // A quick look: water blue, land shaded, the stops as dark dots.
+    const png = new PNG({ width: fc, height: fr });
+    for (let i = 0; i < fc * fr; i++) {
+      const lon = cb[0] + ((i % fc) + 0.5) * FSTEP, lat = cb[3] - (Math.floor(i / fc) + 0.5) * FSTEP;
+      const v = Math.round(150 + 90 * shadeAt(elev11, lon, lat, 0.0012, 1.6));
+      const rgb = water[i] ? [90, 150, 215] : [v, v - 6, v - 22];
+      png.data.set([...rgb, 255], i * 4);
+    }
+    for (const s of metro.stops) {
+      const c = Math.round((s.lon - cb[0]) / FSTEP), r = Math.round((cb[3] - s.lat) / FSTEP);
+      for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) if (a * a + b * b <= 16 && r + a >= 0 && r + a < fr && c + b >= 0 && c + b < fc) png.data.set([30, 30, 30, 255], ((r + a) * fc + c + b) * 4);
+    }
+    fs.writeFileSync(path.join(outDir, `preview-${key}.png`), PNG.sync.write(png));
+  }
   console.log(`  ${key}: ${cc} x ${cr} cells, ${wetCells} water cells, ${shapes.length} water shapes, highest ${Math.round(top)} m, relief ${Math.round(size / 1024)} KB`);
   return { box: cb, step: CSTEP, cols: cc, rows: cr, elev: text, water: shapes, relief: { src, box: [cb[0], cb[3] - rh2 * 0.001, cb[0] + rw2 * 0.001, cb[3]].map(round) } };
 }
 
 // ---------- Build every state, check the passes, and write ----------
 (async () => {
+  if (process.env.CITY_PREVIEW) {
+    const out = process.env.CITY_OUT || ".";
+    fs.mkdirSync(out, { recursive: true });
+    for (const { code, key, metro } of JSON.parse(fs.readFileSync(process.env.CITY_PREVIEW, "utf8"))) {
+      const city = await buildCity(code, key, metro, out);
+      fs.writeFileSync(path.join(out, `city-${key}.json`), JSON.stringify(city));
+    }
+    return;
+  }
   const built = [];
   for (const code of NR.PACK_LIST.filter((c) => !ONLY.length || ONLY.includes(c))) {
     const t = buildState(code);

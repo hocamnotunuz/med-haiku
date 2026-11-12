@@ -109,6 +109,10 @@ These are **real** places only. Each needs a name and coordinates (2 decimals). 
 
 Keyed by a main station id. Each has a `name`, a `size` and 10–12 `stops` (the checker needs at least 6). Each stop has an `id` (2–4 capital letters, unique within the city), a `name`, `lat` and `lon`. Exactly one stop has `hub: true`: the main station, where riders change to and from trains. Stops marked `cable: true` can have cable car lines (only where real cable cars run). After adding a city map, run `tools/build-terrain.js`: it works out the city's area from its stops and gives it hills and water.
 
+Where the water comes from: in the US, the Census Bureau's county shapes (everything outside them is the sea or a Great Lake) and TIGER area water (bays, lakes, wide rivers); in Canada, Statistics Canada's census subdivisions (cartographic, so the Great Lakes and the St. Lawrence are already cut out) and CanVec lakes and rivers (Natural Resources Canada, 1:250,000). A city near the border gets both. Near Mexico, whose land isn't in these shapes, only ground at sea level counts as sea.
+
+To try a city's stops before adding them to a pack, preview it: write `[{ "code": "ON", "key": "TOR", "metro": { "name": "Toronto", "stops": [...] } }]` to a file and run `CITY_PREVIEW=<file> CITY_OUT=<folder> node tools/build-terrain.js tools/node_modules .terrain-cache`. It writes `preview-<key>.png` (water in blue, hills shaded, stops as dots) into the folder and changes nothing in the game.
+
 ---
 
 ## Adding a state
