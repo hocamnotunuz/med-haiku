@@ -81,6 +81,11 @@ const RIVERS = [
   "Big Black", "Big Sunflower", "Black Warrior", "Cahaba", "Duck", "Clinch", "French Broad", "Ocmulgee", "Oconee",
   "Ogeechee", "Satilla", "St. Marys", "Ochlockonee", "New", "Guyandotte", "Conecuh",
 ];
+// Lakes Natural Earth leaves unnamed, by their middle (within 0.1°)
+const UNNAMED_LAKES = [
+  [-90.5, 30.27, "Lake Maurepas"], [-92.75, 29.89, "Grand Lake"], [-92.51, 29.76, "White Lake"],
+  [-93.35, 29.96, "Calcasieu Lake"], [-90.25, 29.77, "Lake Salvador"],
+];
 // Natural Earth spellings to fix
 const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa", "Elk Horn": "Elkhorn" };
 // Natural Earth rivers misnamed, by river number: the Snake (from Pasco up through Idaho to
@@ -428,7 +433,7 @@ function buildState(code) {
       if (!onState(cx, cy) && !outer.some(([x, y]) => onState(x, y))) continue;
       const ring = simplify(outer, 0.004);
       if (ring.length < 4) continue;
-      const name = f.properties.name || f.properties.NAME || "Lake";
+      const name = f.properties.name || f.properties.NAME || UNNAMED_LAKES.find(([x, y]) => Math.abs(cx - x) < 0.1 && Math.abs(cy - y) < 0.1)?.[2] || "Lake";
       if (lakes.some((l) => l.name === name && Math.abs(l.ring[0] - ring[0][0]) < 0.05)) continue; // listed twice
       // Part of a bigger lake already listed (Natural Earth's North America file has Georgian Bay
       // on top of Lake Huron): most of nine points inside the bigger one, off its islands. (Two
