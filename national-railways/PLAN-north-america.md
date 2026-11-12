@@ -268,7 +268,7 @@ The online game stays at version 38 (California to British Columbia) until **eve
 1. **Canada:** Alberta → Saskatchewan → Manitoba → Ontario → Quebec → New Brunswick → Nova Scotia → Prince Edward Island → Newfoundland and Labrador → Yukon → Northwest Territories → Nunavut (**all done**). The territories are a few huge regions, as decided: Yukon is one, the Northwest Territories four.
 2. **US West:** Idaho, Montana, Wyoming, Utah, Colorado, New Mexico, Alaska (opens from Yukon and British Columbia) (**all done**; the group check passed: every game test and pack test, and with all 25 packs loaded (489 regions, 1,421 places) loading takes 0.1–0.25 s, memory 40–114 MB, 60 frames a second).
 3. **Plains & Texas:** North Dakota, South Dakota, Nebraska, Kansas, Oklahoma, Texas, Minnesota, Iowa.
-   (**Plains & Texas: all eight built**; the group check is running.)
+   (**Plains & Texas: all done**; the group check passed: every game test (smoke 3-27) and all 33 pack tests; with all 33 packs loaded (934 regions, 2,620 places) loading takes 0.18-0.28 s, memory 32-123 MB, 60 frames a second, and the Arcade look's one redraw after zooming far out still takes up to 0.6 s.)
 4. **Midwest & South Central:** Missouri, Arkansas, Louisiana, Wisconsin, Illinois, Michigan, Indiana, Ohio.
 5. **South:** Kentucky, Tennessee, Mississippi, Alabama, Georgia, Florida, South Carolina, North Carolina.
 6. **Mid-Atlantic:** Virginia, West Virginia, Maryland (with DC), Delaware, Pennsylvania, New Jersey, New York, Connecticut.
