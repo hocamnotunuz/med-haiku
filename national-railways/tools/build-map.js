@@ -208,7 +208,41 @@ const STATES = {
       ["Beaver", "Juab", "Millard"],
     ],
   },
-  CO: { fips: "08", name: "Colorado", pop: "census", merge: [] },
+  // Reviewed by the Colorado pack agent (packs/CO/NOTES.md): 64 counties to 36 regions. The eastern
+  // plains along the South Platte, I-76, I-70 and the Arkansas; Raton Pass's approach; the Royal
+  // Gorge; the Pikes Peak country; the I-70 mining towns; the upper Arkansas; the Gunnison country; the
+  // San Luis Valley; Durango with Silverton and Pagosa Springs; the Four Corners; the Uncompahgre
+  // valley; Telluride and Ouray; Middle Park; the Yampa valley. The Front Range's metro counties stay
+  // apart; Summit (walled in by passes and the Eisenhower Tunnel) and Pitkin (Aspen) stay alone.
+  CO: {
+    fips: "08",
+    name: "Colorado",
+    pop: "census",
+    merge: [
+      ["Logan", "Phillips", "Sedgwick"],
+      ["Morgan", "Washington", "Yuma"],
+      ["Elbert", "Lincoln"],
+      ["Cheyenne", "Kit Carson"],
+      ["Bent", "Crowley", "Otero"],
+      ["Baca", "Kiowa", "Prowers"],
+      ["Huerfano", "Las Animas"],
+      ["Custer", "Fremont"],
+      ["Park", "Teller"],
+      ["Clear Creek", "Gilpin"],
+      ["Chaffee", "Lake"],
+      ["Gunnison", "Hinsdale"],
+      ["Alamosa", "Conejos", "Costilla"],
+      ["Mineral", "Rio Grande", "Saguache"],
+      ["Archuleta", "La Plata", "San Juan"],
+      ["Dolores", "Montezuma"],
+      ["Delta", "Montrose"],
+      ["Ouray", "San Miguel"],
+      ["Grand", "Jackson"],
+      ["Moffat", "Rio Blanco", "Routt"],
+    ],
+    // (not to be read as Cheyenne, Wyoming)
+    names: { "Cheyenne-Kit Carson": "Kit Carson-Cheyenne County" },
+  },
   NM: { fips: "35", name: "New Mexico", pop: "census", merge: [] },
   AK: { fips: "02", name: "Alaska", pop: "census", merge: [] },
   HI: { fips: "15", name: "Hawaii", pop: "census", merge: [] },

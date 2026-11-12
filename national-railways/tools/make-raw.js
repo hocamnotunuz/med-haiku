@@ -151,7 +151,7 @@ async function usRaw() {
   for (const r of srows.slice(1)) if (r[scol("SUMLEV")] === "162") placePop[FIPS + r[scol("PLACE")]] = +r[scol("ESTIMATESBASE2020")];
 
   // Where each place is (Gazetteer), and its county region
-  const glines = fs.readFileSync(gaz, "latin1").split(/\r?\n/).filter(Boolean).map((l) => l.split("\t").map((x) => x.trim()));
+  const glines = fs.readFileSync(gaz, "utf8").split(/\r?\n/).filter(Boolean).map((l) => l.split("\t").map((x) => x.trim()));
   const gh = glines[0];
   const gcol = (name) => gh.indexOf(name);
   const places = glines.slice(1).map((r) => {
