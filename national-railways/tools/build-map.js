@@ -408,7 +408,19 @@ const STATES = {
     names: { "Inverness & Richmond & Victoria": "Cabot Trail & Bras d'Or", "Shelburne & Yarmouth": "Yarmouth & Shelburne" },
   },
   PE: { country: "CAN", name: "Prince Edward Island", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
-  NL: { country: "CAN", name: "Newfoundland and Labrador", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  NL: {
+    country: "CAN",
+    name: "Newfoundland and Labrador",
+    pop: "statcan",
+    // The island to Labrador: the St. Barbe-Blanc-Sablon ferry across the Strait of Belle Isle and the
+    // road on to L'Anse-au-Clair. The Argentia-North Sydney ferry (the Port aux Basques ferry is listed
+    // with Nova Scotia).
+    bridges: [
+      ["Division No. 9", "Division No. 10"],
+      ["Division No. 1", "NS:Cape Breton"],
+    ],
+    merge: [],
+  },
   YT: { country: "CAN", name: "Yukon", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NT: { country: "CAN", name: "Northwest Territories", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NU: { country: "CAN", name: "Nunavut", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
