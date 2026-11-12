@@ -261,7 +261,7 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 The online game stays at version 38 (California to British Columbia) until **every** province, territory and state is done, checked and tested. Then it is published once. Work is still saved to GitHub as it goes (that is only the safety copy).
 
 ### Order
-1. **Canada:** Alberta (in progress) → Saskatchewan → Manitoba → Ontario → Quebec → New Brunswick → Nova Scotia → Prince Edward Island → Newfoundland and Labrador → Yukon → Northwest Territories → Nunavut (the territories as a few huge regions, as decided).
+1. **Canada:** Alberta (done) → Saskatchewan (done) → Manitoba (in progress) → Ontario → Quebec → New Brunswick → Nova Scotia → Prince Edward Island → Newfoundland and Labrador → Yukon → Northwest Territories → Nunavut (the territories as a few huge regions, as decided).
 2. **US West:** Idaho, Montana, Wyoming, Utah, Colorado, New Mexico, Alaska (opens from Yukon and British Columbia).
 3. **Plains & Texas:** North Dakota, South Dakota, Nebraska, Kansas, Oklahoma, Texas, Minnesota, Iowa.
 4. **Midwest & South Central:** Missouri, Arkansas, Louisiana, Wisconsin, Illinois, Michigan, Indiana, Ohio.
@@ -282,6 +282,13 @@ The online game stays at version 38 (California to British Columbia) until **eve
 - **Special counties:** Virginia's independent cities, Louisiana's parishes, Alaska's boroughs and census areas (names and labels), Connecticut (2020 populations for its old counties), DC with Maryland.
 - **Terrain:** the big US rivers (Mississippi, Missouri, Ohio, Tennessee, Arkansas, Red, Rio Grande, Platte...) and eastern ranges (Appalachians, Ozarks...).
 - **The finished map:** a speed test with all of North America, the start menu with every home, opening order across the border.
+
+### Tool work done along the way
+- **Every remaining US state** is listed in the map tool (each county separate until its agent's review); Maryland includes DC, so DC has no outline of its own.
+- **Canadian borders match everywhere:** every census division keeps its points as they came. Before, some were rounded and some weren't, and the borders between the two kinds didn't match (Manitoba lost four neighbours; Alberta's Lethbridge region had a hole).
+- **Region names are towns:** a rural municipality around a city gives way to the city when the city has at least half its people (Selkirk, not St. Andrews).
+- **Town populations:** when two municipalities share a name (a city and the rural municipality around it, or two far apart), the one in the place's own census division, then the densest, is used (Thompson, Portage la Prairie, Dauphin, North Battleford).
+- **City maps in Canada and on the Great Lakes:** land from Statistics Canada's census subdivisions and lakes and rivers from NRCan CanVec (1:250,000); everything outside the land shapes is water, so the Great Lakes show on the Chicago, Detroit, Cleveland and Toronto maps. A preview mode draws a city's water and hills from its stops before it goes into a pack (tested on Toronto, Ottawa, Vancouver, Calgary, Edmonton, Chicago and Detroit).
 
 ### Size
 About 57 more packs, two agent phases each. One at a time that is roughly 35–45 hours of agent work; the tokens add up to about 25 million.
