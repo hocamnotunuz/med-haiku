@@ -1233,7 +1233,29 @@ const STATES = {
     // The Sunshine Skyway (I-275) across Tampa Bay
     bridges: [["Manatee", "Pinellas"]],
   },
-  SC: { fips: "45", name: "South Carolina", pop: "census", merge: [] },
+  // Reviewed by the South Carolina pack agent (packs/SC/NOTES.md): 46 counties to 32 regions: the
+  // Savannah valley (Abbeville), the Midlands (Newberry, Union, Camden, Orangeburg), the Pee Dee
+  // (Bennettsville, Dillon, Manning) and the Lowcountry (Barnwell, the Colleton-Hampton-Jasper
+  // group). The counties of 50k or more stay alone, except Kershaw, which takes Lee (all of Lee's
+  // other neighbours are big), and Orangeburg, which takes Calhoun along I-26 (Clarendon is across
+  // Lake Marion).
+  SC: {
+    fips: "45",
+    name: "South Carolina",
+    pop: "census",
+    merge: [
+      ["Abbeville", "Edgefield", "McCormick"],
+      ["Newberry", "Saluda"],
+      ["Chester", "Fairfield", "Union"],
+      ["Chesterfield", "Marlboro"],
+      ["Dillon", "Marion"],
+      ["Clarendon", "Williamsburg"],
+      ["Calhoun", "Orangeburg"],
+      ["Kershaw", "Lee"],
+      ["Allendale", "Bamberg", "Barnwell"],
+      ["Colleton", "Hampton", "Jasper"],
+    ],
+  },
   NC: { fips: "37", name: "North Carolina", pop: "census", merge: [] },
   VA: { fips: "51", name: "Virginia", pop: "census", merge: [] },
   WV: { fips: "54", name: "West Virginia", pop: "census", merge: [] },
