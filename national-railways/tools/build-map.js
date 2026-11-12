@@ -612,7 +612,10 @@ function canadaTopology(codes) {
       const where = (w) => `?where=${encodeURIComponent(w)}&outFields=CDUID,CDNAME,CDTYPE&outSR=4326`;
       const list = JSON.parse(fs.readFileSync(download(`${service}${where(`PRUID='${cfg.sgc}'`)}&f=json&returnGeometry=false`, path.join(CACHE, "canada", `cd-${cfg.sgc}-list.json`)), "utf8"));
       const cds = list.features.map((f) => f.attributes.CDUID).sort();
-      const all = cds.flatMap((cd) => JSON.parse(fs.readFileSync(download(`${service}${where(`CDUID='${cd}'`)}&f=geojson&geometryPrecision=5&returnGeometry=true`, path.join(CACHE, "canada", "cd", `${cd}.json`)), "utf8")).features);
+      // (Qikiqtaaluk, Baffin Island and the High Arctic, is too big for the server in full: it comes
+      // with points closer than about 10 m dropped)
+      const LIGHTER = { 6204: "&maxAllowableOffset=0.0001" };
+      const all = cds.flatMap((cd) => JSON.parse(fs.readFileSync(download(`${service}${where(`CDUID='${cd}'`)}&f=geojson&geometryPrecision=5&returnGeometry=true${LIGHTER[cd] || ""}`, path.join(CACHE, "canada", "cd", `${cd}.json`)), "utf8")).features);
       // Lighter before the shared borders are worked out (the full files are too big for that):
       // repeated points dropped and islets under 25 km² left out (each division keeps its biggest
       // piece). Every division keeps its points as they came (5 decimals, about 1 m), so both
@@ -664,7 +667,10 @@ function canadaTopology(codes) {
   }
   // Shared borders, simplified to about the US map's detail (a point every few miles)
   const shared = ts.topology({ regions: { type: "FeatureCollection", features }, anchor: ANCHOR }, 1e6);
-  const simple = tsimp.simplify(tsimp.presimplify(shared), 4e-4);
+  // (a degree of longitude shrinks toward the pole, so north of 60° a point's weight is its real
+  // area: the Arctic islands' coasts get the same detail as the south's instead of three times more)
+  const weight = (t) => tsimp.planarTriangleArea(t) * Math.min(1, Math.cos((((t[0][1] + t[1][1] + t[2][1]) / 3) * Math.PI) / 180) / 0.5);
+  const simple = tsimp.simplify(tsimp.presimplify(shared, weight), 4e-4);
   const smooth = tc.feature(simple, simple.objects.regions).features;
   // Trimmed to the land, smoothed to about the US map's detail: the province's own coastline
   // (see land above), or else its Natural Earth outline (1:10m, less exact on the coast)
