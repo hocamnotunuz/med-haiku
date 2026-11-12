@@ -162,7 +162,8 @@ async function usRaw() {
   const sh = srows[0];
   const scol = (name) => sh.indexOf(name);
   const placePop = {};
-  for (const r of srows.slice(1)) if (r[scol("SUMLEV")] === "162") placePop[FIPS + r[scol("PLACE")]] = +r[scol("ESTIMATESBASE2020")];
+  // (some states' files write the codes without leading zeros: PLACE 6520 for Anchorage's 06520)
+  for (const r of srows.slice(1)) if (+r[scol("SUMLEV")] === 162) placePop[FIPS + String(r[scol("PLACE")]).padStart(5, "0")] = +r[scol("ESTIMATESBASE2020")];
 
   // Where each place is (Gazetteer), and its county region
   const glines = fs.readFileSync(gaz, "utf8").split(/\r?\n/).filter(Boolean).map((l) => l.split("\t").map((x) => x.trim()));

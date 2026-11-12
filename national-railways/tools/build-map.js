@@ -263,7 +263,30 @@ const STATES = {
       ["Grant", "Hidalgo", "Luna"],
     ],
   },
-  AK: { fips: "02", name: "Alaska", pop: "census", merge: [] },
+  // Reviewed by the Alaska pack agent (packs/AK/NOTES.md): 29 areas to 16 regions. The Alaska
+  // Railroad and the Parks Highway from Mat-Su to Fairbanks (Denali, Nenana) with the Dalton; the
+  // Richardson, Glenn and Alaska highways (Valdez, Glennallen, Tok); the Bering Strait; the
+  // Yukon-Kuskokwim Delta; Bristol Bay; Ketchikan and Prince of Wales; the mid-panhandle; the outer
+  // coast (Sitka); Lynn Canal (Juneau, Haines, Skagway). The Aleutians are one region (the Tustumena
+  // ferry to Unalaska). Kodiak Island and the North Slope stay alone, like the territories' huge regions.
+  AK: {
+    fips: "02",
+    name: "Alaska",
+    pop: "census",
+    join: [["Aleutians West", "Aleutians East"]],
+    merge: [
+      ["Denali", "Yukon-Koyukuk"],
+      ["Southeast Fairbanks", "Valdez-Cordova"],
+      ["Nome", "Northwest Arctic"],
+      ["Bethel", "Kusilvak"],
+      ["Bristol Bay", "Dillingham", "Lake and Peninsula"],
+      ["Ketchikan Gateway", "Prince of Wales-Hyder"],
+      ["Petersburg", "Wrangell"],
+      ["Hoonah-Angoon", "Sitka", "Yakutat"],
+      ["Haines", "Juneau", "Skagway"],
+    ],
+    names: { "Aleutians East-Aleutians West": "Aleutians Area", "Bristol Bay-Dillingham-Lake and Peninsula": "Bristol Bay Area" },
+  },
   HI: { fips: "15", name: "Hawaii", pop: "census", merge: [] },
   ND: { fips: "38", name: "North Dakota", pop: "census", merge: [] },
   SD: { fips: "46", name: "South Dakota", pop: "census", merge: [] },
