@@ -155,7 +155,8 @@ async function usRaw() {
   const gh = glines[0];
   const gcol = (name) => gh.indexOf(name);
   const places = glines.slice(1).map((r) => {
-    const lat = +r[gcol("INTPTLAT")], lon = +r[gcol("INTPTLONG")];
+    // (Alaska's places past the date line, like Shemya, go just west of -180° as on the map)
+    const lat = +r[gcol("INTPTLAT")], lon = +r[gcol("INTPTLONG")] > 0 ? +r[gcol("INTPTLONG")] - 360 : +r[gcol("INTPTLONG")];
     const inside = regionAt(lon, lat);
     const region = inside || nearestRegion(lon, lat);
     const full = r[gcol("NAME")];

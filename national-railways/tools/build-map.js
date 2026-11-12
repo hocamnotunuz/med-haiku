@@ -1042,13 +1042,14 @@ for (const [i, members] of groupOf) {
   regionInfo.set(id, { name: code === "CA" ? label : `${label}, ${STATES[code].name}`, state: code, members });
 }
 
-// Round to 3 decimals (about 100 m) and drop repeated points.
+// Round to 3 decimals (about 100 m) and drop repeated points. Alaska's westernmost islands lie
+// past the date line (east longitudes): put them just west of -180°, next to the rest of Alaska.
 const flat = (ring) => {
   const out = [];
   let lastX = null;
   let lastY = null;
   for (const [x, y] of ring) {
-    const rx = Math.round(x * 1000) / 1000;
+    const rx = Math.round((x > 0 ? x - 360 : x) * 1000) / 1000;
     const ry = Math.round(y * 1000) / 1000;
     if (rx === lastX && ry === lastY) continue;
     out.push(rx, ry);
