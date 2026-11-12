@@ -1209,7 +1209,28 @@ const STATES = {
       ["Haralson", "Polk"],
     ],
   },
-  FL: { fips: "12", name: "Florida", pop: "census", merge: [] },
+  // Reviewed by the Florida pack agent (packs/FL/NOTES.md): 67 counties to 52 regions. Most of the
+  // peninsula's counties are 50k or more and stay alone; the small ones merge in the Panhandle
+  // (Marianna, Port St. Joe, the Franklin-Wakulla coast), the Big Bend (Madison, Perry, Williston),
+  // the northeast (Macclenny), the heartland (Arcadia) and around Lake Okeechobee (Clewiston).
+  // Gadsden (on I-10, between Tallahassee and the Apalachicola) and Suwannee (Live Oak, the
+  // I-10/US-90 hub) also stay alone.
+  FL: {
+    fips: "12",
+    name: "Florida",
+    pop: "census",
+    merge: [
+      ["Holmes", "Jackson", "Washington"],
+      ["Calhoun", "Gulf", "Liberty"],
+      ["Franklin", "Wakulla"],
+      ["Hamilton", "Jefferson", "Madison"],
+      ["Dixie", "Lafayette", "Taylor"],
+      ["Gilchrist", "Levy"],
+      ["Baker", "Bradford", "Union"],
+      ["DeSoto", "Hardee"],
+      ["Glades", "Hendry", "Okeechobee"],
+    ],
+  },
   SC: { fips: "45", name: "South Carolina", pop: "census", merge: [] },
   NC: { fips: "37", name: "North Carolina", pop: "census", merge: [] },
   VA: { fips: "51", name: "Virginia", pop: "census", merge: [] },
