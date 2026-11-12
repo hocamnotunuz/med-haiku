@@ -294,8 +294,70 @@ const STATES = {
       ["Francheville", "Bécancour"],
       // The Magdalen Islands' ferry from Souris (counts once Prince Edward Island is in the game)
       ["Communauté maritime des Îles-de-la-Madeleine", "PE:Kings"],
+      // St. Lawrence ferries (the Quebec pack agent's review): Sorel-Saint-Ignace-de-Loyola,
+      // Rivière-du-Loup-Saint-Siméon, Trois-Pistoles-Les Escoumins, Matane-Baie-Comeau; the
+      // Campbellton bridge to New Brunswick and the Blanc-Sablon-St. Barbe ferry to Newfoundland
+      // (these two count once those provinces are in the game)
+      ["Pierre-De Saurel", "D'Autray"],
+      ["Rivière-du-Loup", "Charlevoix-Est"],
+      ["Les Basques", "La Haute-Côte-Nord"],
+      ["La Matanie", "Manicouagan"],
+      ["Avignon", "NB:Restigouche"],
+      ["Minganie--Le Golfe-du-Saint-Laurent", "NL:Division No. 9"],
     ],
-    merge: [],
+    // Reviewed by the Quebec pack agent (packs/QC/NOTES.md): 98 census divisions to 65 regions,
+    // along real corridors: the Abitibi CN line, Route 101 to Ville-Marie, Route 117, the
+    // Laurentian A-15, Route 148, the A-50, the Saint-Maurice valley, the Chemin du Roy, the
+    // Jacques-Cartier River, Charlevoix, Route 138 on the North Shore, Lac Saint-Jean, the Gaspé
+    // coasts and the Matapédia valley, the Trans-Canada to New Brunswick, the Côte-du-Sud, the
+    // Chaudière valley, Route 116, the Eastern Townships and the New York border farmland. Left
+    // small on purpose: Nord-du-Québec (huge), La Vallée-de-l'Or (Val-d'Or), Les Appalaches
+    // (Thetford Mines) and the Magdalen Islands (no neighbour until Prince Edward Island).
+    merge: [
+      ["Abitibi", "Abitibi-Ouest"],
+      ["Rouyn-Noranda", "Témiscamingue"],
+      ["Antoine-Labelle", "La Vallée-de-la-Gatineau"],
+      ["Les Laurentides", "Les Pays-d'en-Haut"],
+      ["Les Collines-de-l'Outaouais", "Pontiac"],
+      ["Argenteuil", "Papineau"],
+      ["Shawinigan", "Mékinac", "La Tuque"],
+      ["D'Autray", "Maskinongé"],
+      ["Portneuf", "La Jacques-Cartier"],
+      ["Charlevoix", "Charlevoix-Est"],
+      ["Manicouagan", "La Haute-Côte-Nord"],
+      ["Sept-Rivières--Caniapiscau", "Minganie--Le Golfe-du-Saint-Laurent"],
+      ["Le Domaine-du-Roy", "Maria-Chapdelaine"],
+      ["La Côte-de-Gaspé", "Le Rocher-Percé"],
+      ["Bonaventure", "Avignon"],
+      ["La Matanie", "La Haute-Gaspésie"],
+      ["La Mitis", "La Matapédia"],
+      ["Rivière-du-Loup", "Témiscouata", "Les Basques"],
+      ["Montmagny", "L'Islet", "Kamouraska"],
+      ["Bellechasse", "Les Etchemins"],
+      ["La Nouvelle-Beauce", "Robert-Cliche"],
+      ["Lotbinière", "L'Érable"],
+      ["Bécancour", "Nicolet-Yamaska"],
+      ["Le Granit", "Le Haut-Saint-François"],
+      ["Memphrémagog", "Coaticook"],
+      ["Le Val-Saint-François", "Les Sources"],
+      ["Les Maskoutains", "Acton"],
+      ["Brome-Missisquoi", "Rouville"],
+      ["Les Jardins-de-Napierville", "Le Haut-Saint-Laurent"],
+    ],
+    // The Île d'Orléans bridge lands in La Côte-de-Beaupré
+    join: [["L'Île-d'Orléans", "La Côte-de-Beaupré"]],
+    names: {
+      "Charlevoix & Charlevoix-Est": "Charlevoix",
+      "Kamouraska & L'Islet & Montmagny": "Côte-du-Sud",
+      "L'Île-d'Orléans & La Côte-de-Beaupré": "Côte-de-Beaupré & Île d'Orléans",
+      "La Tuque & Mékinac & Shawinigan": "Shawinigan & Haute-Mauricie",
+      "Les Basques & Rivière-du-Loup & Témiscouata": "Rivière-du-Loup, Témiscouata & Basques",
+      "Minganie--Le Golfe-du-Saint-Laurent & Sept-Rivières--Caniapiscau": "Sept-Rivières & Minganie",
+      "Bellechasse & Les Etchemins": "Bellechasse-Etchemins",
+      "Francheville": "Trois-Rivières",
+      "Le Saguenay-et-son-Fjord": "Saguenay",
+      "Communauté maritime des Îles-de-la-Madeleine": "Îles-de-la-Madeleine",
+    },
   },
   NB: { country: "CAN", name: "New Brunswick", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NS: { country: "CAN", name: "Nova Scotia", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
