@@ -166,7 +166,7 @@ Coordinates are rounded to 2 decimals. Station `pop` is the region's population 
 
 **Ids:** the checker found every id unique across all packs.
 
-### Towns (67, about 1.6 per region)
+### Towns (68, about 1.7 per region)
 
 | Region | Towns |
 | --- | --- |
@@ -205,7 +205,7 @@ Coordinates are rounded to 2 decimals. Station `pop` is the region's population 
 | Bruce | Tobermory (scenic, coast); Walkerton (farm) |
 | Muskoka & Parry Sound | Bracebridge (mountain); Parry Sound (coast) |
 | Nipissing | Algonquin Park (scenic, mountain); Sturgeon Falls (farm) |
-| Sudbury & Manitoulin | Espanola (mountain); Little Current (coast); Killarney (scenic, mountain) |
+| Sudbury & Manitoulin | Espanola (mountain); Little Current (coast); South Baymouth (coast); Killarney (scenic, mountain) |
 | Algoma | Elliot Lake (mountain); Agawa Canyon (scenic, mountain); Wawa (mountain) |
 | Cochrane & Timiskaming | Temiskaming Shores (farm); Kapuskasing (mountain); Moosonee (scenic, coast) |
 | Thunder Bay | Kakabeka Falls (scenic, mountain); Nipigon (mountain); Geraldton (mountain); Marathon (coast) |
@@ -235,6 +235,7 @@ Towns are size 1 unless shown. The GTA's big second cities follow BC's Surrey (5
   - The real roads use the Highway 71 and Highway 11 crossings, and the Noden Causeway isn't well known enough to place.
   - **Atikokan** (Highway 11 and the CN line; Quetico's gateway) replaced it. It opens to Thunder Bay and Kakabeka in both modes.
   - Fort Frances can come back with the Minnesota pack, over the International Falls bridge.
+- **South Baymouth** (GNDB locality, 45.56, -82.01) was added after the terrain update made Manitoulin land. It is where the Chi-Cheemaun lands, like BC's Tsawwassen. The straight Tobermory–Little Current line now crosses 3.5 mi of Manitoulin's bays, which is blocked in Tough. Tobermory–South Baymouth–Little Current is open in both modes, and it is the real route: the ferry, then Highway 6.
 - **Geraldton** was added. Straight lines along Lake Superior's north shore (Nipigon–Marathon, Nipigon–Schreiber–Terrace Bay) cross 7–28 mi of the map's Lake Superior, which is blocked in both modes. Geraldton (Greenstone, 4,309; Highway 11 and the CN line) opens to Nipigon, Thunder Bay and Marathon in both modes.
 - **Left out to stay near 1.5 per region:**
   - Milton, Pickering, Grimsby, Niagara-on-the-Lake, Ingersoll, St. Marys, Wingham, Grand Bend, Amherstburg, Kingsville, Port Hope and Brighton.
@@ -248,46 +249,53 @@ Ontario has no mountain cells on the terrain grid, and few hill cells. Algoma ha
 
 ### Water: the Great Lakes are lakes here
 
-The brief expected the Great Lakes to sit outside the land as "coast". In fact `terrain.js` has them as **lakes** (Natural Earth outlines): Lake Huron (Georgian Bay and the North Channel included), Superior, Ontario, Erie and St. Clair. So a line across them is blocked unless it follows the shore or uses a listed bridge or ferry, and **no `bays` were needed**. Two side effects:
-- **Natural Earth's Lake Huron covers all of Manitoulin Island** (no island hole). So every line to or across Manitoulin is "lake".
+The brief expected the Great Lakes to sit outside the land as "coast". In fact `terrain.js` has them as **lakes** (Natural Earth outlines): Lake Huron (Georgian Bay and the North Channel included), Superior, Ontario, Erie and St. Clair. So a line across them is blocked unless it follows the shore or uses a listed bridge or ferry, and **no `bays` were needed**. Since the terrain update, lake islands of 10 km² or more are land: Manitoulin, Amherst and Wolfe Islands, and Lake of the Woods' big islands. Georgian Bay is now part of Lake Huron's outline.
 - **The outlines are coarse.** They swallow some shore points:
   - North Bay was nudged (see Main stations).
   - Gananoque and Cobourg were moved 1 km north.
-  - Wellington (Prince Edward County) and Little Current are in the lake.
 
   For the main agent: future Great Lakes packs (MI, OH, NY, PA, WI, MN) will hit the same thing.
 
-**Bridges and ferries that make the real crossings work** (checked with `NR.segmentGeo`, both modes):
+**Bridges and ferries that make the real crossings work.** Checked with `NR.segmentGeo` in both modes, again after the islands became land:
 
 | Crossing | Result |
 | --- | --- |
-| Tobermory–Little Current (51 mi of "lake") | open in both modes, via the Tobermory–South Baymouth ferry |
-| Tobermory–South Baymouth or Mindemoya (test points) | open in both modes, via the ferry |
-| Little Current–Espanola (10 mi) | open in both modes, via the Little Current Swing Bridge (Highway 6) |
-| Mindemoya (test point)–Espanola (30 mi) | open in both modes, via the swing bridge |
+| Tobermory–South Baymouth (26 mi of water) | open in both modes, via the Tobermory–South Baymouth ferry |
+| Tobermory–Mindemoya (test point) | open in both modes, via the ferry |
+| Tobermory–Little Current | Gentle only. The ferry covers the Main Channel, but Tough blocks 3.5 mi of Manitoulin's bays; South Baymouth is the way through |
+| Owen Sound–South Baymouth | open in both modes, via the ferry (Highway 6 and the Chi-Cheemaun) |
+| On Manitoulin: South Baymouth–Little Current, South Baymouth–Mindemoya (test), Gore Bay (test)–Mindemoya, Manitowaning (test)–Little Current | open in both modes |
+| On Manitoulin: Gore Bay–Little Current | Gentle only (Tough blocks 2.5 mi of bays) |
+| On Manitoulin: Wikwemikong–Little Current | blocked in both modes (10 mi across Manitowaning Bay) |
+| Little Current–Espanola (3.9 + 2 mi of channel) | open in both modes, via the Little Current Swing Bridge (Highway 6) |
+| Mindemoya (test)–Espanola | open in both modes, via the swing bridge |
 | Little Current–Sudbury | Gentle only (via the swing bridge; Highway 6 then Highway 17) |
-| Tobermory–Espanola | Gentle only (via the ferry) |
-| **Away from them, blocked in both modes** | Tobermory–Parry Sound (77 mi), Tobermory–Midland (64), Tobermory–Killarney (51), Tobermory–Port Elgin (53, down the Lake Huron side), Little Current–Killarney (18), Little Current–Elliot Lake (20 across the North Channel), Little Current–Parry Sound (82), Little Current–Owen Sound (56). Little Current–Sudbury is blocked in Tough |
+| South Baymouth–Walkerton, South Baymouth–Hanover | Gentle only, via the ferry (see Known limit below) |
+| **Away from them, blocked in both modes** | Tobermory–Parry Sound (74 mi), Tobermory–Killarney (51), Tobermory–Port Elgin (53, down the Lake Huron side), South Baymouth–Port Elgin (82), South Baymouth–Goderich (120), South Baymouth–Parry Sound, South Baymouth–Killarney (11), Little Current–Killarney (11), Little Current–Elliot Lake (20 across the North Channel), Little Current–Parry Sound, Gore Bay–Espanola and Gore Bay–Elliot Lake (tests). Little Current–Sudbury is blocked in Tough |
 | Sandbanks–Belleville | open; its 1.5 mi of the bay uses the Bay Bridge |
 | Sandbanks–Trenton, Picton (test)–Trenton, Wellington (test)–Trenton | open; they use the Trenton bridge at the head of the bay |
 | Picton (test)–Deseronto (test) | Gentle only, via the Glenora ferry; Tough blocks 5.4 mi of the bay |
-| Amherst Island (test)–Picton | blocked in Tough (4.4 mi) |
+| Amherst Island (test)–Picton | open in both modes. Amherst Island is land now, so the line follows the shore. Before the update, Tough blocked it |
+| Picton (test)–Kingston | Gentle only; Tough blocks 4.4 mi of Lake Ontario |
 | Wellington–Cobourg, Sandbanks–Cobourg, Sandbanks–Kingston (19–43 mi of Lake Ontario) | blocked in both modes |
 
 Notes:
-- **The ferry and swing-bridge points stay away from the towns on purpose.**
-  - Little Current and Tobermory lie at the edge of (or inside) the lake. A bridge point within 3–4 miles of either would count for every line leaving them, across Georgian Bay too.
-  - So the ferry's points stay over 4 miles from Tobermory, along the route to South Baymouth.
-  - The swing bridge's point stands 7 miles north of Little Current on Highway 6's route over La Cloche Island (46.07, -81.87). The real swing bridge is at Little Current itself (well known).
+- **The ferry and swing-bridge points stay away from the towns on purpose.** A crossing uses a bridge point within 3–4 miles of its stretch of water, and a stretch that starts at a shore town counts as near any point by that town. I re-checked this after the islands became land, by moving the points to the real crossings:
+  - **Ferry next to Tobermory** (45.27, -81.68): Tobermory–Killarney opened in both modes across 51 mi of Lake Huron, and Tobermory–Parry Sound opened in Gentle.
+  - **Ferry next to South Baymouth** (45.54, -81.99): South Baymouth–Port Elgin opened in both modes across 82 mi of Lake Huron, and South Baymouth–Goderich across 120 mi.
+  - So the ferry keeps two points on the real route in mid-channel: 45.33, -81.75 (6 miles from Tobermory) and 45.39, -81.82. The old third point (45.49, -81.92) was dropped, and the mid point moved from 45.41, -81.84, because both let South Baymouth–Port Elgin through.
+  - **Swing bridge at the real bridge** (45.99, -81.93, by Little Current): Little Current–Elliot Lake opened in both modes across 20 mi of the North Channel. Little Current–Espanola became blocked in Tough, because the map's 3.9-mi channel north of the town lay out of reach.
+  - So the swing bridge's point stays 7 miles north of Little Current, on Highway 6's route over La Cloche Island (46.07, -81.87). The real swing bridge is at Little Current itself (well known).
+- **Known limit.** In Gentle (bridge reach 4 mi), South Baymouth–Walkerton and South Baymouth–Hanover pass the ferry's Tobermory point. They count the whole 76–78 mi run down Lake Huron as the ferry, at the real-bridge price. Tough blocks them.
 - **The Bay of Quinte gets no bay.** It is mostly inside Natural Earth's Lake Ontario outline already. It is also narrow: crossings are 1–2 miles, which the game allows as a new bridge in both modes (Tough allows 2 mi).
   - The real crossings are listed so that lines passing near them are cheaper: the Bay Bridge at Belleville, the Murray Canal bridge at Carrying Place, and the Glenora–Adolphustown ferry.
   - Only wider diagonal crossings are blocked in Tough.
   - The few "coast" (non-lake) patches around Adolphus Reach let Picton–Napanee (7 mi) through in both modes, as shore-following track. Highway 33 and the Glenora ferry make that the real route anyway.
 
-### Bridges (16) and ferries (5 points on 2 routes)
+### Bridges (16) and ferries (4 points on 2 routes)
 
 Ferries (each point is named after the route plus the stretch):
-- **Tobermory–South Baymouth**, the MS Chi-Cheemaun, May to October (well known). Three points: 45.33, -81.75; 45.41, -81.84; 45.49, -81.92.
+- **Tobermory–South Baymouth**, the MS Chi-Cheemaun, May to October (well known). Two mid-channel points: 45.33, -81.75 and 45.39, -81.82 (see Water for why).
 - **Glenora–Adolphustown**, the Glenora Ferry on Highway 33 (well known). Two points: 44.04, -77.05 and 44.05, -77.03.
 
 Bridges. Positions are approximate (well-known crossings, not surveyed points). They are placed on the map's river where links cross it:
@@ -357,15 +365,26 @@ Checked with `NR.segmentGeo` / `NR.blockedReason`, in both modes. The game was l
   - **Windsor (0).** Chatham-Kent is its only Ontario neighbour, and the straight line runs along the inside of Lake St. Clair's south shore, 20 mi of lake. Leamington joins them in both modes (Windsor–Leamington 26 mi, Leamington–Chatham 28 mi). Detroit will add more with Michigan.
   - **Thunder Bay (1: Kenora).** Lake Superior lies between it and Sault Ste. Marie and Timmins. The region is reached in both modes through Thunder Bay–Kenora and through its towns: Thunder Bay–Nipigon–Geraldton–Marathon–Wawa–Agawa Canyon–Sault Ste. Marie, every link open in both modes.
 - **Towns:**
-  - Of 201 links, 181 are open in both modes, 12 only in Gentle, and 8 in neither.
-  - The ones open in neither: Tobermory–Port Elgin, Parry Sound–Thornbury and Little Current–Killarney/Elliot Lake (each listed twice), Moosonee–Temiskaming Shores (Lake Abitibi) and Marathon–Nipigon (Lake Superior).
+  - Of 204 links (after the island update), 183 are open in both modes, 13 only in Gentle (Tobermory–Little Current is new among them), and 8 in neither.
+  - The ones open in neither:
+    - Tobermory–Port Elgin;
+    - Parry Sound–Thornbury;
+    - Little Current–Killarney (listed twice);
+    - South Baymouth–Killarney;
+    - Elliot Lake–Little Current;
+    - Moosonee–Temiskaming Shores (Lake Abitibi);
+    - Marathon–Nipigon (Lake Superior).
   - **Every town has an open link in both modes.**
 - **Manitoba:** Kenora–Beausejour is open in both modes.
+- **Kenora and Lake of the Woods, after the update:**
+  - Kenora–Beausejour and Atikokan–Thunder Bay are open in both modes.
+  - Kenora–Dryden is still Gentle only (5.5 mi of Eagle Lake).
+  - Fort Frances (re-tested at 48.61 and 48.62, -93.39) is still blocked in Tough: 4 mi of Lake of the Woods near Kenora, and 21–25 mi of Rainy Lake towards Atikokan. Atikokan stays in its place.
 - **Michigan, Minnesota, New York and Quebec** aren't in the game, so links into them were ignored.
 
 ### Data problems seen (for the main agent)
 
-1. **The Great Lakes are lakes in `terrain.js`, and Natural Earth's Lake Huron covers Manitoulin Island** (see Water). That is fine for play here, but it isn't what the brief assumed. A Manitoulin station other than Little Current would sit "in the lake" too.
+1. **The Great Lakes are lakes in `terrain.js`** (see Water). That is fine for play here, but it isn't what the brief assumed. Since the terrain update, Manitoulin and the other big islands are land.
 2. **`places.json` still has "municipality" duplicates where a county shares a town's name.** Each sits near the county's middle and carries the town's population:
    - "Simcoe" (16,121) at 44.45, -79.69 in Simcoe County;
    - "Peterborough" (83,651) at 44.57, -78.26;
@@ -382,13 +401,16 @@ Checked with `NR.segmentGeo` / `NR.blockedReason`, in both modes. The game was l
 
 ### Checks
 
-- `node tools/check-pack.js ON`: "ON: passed (41 stations, 67 towns, 0 city maps, 0 passes, 21 bridges), 0 errors, 1 warnings".
-  - The warning: `bridge "Tobermory–South Baymouth ferry (Tobermory side)" is more than 3 miles from any river, lake, bay or coast on the map`.
-  - That point is in the middle of the Main Channel, inside the map's Lake Huron, about 6 miles from Tobermory. The check measures distance to lake edges, not whether a point is in a lake.
-  - It has to stay there: it is the point Tobermory–Little Current uses, and moving it nearer Tobermory would let lines from Tobermory across Georgian Bay use the ferry.
-- `node tools/test-pack.js ON`: "PASSED: 17 passed, 0 warnings, 0 failed". The test laid MKM–OSH and bought Haliburton & Kawartha Lakes (LIN).
+- `node tools/check-pack.js ON` (after the island update): "ON: passed (41 stations, 68 towns, 0 city maps, 0 passes, 20 bridges), 0 errors, 1 warnings".
+  - The warning: `bridge "Tobermory–South Baymouth ferry (mid-channel)" is more than 3 miles from any river, lake, bay or coast on the map`.
+  - That point is in the middle of the Main Channel, inside the map's Lake Huron, over 3 miles from any shore. The check measures distance to lake edges, not whether a point is in a lake.
+  - It has to stay mid-channel: points near either terminal let lines across Georgian Bay or down Lake Huron use the ferry (see Water).
+- `node tools/test-pack.js ON`: "PASSED: 17 passed, 0 warnings, 0 failed", both before and after the island update. The test laid MKM–OSH and bought Haliburton & Kawartha Lakes (LIN).
 - **Screenshots** (arcade light, classic dark, phone, levels):
   - The start shows Toronto on the lakeshore, Markham north of it and Oshawa east, with Peel, Simcoe, Haliburton & Kawartha Lakes, Peterborough and Northumberland for sale.
   - Trees cover the north and cottage country; the south is farmland.
   - The levels picture shows the Grand River, West Montrose, Cambridge, Trenton, Campbellford, Bay Bridge, Murray Canal and Glenora labels.
   - Manitoba shows as "Opens once you own all of Ontario".
+
+## Main agent's review
+- Belleville's station moved from 44.26, -77.37 (the middle of the City of Belleville in the raw place list, 10 km north of town) to downtown on the Bay of Quinte, 44.17, -77.38 (well known). Other stations sit within a few kilometres of their towns.

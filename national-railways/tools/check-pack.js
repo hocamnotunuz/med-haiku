@@ -229,7 +229,9 @@ function check(code) {
         const riverMi = milesToEdges(T.rivers.map((r) => r.line), { lat, lon }, false);
         const coastMi = milesToEdges(NR.MAP.land, { lat, lon }, true);
         const inBay = NR.BAYS.some((b) => inRing(lon, lat, b.ring));
-        if (Math.min(lakeMi, riverMi, coastMi) > 3 && !inBay) warn(`bridge "${name}" is more than 3 miles from any river, lake, bay or coast on the map`);
+        // (a ferry's point out on a lake, off its islands, is where it should be)
+        const onLake = T.lakes.some((l) => inRing(lon, lat, l.ring) && !(l.holes || []).some((h) => inRing(lon, lat, h)));
+        if (Math.min(lakeMi, riverMi, coastMi) > 3 && !inBay && !onLake) warn(`bridge "${name}" is more than 3 miles from any river, lake, bay or coast on the map`);
       }
     }
   for (const b of p.bays || []) {

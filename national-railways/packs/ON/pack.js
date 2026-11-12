@@ -60,7 +60,7 @@ NR.addPack({
     // amalgamated city); Fort Henry and the head of the St. Lawrence.
     { id: "KGN", name: "Kingston", county: "on-frontenac-lennox-and-addington", lat: 44.24, lon: -76.51, type: "metro", size: 2, pop: 207, main: true, level: "east" },
     // Belleville: the farm and dairy country of the Quinte area and Prince Edward County.
-    { id: "BLE", name: "Belleville", county: "on-hastings-prince-edward", lat: 44.26, lon: -77.37, type: "farm", size: 2, pop: 171, main: true, level: "east" },
+    { id: "BLE", name: "Belleville", county: "on-hastings-prince-edward", lat: 44.17, lon: -77.38, type: "farm", size: 2, pop: 171, main: true, level: "east" },
     { id: "PTB", name: "Peterborough", county: "on-peterborough", lat: 44.3, lon: -78.33, type: "metro", size: 2, pop: 148, main: true, level: "east" },
     // Cornwall: the city (47,845) of the farm counties of Stormont, Dundas and Glengarry.
     { id: "CWL", name: "Cornwall", county: "on-stormont-dundas-and-glengarry", lat: 45.03, lon: -74.73, type: "farm", size: 2, pop: 115, main: true, level: "east" },
@@ -173,10 +173,12 @@ NR.addPack({
     { id: "PSD", name: "Parry Sound", county: "on-muskoka-parry-sound", lat: 45.35, lon: -80.04, type: "coast", size: 1 },
     { id: "ALG", name: "Algonquin Park", county: "on-nipissing", lat: 45.55, lon: -78.6, scenic: true, type: "mountain", size: 1 },
     { id: "SGF", name: "Sturgeon Falls", county: "on-nipissing", lat: 46.37, lon: -79.93, type: "farm", size: 1 },
-    // The Sudbury region: Espanola, Little Current (Manitoulin Island's town, at the swing bridge)
-    // and Killarney Provincial Park (its park point; the white quartzite La Cloche hills).
+    // The Sudbury region: Espanola; Manitoulin Island's Little Current (at the swing bridge) and
+    // South Baymouth (where the Chi-Cheemaun from Tobermory lands); and Killarney Provincial Park
+    // (its park point; the white quartzite La Cloche hills).
     { id: "ESP", name: "Espanola", county: "on-greater-sudbury-manitoulin-sudbury", lat: 46.24, lon: -81.76, type: "mountain", size: 1 },
     { id: "LCU", name: "Little Current", county: "on-greater-sudbury-manitoulin-sudbury", lat: 45.98, lon: -81.93, type: "coast", size: 1 },
+    { id: "SBY", name: "South Baymouth", county: "on-greater-sudbury-manitoulin-sudbury", lat: 45.56, lon: -82.01, type: "coast", size: 1 },
     { id: "KIL", name: "Killarney", county: "on-greater-sudbury-manitoulin-sudbury", lat: 46.1, lon: -81.38, scenic: true, type: "mountain", size: 1 },
     // Algoma: Elliot Lake; Agawa Canyon, the Algoma Central Railway's tour-train stop (the GNDB
     // "Canyon" locality); Wawa.
@@ -245,18 +247,19 @@ NR.addPack({
   passes: [],
   // Real bridges: [name, latitude, longitude]. Water or a river crossed near one uses the real
   // bridge (cheaper); anywhere else you build a new one, if the water is narrow enough.
-  // The terrain's lakes include the Great Lakes (Natural Earth outlines, which also cover
-  // Manitoulin Island), so crossing them needs one of these.
+  // The terrain's lakes include the Great Lakes (Natural Earth outlines; their big islands, such
+  // as Manitoulin, are land), so crossing them needs one of these.
   bridges: [
     // The MS Chi-Cheemaun, Tobermory–South Baymouth across the Main Channel (May to October). Its
-    // points stay over 4 miles from Tobermory, so that lines from Tobermory east across Georgian
-    // Bay or down the Lake Huron side of the Bruce Peninsula don't count as using it.
+    // points lie on the route but over 4 miles from both ends: a point near Tobermory let lines
+    // from Tobermory across Georgian Bay use it, and one near South Baymouth let lines from South
+    // Baymouth run 80 miles down Lake Huron to Port Elgin.
     ["Tobermory–South Baymouth ferry (Tobermory side)", 45.33, -81.75],
-    ["Tobermory–South Baymouth ferry (mid-channel)", 45.41, -81.84],
-    ["Tobermory–South Baymouth ferry (South Baymouth side)", 45.49, -81.92],
+    ["Tobermory–South Baymouth ferry (mid-channel)", 45.39, -81.82],
     // Highway 6 north from Little Current: the swing bridge, then La Cloche Island to the mainland.
-    // The point stands on that route 7 miles north of the town (the whole island counts as lake
-    // on the map), so only lines that follow Highway 6 north use it.
+    // The point stands on that route 7 miles north of the town, so only lines that follow Highway 6
+    // north use it. At the real bridge (by the town) it let Little Current–Elliot Lake cross 20
+    // miles of the North Channel, and missed the map's 4-mile channel on Little Current–Espanola.
     ["Little Current Swing Bridge (Highway 6)", 46.07, -81.87],
     // The Bay of Quinte around Prince Edward County: the Bay Bridge (Norris Whitney Bridge) at
     // Belleville, the Murray Canal bridge at Carrying Place (Highway 33 to Trenton) and the
