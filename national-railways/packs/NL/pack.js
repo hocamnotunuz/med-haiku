@@ -87,7 +87,7 @@ NR.addPack({
     // sea on the map), so farm.
     { id: "COD", name: "Codroy Valley", county: "nl-division-no-3-4", lat: 47.83, lon: -59.19, type: "farm", size: 1 },
     // Burgeo: the south coast town at the end of Route 480.
-    { id: "BGO", name: "Burgeo", county: "nl-division-no-3-4", lat: 47.62, lon: -57.62, type: "coast", size: 1 },
+    { id: "BGO", name: "Burgeo", county: "nl-division-no-3-4", lat: 47.63, lon: -57.62, type: "coast", size: 1 },
     // Harbour Breton: the Connaigre Peninsula's town (1,477), the biggest in the region's east end.
     { id: "HBR", name: "Harbour Breton", county: "nl-division-no-3-4", lat: 47.48, lon: -55.82, type: "coast", size: 1 },
     // Corner Brook (Divisions 5 and 9)

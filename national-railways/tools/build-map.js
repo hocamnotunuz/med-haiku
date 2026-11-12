@@ -568,6 +568,10 @@ function kmArea(ring) {
   return Math.abs(a / 2) * 111.3 * 111.3 * Math.cos((ring[0][1] * Math.PI) / 180);
 }
 // The census divisions of these provinces as one topology (shared borders are exact inside it)
+// Topologies are rounded to a grid over their extent: with the extent fixed (all of North America,
+// not just the provinces in the game), adding a province doesn't move every other province's
+// points by a few metres (which tipped coastal towns in and out of their regions)
+const ANCHOR = { type: "MultiPoint", coordinates: [[-180, 10], [-50, 85]] };
 function canadaTopology(codes) {
   const ts = require(path.join(MODULES, "topojson-server"));
   const tsimp = require(path.join(MODULES, "topojson-simplify"));
@@ -646,7 +650,7 @@ function canadaTopology(codes) {
     if (missing.length) throw new Error(`${STATES[code].name}: no map for census divisions ${missing.join(", ")}`);
   }
   // Shared borders, simplified to about the US map's detail (a point every few miles)
-  const shared = ts.topology({ regions: { type: "FeatureCollection", features } }, 1e6);
+  const shared = ts.topology({ regions: { type: "FeatureCollection", features }, anchor: ANCHOR }, 1e6);
   const simple = tsimp.simplify(tsimp.presimplify(shared), 4e-4);
   const smooth = tc.feature(simple, simple.objects.regions).features;
   // Trimmed to the land, smoothed to about the US map's detail: the province's own coastline
@@ -685,7 +689,7 @@ function canadaTopology(codes) {
       out.push({ type: "Feature", id: r.id, properties: r.properties, geometry: { type: "MultiPolygon", coordinates: piece } });
     }
   }
-  return ts.topology({ regions: { type: "FeatureCollection", features: out } }, 1e6);
+  return ts.topology({ regions: { type: "FeatureCollection", features: out }, anchor: ANCHOR }, 1e6);
 }
 
 for (const code of CODES) if (!STATES[code]) throw new Error(`Unknown state ${code}. Known: ${Object.keys(STATES).join(", ")}`);

@@ -76,7 +76,7 @@ NR.addPack({
     { id: "SMT", name: "St. Martins", county: "nb-saint-john", lat: 45.35, lon: -65.56, scenic: true, type: "coast", size: 1 },
     { id: "QSP", name: "Quispamsis", county: "nb-kings", lat: 45.45, lon: -65.93, type: "metro", size: 2 },
     // Saint Andrews: the seaside resort on Passamaquoddy Bay (the Algonquin hotel, whale watching).
-    { id: "SAN", name: "Saint Andrews", county: "nb-charlotte", lat: 45.08, lon: -67.06, scenic: true, type: "coast", size: 1 },
+    { id: "SAN", name: "Saint Andrews", county: "nb-charlotte", lat: 45.08, lon: -67.05, scenic: true, type: "coast", size: 1 },
     // Blacks Harbour: where the ferry to Grand Manan leaves.
     { id: "BHB", name: "Blacks Harbour", county: "nb-charlotte", lat: 45.06, lon: -66.78, type: "coast", size: 1 },
     // Grand Manan: the island's whales, cliffs and fishing villages, out in the Bay of Fundy.

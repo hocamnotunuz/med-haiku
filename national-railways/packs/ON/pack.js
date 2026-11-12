@@ -178,7 +178,7 @@ NR.addPack({
     // (its park point; the white quartzite La Cloche hills).
     { id: "ESP", name: "Espanola", county: "on-greater-sudbury-manitoulin-sudbury", lat: 46.24, lon: -81.76, type: "mountain", size: 1 },
     { id: "LCU", name: "Little Current", county: "on-greater-sudbury-manitoulin-sudbury", lat: 45.98, lon: -81.93, type: "coast", size: 1 },
-    { id: "SBY", name: "South Baymouth", county: "on-greater-sudbury-manitoulin-sudbury", lat: 45.56, lon: -82.01, type: "coast", size: 1 },
+    { id: "SBY", name: "South Baymouth", county: "on-greater-sudbury-manitoulin-sudbury", lat: 45.56, lon: -82.02, type: "coast", size: 1 },
     { id: "KIL", name: "Killarney", county: "on-greater-sudbury-manitoulin-sudbury", lat: 46.1, lon: -81.38, scenic: true, type: "mountain", size: 1 },
     // Algoma: Elliot Lake; Agawa Canyon, the Algoma Central Railway's tour-train stop (the GNDB
     // "Canyon" locality); Wawa.

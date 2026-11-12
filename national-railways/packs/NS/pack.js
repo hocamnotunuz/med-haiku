@@ -22,7 +22,7 @@ NR.addPack({
     // of the regional municipality, 25 km northwest in the woods). Canada's main East Coast
     // container port and the province's international airport. 440k is size 3 by the guide
     // (350,000-900,000), like Windsor, Ontario (423k).
-    { id: "HFX", name: "Halifax", county: "ns-halifax", lat: 44.65, lon: -63.58, port: "Port of Halifax", airport: "Halifax Stanfield International", type: "metro", size: 3, pop: 440, main: true, level: "halifax" },
+    { id: "HFX", name: "Halifax", county: "ns-halifax", lat: 44.64, lon: -63.58, port: "Port of Halifax", airport: "Halifax Stanfield International", type: "metro", size: 3, pop: 440, main: true, level: "halifax" },
     // Windsor rather than Enfield-Lantz (population centre 6,583 to Windsor's 5,514): Hants has no
     // town of its own (East Hants and West Hants are rural municipalities); Enfield-Lantz is
     // Halifax's commuter belt by the airport, 20 mi from Halifax (it is a town here). Windsor is the
@@ -39,7 +39,7 @@ NR.addPack({
     // Digby: the scallop port on the Annapolis Basin, where the Saint John ferry docks, so coast.
     { id: "DIG", name: "Digby", county: "ns-annapolis-digby", lat: 44.62, lon: -65.76, type: "coast", size: 1, pop: 38, main: true, level: "valley" },
     // Yarmouth: the fishing port at the province's southwest tip, so coast.
-    { id: "YAR", name: "Yarmouth", county: "ns-shelburne-yarmouth", lat: 43.84, lon: -66.12, type: "coast", size: 1, pop: 39, main: true, level: "valley" },
+    { id: "YAR", name: "Yarmouth", county: "ns-shelburne-yarmouth", lat: 43.83, lon: -66.12, type: "coast", size: 1, pop: 39, main: true, level: "valley" },
     // Level 3: the North Shore and Antigonish
     // Amherst: on the Chignecto isthmus by the Amherst and Tantramar marshes, the land gate to New
     // Brunswick, so farm.
@@ -107,7 +107,7 @@ NR.addPack({
     // Springhill: the coal-mining town in the Cobequid hills (population centre 2,654), so mountain.
     { id: "SPG", name: "Springhill", county: "ns-cumberland", lat: 45.65, lon: -64.06, type: "mountain", size: 1 },
     // Joggins Fossil Cliffs: the UNESCO coal-age fossil cliffs on Chignecto Bay, at the park point.
-    { id: "JOG", name: "Joggins", county: "ns-cumberland", lat: 45.71, lon: -64.44, scenic: true, type: "coast", size: 1 },
+    { id: "JOG", name: "Joggins", county: "ns-cumberland", lat: 45.7, lon: -64.44, scenic: true, type: "coast", size: 1 },
     // Parrsboro: the village on the Minas Basin.
     { id: "PBO", name: "Parrsboro", county: "ns-cumberland", lat: 45.41, lon: -64.33, type: "coast", size: 1 },
     // Pictou
