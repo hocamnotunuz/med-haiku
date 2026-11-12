@@ -1125,7 +1125,33 @@ const STATES = {
       ["Panola", "Tate"],
     ],
   },
-  AL: { fips: "01", name: "Alabama", pop: "census", merge: [] },
+  // Reviewed by the Alabama pack agent (packs/AL/NOTES.md): 67 counties to 43 regions: the northwest
+  // hills (Russellville, Hamilton, Fayette), the east (Centre, Alexander City, Valley), the Black
+  // Belt (Marion, Demopolis, Selma, Eufaula), the southwest (Jackson, Atmore) and the Wiregrass
+  // (Troy, Andalusia, Ozark). The counties of 50k or more stay alone, and Chilton (Clanton, on
+  // I-65), whose neighbours are big or taken.
+  AL: {
+    fips: "01",
+    name: "Alabama",
+    pop: "census",
+    merge: [
+      ["Franklin", "Lawrence"],
+      ["Marion", "Winston"],
+      ["Fayette", "Lamar", "Pickens"],
+      ["Cherokee", "Cleburne", "Clay"],
+      ["Coosa", "Tallapoosa"],
+      ["Chambers", "Randolph"],
+      ["Bibb", "Hale", "Perry"],
+      ["Greene", "Marengo", "Sumter"],
+      ["Dallas", "Lowndes", "Wilcox"],
+      ["Choctaw", "Clarke", "Washington"],
+      ["Conecuh", "Escambia", "Monroe"],
+      ["Butler", "Crenshaw", "Pike"],
+      ["Covington", "Geneva"],
+      ["Dale", "Henry"],
+      ["Barbour", "Bullock", "Macon"],
+    ],
+  },
   GA: { fips: "13", name: "Georgia", pop: "census", merge: [] },
   FL: { fips: "12", name: "Florida", pop: "census", merge: [] },
   SC: { fips: "45", name: "South Carolina", pop: "census", merge: [] },
