@@ -446,8 +446,11 @@ const topoOf = (code) => (isCanadian(code) ? canTopo : topo);
 const geomsOf = (code) => (isCanadian(code) ? canRegions : usCounties);
 const neighbors = [...tc.neighbors(usCounties), ...tc.neighbors(canRegions).map((list) => list.map((j) => j + usCounties.length))];
 const find = (code, name) => {
-  const i = counties.findIndex((g) => stateOf(g) === code && g.properties.name === name);
-  if (i < 0) throw new Error(`No county called ${name} in ${STATES[code].name}`);
+  const matches = counties.map((g, i) => i).filter((i) => stateOf(counties[i]) === code && counties[i].properties.name === name);
+  // (two counties with one name, like Virginia's Richmond city and Richmond County: use the full name)
+  const full = isCanadian(code) || matches.length === 1 ? [] : counties.map((g, i) => i).filter((i) => stateOf(counties[i]) === code && censusNames()[String(counties[i].id)] === name);
+  const i = matches.length === 1 ? matches[0] : full[0];
+  if (i === undefined) throw new Error(matches.length > 1 ? `Two counties called ${name} in ${STATES[code].name}: use the full name, like "${name} County" or "${name} city"` : `No county called ${name} in ${STATES[code].name}`);
   return i;
 };
 
@@ -465,7 +468,35 @@ function censusPop() {
   const col = (name) => rows[0].indexOf(name);
   censusCache = {};
   for (const r of rows.slice(1)) if (r[col("SUMLEV")] === "050") censusCache[r[col("STATE")] + r[col("COUNTY")]] = +r[col("ESTIMATESBASE2020")] / 1000;
+  // Counties that changed after the map's (2017) boundaries: Connecticut's old counties became
+  // planning regions in 2022, and Alaska's Valdez-Cordova split in 2019. Their populations
+  // come from the 2010–2020 county totals (POPESTIMATE2020)
+  const old = path.join(CACHE, "census", "co-est2020-alldata.csv");
+  if (!fs.existsSync(old))
+    execFileSync("curl", ["-sS", "-f", "-m", "300", "--retry", "3", "-o", old, "https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/counties/totals/co-est2020-alldata.csv"]);
+  const orows = fs.readFileSync(old, "latin1").split(/\r?\n/).filter(Boolean).map((l) => l.split(","));
+  const ocol = (name) => orows[0].indexOf(name);
+  for (const r of orows.slice(1))
+    if (r[ocol("SUMLEV")] === "050" && !(r[ocol("STATE")] + r[ocol("COUNTY")] in censusCache)) censusCache[r[ocol("STATE")] + r[ocol("COUNTY")]] = +r[ocol("POPESTIMATE2020")] / 1000;
+  // Split before 2020: Valdez-Cordova = Chugach + Copper River
+  const SPLIT = { "02261": ["02063", "02066"] };
+  for (const [was, now] of Object.entries(SPLIT)) if (!(was in censusCache)) censusCache[was] = now.reduce((n, f) => n + (censusCache[f] || 0), 0);
   return censusCache;
+}
+// Each county's full name from the Census Bureau ("Kern County", "Orleans Parish", "Richmond city",
+// "Bethel Census Area"), by FIPS code (the same two files)
+let censusNameCache = null;
+function censusNames() {
+  if (censusNameCache) return censusNameCache;
+  censusPop();
+  censusNameCache = {};
+  for (const f of ["co-est2020-alldata.csv", "co-est2023-alldata.csv"]) {
+    const rows = fs.readFileSync(path.join(CACHE, "census", f), "latin1").split(/\r?\n/).filter(Boolean).map((l) => l.split(","));
+    const col = (name) => rows[0].indexOf(name);
+    for (const r of rows.slice(1)) if (r[col("SUMLEV")] === "050") censusNameCache[r[col("STATE")] + r[col("COUNTY")]] = r[col("CTYNAME")];
+  }
+  censusNameCache["02261"] ||= "Valdez-Cordova Census Area";
+  return censusNameCache;
 }
 
 // ---------- Which region each county belongs to ----------
@@ -551,7 +582,16 @@ for (const [i, members] of groupOf) {
     const big = members.map((j) => biggestTown(String(counties[j].id))).filter(Boolean).sort((a, b) => b.pop - a.pop)[0];
     label = `${big ? big.name.replace(/ \(Part\)$/, "") : STATES[code].name} area (${word} ${nums.join(" & ")})`;
   } else if (isCanadian(code)) label = kinds.length === 1 && kinds[0] ? `${base} ${kinds[0]}` : sourceOf(code) === "databc" ? `${base} Regional District` : base;
-  else label = /City$/.test(base) ? base : `${base} County`;
+  else if (code === "CA" || code === "NV" || code === "AZ" || code === "OR" || code === "WA") label = /City$/.test(base) ? base : `${base} County`;
+  else {
+    // The Census Bureau's own names: "Orleans Parish", "Bethel Census Area", "Richmond city"; a
+    // merged region gets its members' kind when they share one ("Adams-Lincoln County")
+    const full = members.map((j) => censusNames()[String(counties[j].id)] || `${counties[j].properties.name} County`);
+    const kindOf = (f, j) => f.slice(counties[j].properties.name.length).trim();
+    const kinds = [...new Set(full.map((f, k) => kindOf(f, members[k])))];
+    const kind = (kinds.length === 1 ? kinds[0] : code === "AK" ? "Area" : "County").replace(/^city$/, "City"); // (Alaska has no counties)
+    label = members.length === 1 ? full[0].replace(/ city$/, " City") : `${base} ${kind}`;
+  }
   regionKey.set(i, id);
   regionInfo.set(id, { name: code === "CA" ? label : `${label}, ${STATES[code].name}`, state: code, members });
 }
