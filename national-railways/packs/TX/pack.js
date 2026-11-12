@@ -1,5 +1,5 @@
 // National Railways pack: Texas.
-// Everything hand-made for one state: main stations, towns, levels, mountain passes, bridges,
+// Everything hand-made for one state: main stations, towns, levels, mountain passes, bridges, bays,
 // and where the forests and deserts are. The county borders come from map.js and the
 // mountains, lakes and rivers from terrain.js. What each field means: PACKS.md. Judgment calls
 // and sources: packs/TX/NOTES.md. Cities and populations: U.S. Census Bureau (2020), packs/TX/raw.
@@ -449,11 +449,481 @@ NR.addPack({
     // the middle of the city's limits around the Franklin Mountains.
     { id: "ELP", name: "El Paso", county: "tx-el-paso", lat: 31.76, lon: -106.49, airport: "El Paso International", type: "metro", size: 4, pop: 866, main: true, level: "west" },
   ],
-  // Towns: they appear over time, but only inside counties you own. Same fields, without level.
-  // (Added in part B of the build: NOTES.md.)
-  towns: [],
-  // Levels mode (when the game starts here): finish every goal on a level's checklist to open
-  // the next part of the state. Goal kinds are described in js/game.js ("Goals and contracts").
+  // Towns: they appear over time in the counties you own. Most are the region's next-biggest
+  // places, spread out; scenic ones are places tourists travel to. Points are the Census points,
+  // except where a comment says otherwise (NOTES.md).
+  towns: [
+    // Houston and the Gulf Coast
+    // Pasadena: Houston's biggest suburb (152k), on the Ship Channel, size 2.
+    { id: "PSDN", name: "Pasadena", county: "tx-harris", lat: 29.66, lon: -95.15, type: "metro", size: 2 },
+    // Baytown: across the San Jacinto from La Porte (the Fred Hartman Bridge), size 2.
+    { id: "BYTN", name: "Baytown", county: "tx-harris", lat: 29.76, lon: -94.97, type: "metro", size: 2 },
+    // Humble: by George Bush Intercontinental, on US-59 (I-69).
+    { id: "HMBL", name: "Humble", county: "tx-harris", lat: 29.99, lon: -95.26, type: "metro", size: 1 },
+    { id: "TMBL", name: "Tomball", county: "tx-harris", lat: 30.1, lon: -95.62, type: "metro", size: 1 },
+    // Johnson Space Center: NASA's Mission Control and Space Center Houston, at Clear Lake.
+    { id: "JSC", name: "Johnson Space Center", county: "tx-harris", lat: 29.56, lon: -95.09, scenic: true, type: "metro", size: 1 },
+    // San Jacinto Battleground: the monument where Texas won its independence (1836), on the Ship
+    // Channel.
+    { id: "SJAC", name: "San Jacinto Battleground", county: "tx-harris", lat: 29.75, lon: -95.09, scenic: true, type: "metro", size: 1 },
+    { id: "MSCY", name: "Missouri City", county: "tx-fort-bend", lat: 29.56, lon: -95.54, type: "metro", size: 2 },
+    // Rosenberg: on US-59 and the BNSF, by Richmond (the seat). At downtown; the Census point is 1
+    // mile south-west.
+    { id: "RSBG", name: "Rosenberg", county: "tx-fort-bend", lat: 29.56, lon: -95.81, type: "metro", size: 1 },
+    // Katy: at its old downtown on I-10, at the corner of Harris, Waller and Fort Bend counties (on
+    // the Harris side on this map; the Census point, 1.2 miles west, is in its Waller County part).
+    { id: "KATY", name: "Katy", county: "tx-harris", lat: 29.79, lon: -95.82, type: "metro", size: 1 },
+    // The Woodlands: the planned town (about 115k, a CDP with no population in raw/), size 2.
+    { id: "WDLD", name: "The Woodlands", county: "tx-montgomery", lat: 30.17, lon: -95.51, type: "metro", size: 2 },
+    // Willis: on I-45 by Lake Conroe.
+    { id: "WLLS", name: "Willis", county: "tx-montgomery", lat: 30.43, lon: -95.48, type: "farm", size: 1 },
+    { id: "ALVN", name: "Alvin", county: "tx-brazoria", lat: 29.42, lon: -95.22, type: "metro", size: 1 },
+    // Lake Jackson: Dow Chemical's planned town at Brazosport.
+    { id: "LKJN", name: "Lake Jackson", county: "tx-brazoria", lat: 29.05, lon: -95.45, type: "metro", size: 1 },
+    // Freeport: Port Freeport (its Velasco container terminal) at the Brazos's old mouth. At
+    // downtown; the Census point is 0.5 miles south-east.
+    { id: "FRPT", name: "Freeport", county: "tx-brazoria", lat: 28.95, lon: -95.36, port: "Port Freeport", type: "coast", size: 1 },
+    // League City: Galveston County's biggest city (114k), Houston's Clear Lake suburb, size 2.
+    { id: "LGCY", name: "League City", county: "tx-galveston", lat: 29.49, lon: -95.11, type: "metro", size: 2 },
+    // Texas City: the refinery port on Galveston Bay (52k). At downtown; the Census point (29.43,
+    // -94.89) is in the bay, as the city takes in the Texas City Dike.
+    { id: "TXCY", name: "Texas City", county: "tx-galveston", lat: 29.38, lon: -94.9, type: "coast", size: 2 },
+    // Bolivar Peninsula: Crystal Beach and Gilchrist's beach towns (a CDP), by the Bolivar ferry
+    // from Galveston or TX-87 from High Island.
+    { id: "BOLP", name: "Bolivar Peninsula", county: "tx-galveston", lat: 29.49, lon: -94.57, type: "coast", size: 1 },
+    // Hempstead: Waller County's seat, where US-290 meets TX-6.
+    { id: "HMPS", name: "Hempstead", county: "tx-waller", lat: 30.1, lon: -96.08, type: "farm", size: 1 },
+    // Liberty: Liberty County's seat, on the Trinity and US-90.
+    { id: "LBTY", name: "Liberty", county: "tx-liberty", lat: 30.04, lon: -94.79, type: "farm", size: 1 },
+    // Anahuac: Chambers County's seat, on Trinity Bay.
+    { id: "ANHC", name: "Anahuac", county: "tx-chambers", lat: 29.77, lon: -94.68, type: "farm", size: 1 },
+    // The Golden Triangle and the Big Thicket
+    // Port Arthur: the refinery city on Sabine Lake (56k), size 2. At downtown (Procter Street);
+    // the Census point is 3 miles north-east.
+    { id: "PTAR", name: "Port Arthur", county: "tx-jefferson", lat: 29.87, lon: -93.93, type: "coast", size: 2 },
+    { id: "VIDR", name: "Vidor", county: "tx-orange", lat: 30.13, lon: -93.99, type: "farm", size: 1 },
+    { id: "SLSB", name: "Silsbee", county: "tx-hardin", lat: 30.35, lon: -94.18, type: "farm", size: 1 },
+    // Big Thicket National Preserve: the "biological crossroads" of pine, cypress swamp and
+    // prairie, at its visitor center north of Kountze (approx.).
+    { id: "BTNP", name: "Big Thicket", county: "tx-hardin", lat: 30.46, lon: -94.39, scenic: true, type: "farm", size: 1 },
+    // Woodville: Tyler County's seat.
+    { id: "WDVL", name: "Woodville", county: "tx-jasper-newton-tyler", lat: 30.77, lon: -94.42, type: "farm", size: 1 },
+    { id: "NEWT", name: "Newton", county: "tx-jasper-newton-tyler", lat: 30.85, lon: -93.75, type: "farm", size: 1 },
+    // Onalaska: on Lake Livingston.
+    { id: "ONLK", name: "Onalaska", county: "tx-polk", lat: 30.82, lon: -95.11, type: "farm", size: 1 },
+    // Coldspring: San Jacinto County's seat.
+    { id: "CLSP", name: "Coldspring", county: "tx-san-jacinto", lat: 30.59, lon: -95.13, type: "farm", size: 1 },
+    { id: "NWVY", name: "New Waverly", county: "tx-walker", lat: 30.54, lon: -95.48, type: "farm", size: 1 },
+    // The Brazos Valley and the coast to Victoria
+    // Bryan: Brazos County's seat (84k), size 2.
+    { id: "BRYN", name: "Bryan", county: "tx-brazos", lat: 30.67, lon: -96.38, type: "metro", size: 2 },
+    { id: "NVST", name: "Navasota", county: "tx-grimes-washington", lat: 30.39, lon: -96.09, type: "farm", size: 1 },
+    // Washington-on-the-Brazos: where Texas declared its independence (1836); the state historic
+    // site.
+    { id: "WOTB", name: "Washington-on-the-Brazos", county: "tx-grimes-washington", lat: 30.33, lon: -96.16, scenic: true, type: "farm", size: 1 },
+    // Columbus: Colorado County's seat, on I-10 and the Colorado.
+    { id: "CLMS", name: "Columbus", county: "tx-austin-colorado", lat: 29.7, lon: -96.56, type: "farm", size: 1 },
+    // Bellville: Austin County's seat.
+    { id: "BLVE", name: "Bellville", county: "tx-austin-colorado", lat: 29.95, lon: -96.26, type: "farm", size: 1 },
+    // La Grange: Fayette County's seat, on the Colorado.
+    { id: "LGRN", name: "La Grange", county: "tx-fayette-lee", lat: 29.91, lon: -96.88, type: "farm", size: 1 },
+    { id: "SCHL", name: "Schulenburg", county: "tx-fayette-lee", lat: 29.68, lon: -96.91, type: "farm", size: 1 },
+    // Cameron: Milam County's seat.
+    { id: "CMRN", name: "Cameron", county: "tx-burleson-milam", lat: 30.86, lon: -96.98, type: "farm", size: 1 },
+    // Caldwell: Burleson County's seat.
+    { id: "CLWL", name: "Caldwell", county: "tx-burleson-milam", lat: 30.53, lon: -96.7, type: "farm", size: 1 },
+    // Centerville: Leon County's seat, on I-45.
+    { id: "CNTV", name: "Centerville", county: "tx-leon-madison", lat: 31.26, lon: -95.98, type: "farm", size: 1 },
+    { id: "TRTY", name: "Trinity", county: "tx-houston-trinity", lat: 30.94, lon: -95.37, type: "farm", size: 1 },
+    // Groveton: Trinity County's seat.
+    { id: "GRVT", name: "Groveton", county: "tx-houston-trinity", lat: 31.06, lon: -95.13, type: "farm", size: 1 },
+    { id: "ELCP", name: "El Campo", county: "tx-matagorda-wharton", lat: 29.2, lon: -96.27, type: "farm", size: 1 },
+    // Palacios: the shrimp port on Tres Palacios Bay.
+    { id: "PLCS", name: "Palacios", county: "tx-matagorda-wharton", lat: 28.71, lon: -96.23, type: "coast", size: 1 },
+    // Edna: Jackson County's seat.
+    { id: "EDNA", name: "Edna", county: "tx-calhoun-jackson", lat: 28.98, lon: -96.65, type: "farm", size: 1 },
+    // Bloomington: a CDP south of Victoria toward Port Lavaca (the county's only other places are
+    // CDPs).
+    { id: "BLMG", name: "Bloomington", county: "tx-victoria", lat: 28.65, lon: -96.9, type: "farm", size: 1 },
+    // Yoakum: on the DeWitt–Lavaca line (tagged Lavaca).
+    { id: "YOAK", name: "Yoakum", county: "tx-dewitt-goliad-lavaca", lat: 29.29, lon: -97.15, type: "farm", size: 1 },
+    // Goliad: Goliad County's seat, by Presidio La Bahía.
+    { id: "GLAD", name: "Goliad", county: "tx-dewitt-goliad-lavaca", lat: 28.67, lon: -97.39, type: "farm", size: 1 },
+    // Dallas–Fort Worth
+    // Irving: 257k (Las Colinas), size 3 (as Fremont and Santa Clarita).
+    { id: "IRVN", name: "Irving", county: "tx-dallas", lat: 32.86, lon: -96.97, type: "metro", size: 3 },
+    // Garland: 246k, size 3.
+    { id: "GRLD", name: "Garland", county: "tx-dallas", lat: 32.91, lon: -96.63, type: "metro", size: 3 },
+    // Grand Prairie: 196k, size 2. At downtown; the Census point is 4.6 miles south, as the city
+    // runs south to Joe Pool Lake.
+    { id: "GRPR", name: "Grand Prairie", county: "tx-dallas", lat: 32.75, lon: -97, type: "metro", size: 2 },
+    // Mesquite: 150k, size 2. At downtown; the Census point is 1.2 miles south-east.
+    { id: "MSQT", name: "Mesquite", county: "tx-dallas", lat: 32.77, lon: -96.6, type: "metro", size: 2 },
+    // Arlington: Texas's seventh city (394k), between Dallas and Fort Worth, with AT&T Stadium and
+    // Globe Life Field, size 3 (as Henderson and Irvine; Long Beach, 466k, is 4). At downtown; the
+    // Census point is 2.8 miles south.
+    { id: "ARLN", name: "Arlington", county: "tx-tarrant", lat: 32.74, lon: -97.11, type: "metro", size: 3 },
+    { id: "NRHL", name: "North Richland Hills", county: "tx-tarrant", lat: 32.86, lon: -97.22, type: "metro", size: 2 },
+    // Mansfield: at downtown; the Census point is 1.3 miles north-east.
+    { id: "MNSF", name: "Mansfield", county: "tx-tarrant", lat: 32.56, lon: -97.14, type: "metro", size: 2 },
+    // Grapevine: its old Main Street by DFW Airport.
+    { id: "GRPV", name: "Grapevine", county: "tx-tarrant", lat: 32.94, lon: -97.08, type: "metro", size: 1 },
+    // Frisco: 201k, size 2 (as Oceanside and Lancaster).
+    { id: "FRSC", name: "Frisco", county: "tx-collin", lat: 33.16, lon: -96.82, type: "metro", size: 2 },
+    // McKinney: Collin County's seat (195k), size 2. At its old square; the Census point is 2.6
+    // miles west.
+    { id: "MCKN", name: "McKinney", county: "tx-collin", lat: 33.2, lon: -96.62, type: "metro", size: 2 },
+    { id: "ALLN", name: "Allen", county: "tx-collin", lat: 33.11, lon: -96.67, type: "metro", size: 2 },
+    // Carrollton: 133k, size 2. At its Census point, in its Denton County part (its old downtown is
+    // in Dallas County).
+    { id: "CRLT", name: "Carrollton", county: "tx-denton", lat: 32.99, lon: -96.9, type: "metro", size: 2 },
+    // Lewisville: 126k, size 2. At downtown; the Census point is 0.9 miles east.
+    { id: "LWVL", name: "Lewisville", county: "tx-denton", lat: 33.05, lon: -96.99, type: "metro", size: 2 },
+    { id: "FLMD", name: "Flower Mound", county: "tx-denton", lat: 33.04, lon: -97.11, type: "metro", size: 2 },
+    { id: "MDLT", name: "Midlothian", county: "tx-ellis", lat: 32.47, lon: -96.99, type: "metro", size: 1 },
+    // Ennis: the Czech railroad town on I-45.
+    { id: "ENNS", name: "Ennis", county: "tx-ellis", lat: 32.33, lon: -96.63, type: "farm", size: 1 },
+    // Burleson: Johnson County's biggest city (48k), Fort Worth's southern suburb, size 2 (as
+    // Yukon). At downtown; the Census point is 1.7 miles south.
+    { id: "BRLS", name: "Burleson", county: "tx-johnson", lat: 32.54, lon: -97.32, type: "metro", size: 2 },
+    // Terrell: on I-20 east of Forney.
+    { id: "TRRL", name: "Terrell", county: "tx-kaufman", lat: 32.74, lon: -96.29, type: "farm", size: 1 },
+    // Kaufman: Kaufman County's seat.
+    { id: "KFMN", name: "Kaufman", county: "tx-kaufman", lat: 32.58, lon: -96.32, type: "farm", size: 1 },
+    // Royse City: on I-30 east of Rockwall.
+    { id: "RYSC", name: "Royse City", county: "tx-rockwall", lat: 32.98, lon: -96.32, type: "metro", size: 1 },
+    { id: "ALDO", name: "Aledo", county: "tx-parker", lat: 32.7, lon: -97.61, type: "metro", size: 1 },
+    // Commerce: East Texas A&M University.
+    { id: "CMRC", name: "Commerce", county: "tx-hunt", lat: 33.24, lon: -95.9, type: "metro", size: 1 },
+    { id: "BGPT", name: "Bridgeport", county: "tx-wise", lat: 33.21, lon: -97.77, type: "farm", size: 1 },
+    { id: "TOLR", name: "Tolar", county: "tx-hood", lat: 32.39, lon: -97.92, type: "farm", size: 1 },
+    // North Texas and the Red River
+    // Denison: the Katy railroad's town on the Red River (Eisenhower's birthplace). At downtown;
+    // the Census point is 2.4 miles west.
+    { id: "DNSN", name: "Denison", county: "tx-grayson", lat: 33.76, lon: -96.54, type: "metro", size: 1 },
+    { id: "WTSB", name: "Whitesboro", county: "tx-grayson", lat: 33.66, lon: -96.9, type: "farm", size: 1 },
+    { id: "MNST", name: "Muenster", county: "tx-cooke", lat: 33.65, lon: -97.38, type: "farm", size: 1 },
+    { id: "HNGV", name: "Honey Grove", county: "tx-fannin", lat: 33.59, lon: -95.91, type: "farm", size: 1 },
+    { id: "BLSM", name: "Blossom", county: "tx-lamar", lat: 33.66, lon: -95.38, type: "farm", size: 1 },
+    // Cooper: Delta County's seat.
+    { id: "CPER", name: "Cooper", county: "tx-delta-hopkins", lat: 33.37, lon: -95.69, type: "farm", size: 1 },
+    // Clarksville: Red River County's seat.
+    { id: "CLKV", name: "Clarksville", county: "tx-franklin-red-river-titus", lat: 33.61, lon: -95.06, type: "farm", size: 1 },
+    // Mount Vernon: Franklin County's seat, on I-30.
+    { id: "MTVN", name: "Mount Vernon", county: "tx-franklin-red-river-titus", lat: 33.18, lon: -95.22, type: "farm", size: 1 },
+    // New Boston: Bowie County's seat, on I-30.
+    { id: "NWBS", name: "New Boston", county: "tx-bowie", lat: 33.46, lon: -94.42, type: "farm", size: 1 },
+    // Jefferson: the old steamboat port on Big Cypress Bayou, Marion County's seat.
+    { id: "JFRN", name: "Jefferson", county: "tx-cass-marion-morris", lat: 32.76, lon: -94.35, type: "farm", size: 1 },
+    // Daingerfield: Morris County's seat.
+    { id: "DNGF", name: "Daingerfield", county: "tx-cass-marion-morris", lat: 33.03, lon: -94.73, type: "farm", size: 1 },
+    // Pittsburg: Camp County's seat.
+    { id: "PTSB", name: "Pittsburg", county: "tx-camp-upshur", lat: 33, lon: -94.97, type: "farm", size: 1 },
+    { id: "WNSB", name: "Winnsboro", county: "tx-rains-wood", lat: 32.96, lon: -95.29, type: "farm", size: 1 },
+    // Emory: Rains County's seat, by Lake Tawakoni.
+    { id: "EMRY", name: "Emory", county: "tx-rains-wood", lat: 32.88, lon: -95.77, type: "farm", size: 1 },
+    { id: "WLPT", name: "Wills Point", county: "tx-van-zandt", lat: 32.71, lon: -96, type: "farm", size: 1 },
+    { id: "LNDL", name: "Lindale", county: "tx-smith", lat: 32.49, lon: -95.41, type: "farm", size: 1 },
+    { id: "BLRD", name: "Bullard", county: "tx-smith", lat: 32.14, lon: -95.32, type: "farm", size: 1 },
+    // Kilgore: the East Texas oil field's town. At downtown; the Census point is 1.3 miles east.
+    { id: "KLGR", name: "Kilgore", county: "tx-gregg", lat: 32.39, lon: -94.88, type: "farm", size: 1 },
+    { id: "HLSV", name: "Hallsville", county: "tx-harrison", lat: 32.5, lon: -94.57, type: "farm", size: 1 },
+    // Caddo Lake: Texas's natural lake, a maze of cypress swamp and bayous, at Caddo Lake State
+    // Park by Karnack.
+    { id: "CDLK", name: "Caddo Lake", county: "tx-harrison", lat: 32.68, lon: -94.18, scenic: true, type: "farm", size: 1 },
+    { id: "OVTN", name: "Overton", county: "tx-rusk", lat: 32.28, lon: -94.97, type: "farm", size: 1 },
+    // Center: Shelby County's seat.
+    { id: "CNTR", name: "Center", county: "tx-panola-shelby", lat: 31.79, lon: -94.18, type: "farm", size: 1 },
+    // Texas State Railroad: the steam and diesel trains through the piney woods between Rusk and
+    // Palestine, at the Rusk depot west of town (approx.).
+    { id: "TSRR", name: "Texas State Railroad", county: "tx-cherokee", lat: 31.8, lon: -95.19, scenic: true, type: "farm", size: 1 },
+    { id: "ALTO", name: "Alto", county: "tx-cherokee", lat: 31.65, lon: -95.07, type: "farm", size: 1 },
+    { id: "FRKS", name: "Frankston", county: "tx-anderson", lat: 32.06, lon: -95.5, type: "farm", size: 1 },
+    // Gun Barrel City: on Cedar Creek Reservoir.
+    { id: "GBCY", name: "Gun Barrel City", county: "tx-henderson", lat: 32.33, lon: -96.13, type: "farm", size: 1 },
+    { id: "KRNS", name: "Kerens", county: "tx-navarro", lat: 32.13, lon: -96.23, type: "farm", size: 1 },
+    // Fairfield: Freestone County's seat, on I-45.
+    { id: "FRFD", name: "Fairfield", county: "tx-freestone-limestone", lat: 31.72, lon: -96.17, type: "farm", size: 1 },
+    // Groesbeck: Limestone County's seat.
+    { id: "GRBK", name: "Groesbeck", county: "tx-freestone-limestone", lat: 31.53, lon: -96.53, type: "farm", size: 1 },
+    { id: "GRRN", name: "Garrison", county: "tx-nacogdoches", lat: 31.83, lon: -94.49, type: "farm", size: 1 },
+    // Diboll: the sawmill town on US-59.
+    { id: "DBLL", name: "Diboll", county: "tx-angelina", lat: 31.19, lon: -94.78, type: "farm", size: 1 },
+    // Hemphill: Sabine County's seat, by Toledo Bend.
+    { id: "HMPH", name: "Hemphill", county: "tx-sabine-san-augustine", lat: 31.34, lon: -93.85, type: "farm", size: 1 },
+    // Central Texas
+    { id: "HWTT", name: "Hewitt", county: "tx-mclennan", lat: 31.45, lon: -97.19, type: "metro", size: 1 },
+    // West: the Czech bakery town on I-35.
+    { id: "WEST", name: "West", county: "tx-mclennan", lat: 31.8, lon: -97.09, type: "farm", size: 1 },
+    // Temple: Bell County's second city (82k; Baylor Scott & White, the Santa Fe's old shops), size
+    // 2. At downtown; the Census point is 3 miles west.
+    { id: "TMPL", name: "Temple", county: "tx-bell", lat: 31.1, lon: -97.34, type: "metro", size: 2 },
+    // Belton: Bell County's seat (University of Mary Hardin-Baylor). At downtown; the Census point
+    // is 1.3 miles south-west.
+    { id: "BLTN", name: "Belton", county: "tx-bell", lat: 31.06, lon: -97.46, type: "metro", size: 1 },
+    // Gatesville: Coryell County's seat.
+    { id: "GTVL", name: "Gatesville", county: "tx-coryell", lat: 31.44, lon: -97.75, type: "farm", size: 1 },
+    // Hearne: the Union Pacific junction on the Brazos bottoms.
+    { id: "HRNE", name: "Hearne", county: "tx-falls-robertson", lat: 30.88, lon: -96.6, type: "farm", size: 1 },
+    { id: "CLFT", name: "Clifton", county: "tx-bosque-hill", lat: 31.78, lon: -97.58, type: "farm", size: 1 },
+    // Glen Rose: Somervell County's seat on the Paluxy, by Dinosaur Valley State Park.
+    { id: "GLRS", name: "Glen Rose", county: "tx-erath-somervell", lat: 32.25, lon: -97.75, type: "farm", size: 1 },
+    { id: "HMLT", name: "Hamilton", county: "tx-comanche-hamilton", lat: 31.7, lon: -98.12, type: "farm", size: 1 },
+    { id: "SNSB", name: "San Saba", county: "tx-lampasas-mills-san-saba", lat: 31.2, lon: -98.72, type: "farm", size: 1 },
+    { id: "GLDT", name: "Goldthwaite", county: "tx-lampasas-mills-san-saba", lat: 31.45, lon: -98.57, type: "farm", size: 1 },
+    { id: "CLMN", name: "Coleman", county: "tx-brown-coleman", lat: 31.83, lon: -99.42, type: "farm", size: 1 },
+    // Jacksboro: Jack County's seat.
+    { id: "JKSB", name: "Jacksboro", county: "tx-jack-palo-pinto", lat: 33.23, lon: -98.16, type: "farm", size: 1 },
+    // Henrietta: Clay County's seat, on US-287.
+    { id: "HENR", name: "Henrietta", county: "tx-clay-montague", lat: 33.81, lon: -98.19, type: "farm", size: 1 },
+    { id: "NCNA", name: "Nocona", county: "tx-clay-montague", lat: 33.78, lon: -97.73, type: "farm", size: 1 },
+    { id: "OLNY", name: "Olney", county: "tx-archer-young", lat: 33.36, lon: -98.76, type: "farm", size: 1 },
+    // Burkburnett: on I-44 at the Red River. At downtown; the Census point is 1.8 miles south.
+    { id: "BKBT", name: "Burkburnett", county: "tx-wichita", lat: 34.1, lon: -98.57, type: "farm", size: 1 },
+    { id: "ELCT", name: "Electra", county: "tx-wichita", lat: 34.03, lon: -98.92, type: "farm", size: 1 },
+    // Quanah: Hardeman County's seat, on US-287.
+    { id: "QNAH", name: "Quanah", county: "tx-foard-hardeman-wilbarger", lat: 34.3, lon: -99.74, type: "farm", size: 1 },
+    { id: "CRWL", name: "Crowell", county: "tx-foard-hardeman-wilbarger", lat: 33.98, lon: -99.72, type: "farm", size: 1 },
+    { id: "MNDY", name: "Munday", county: "tx-baylor-king-knox", lat: 33.45, lon: -99.62, type: "farm", size: 1 },
+    // Guthrie: King County's seat (a CDP), at the Four Sixes ranch.
+    { id: "GTHR", name: "Guthrie", county: "tx-baylor-king-knox", lat: 33.62, lon: -100.33, type: "farm", size: 1 },
+    // Stamford: a Jones County town (tagged Haskell), home of the Texas Cowboy Reunion.
+    { id: "STMF", name: "Stamford", county: "tx-haskell-jones-stonewall", lat: 33.05, lon: -99.6, type: "farm", size: 1 },
+    // Anson: Jones County's seat.
+    { id: "ANSN", name: "Anson", county: "tx-haskell-jones-stonewall", lat: 32.75, lon: -99.9, type: "farm", size: 1 },
+    { id: "ASPM", name: "Aspermont", county: "tx-haskell-jones-stonewall", lat: 33.14, lon: -100.22, type: "farm", size: 1 },
+    { id: "ALBY", name: "Albany", county: "tx-shackelford-stephens-throckmorton", lat: 32.73, lon: -99.3, type: "farm", size: 1 },
+    { id: "THRK", name: "Throckmorton", county: "tx-shackelford-stephens-throckmorton", lat: 33.18, lon: -99.18, type: "farm", size: 1 },
+    { id: "EASL", name: "Eastland", county: "tx-callahan-eastland", lat: 32.4, lon: -98.82, type: "farm", size: 1 },
+    { id: "MRKL", name: "Merkel", county: "tx-taylor", lat: 32.47, lon: -100.01, type: "farm", size: 1 },
+    // Austin, San Antonio and the Hill Country
+    // Pflugerville: 65k, size 2. At downtown; the Census point is 1.2 miles north-east.
+    { id: "PFLG", name: "Pflugerville", county: "tx-travis", lat: 30.44, lon: -97.62, type: "metro", size: 2 },
+    // Lakeway: on Lake Travis.
+    { id: "LKWY", name: "Lakeway", county: "tx-travis", lat: 30.36, lon: -97.99, type: "metro", size: 1 },
+    { id: "CDPK", name: "Cedar Park", county: "tx-williamson", lat: 30.51, lon: -97.82, type: "metro", size: 2 },
+    // Georgetown: Williamson County's seat (67k; Southwestern University), size 2. At its square;
+    // the Census point is 2.2 miles north-west.
+    { id: "GRGT", name: "Georgetown", county: "tx-williamson", lat: 30.64, lon: -97.68, type: "metro", size: 2 },
+    { id: "TAYR", name: "Taylor", county: "tx-williamson", lat: 30.57, lon: -97.43, type: "farm", size: 1 },
+    { id: "KYLE", name: "Kyle", county: "tx-hays", lat: 29.99, lon: -97.88, type: "metro", size: 1 },
+    { id: "DRSP", name: "Dripping Springs", county: "tx-hays", lat: 30.2, lon: -98.09, type: "farm", size: 1 },
+    // Elgin: the sausage town on US-290 (Bastrop's twin in raw/: both 9,692).
+    { id: "EGIN", name: "Elgin", county: "tx-bastrop", lat: 30.35, lon: -97.39, type: "farm", size: 1 },
+    // Universal City: by Randolph Air Force Base.
+    { id: "UNVC", name: "Universal City", county: "tx-bexar", lat: 29.55, lon: -98.31, type: "metro", size: 1 },
+    { id: "HLTS", name: "Helotes", county: "tx-bexar", lat: 29.58, lon: -98.68, type: "metro", size: 1 },
+    // San Antonio Missions: the four Spanish missions of the national historical park (with the
+    // Alamo, a World Heritage Site), at Mission San José, 4 miles south of the Alamo.
+    { id: "SAMS", name: "San Antonio Missions", county: "tx-bexar", lat: 29.36, lon: -98.48, scenic: true, type: "metro", size: 1 },
+    // Canyon Lake: the lake town (a CDP).
+    { id: "CNLK", name: "Canyon Lake", county: "tx-comal", lat: 29.88, lon: -98.26, type: "farm", size: 1 },
+    // Natural Bridge Caverns: Texas's biggest show cave, between San Antonio and New Braunfels.
+    { id: "NBCV", name: "Natural Bridge Caverns", county: "tx-comal", lat: 29.69, lon: -98.34, scenic: true, type: "farm", size: 1 },
+    // Schertz: by Randolph Air Force Base on I-35, 1.2 miles north of its Census point (which is
+    // 3.7 miles from Universal City).
+    { id: "SCHZ", name: "Schertz", county: "tx-guadalupe", lat: 29.58, lon: -98.25, type: "metro", size: 1 },
+    { id: "LVRN", name: "La Vernia", county: "tx-wilson", lat: 29.35, lon: -98.13, type: "farm", size: 1 },
+    // Castroville: the Alsatian town on US-90.
+    { id: "CSVL", name: "Castroville", county: "tx-medina", lat: 29.36, lon: -98.85, type: "farm", size: 1 },
+    { id: "INGR", name: "Ingram", county: "tx-kerr", lat: 30.08, lon: -99.24, type: "farm", size: 1 },
+    // Bandera: Bandera County's seat, the "Cowboy Capital of the World".
+    { id: "BNDR", name: "Bandera", county: "tx-bandera-kendall", lat: 29.73, lon: -99.07, type: "farm", size: 1 },
+    // Johnson City: Blanco County's seat, LBJ's boyhood home.
+    { id: "JHCY", name: "Johnson City", county: "tx-blanco-gillespie", lat: 30.27, lon: -98.41, type: "farm", size: 1 },
+    // LBJ Ranch: Lyndon B. Johnson National Historical Park, the "Texas White House" by Stonewall.
+    { id: "LBJR", name: "LBJ Ranch", county: "tx-blanco-gillespie", lat: 30.24, lon: -98.62, scenic: true, type: "farm", size: 1 },
+    // Enchanted Rock: the pink granite dome north of Fredericksburg (the state natural area).
+    { id: "ENRK", name: "Enchanted Rock", county: "tx-blanco-gillespie", lat: 30.49, lon: -98.82, scenic: true, type: "farm", size: 1 },
+    // Burnet: Burnet County's seat.
+    { id: "BRNT", name: "Burnet", county: "tx-burnet-llano", lat: 30.75, lon: -98.24, type: "farm", size: 1 },
+    // Llano: Llano County's seat.
+    { id: "LLNO", name: "Llano", county: "tx-burnet-llano", lat: 30.75, lon: -98.68, type: "farm", size: 1 },
+    { id: "MNRD", name: "Menard", county: "tx-kimble-menard", lat: 30.92, lon: -99.78, type: "farm", size: 1 },
+    // Rocksprings: Edwards County's seat.
+    { id: "RCKS", name: "Rocksprings", county: "tx-edwards-real-uvalde", lat: 30.02, lon: -100.21, type: "farm", size: 1 },
+    // Leakey: Real County's seat, on the Frio.
+    { id: "LKEY", name: "Leakey", county: "tx-edwards-real-uvalde", lat: 29.73, lon: -99.76, type: "farm", size: 1 },
+    { id: "MASN", name: "Mason", county: "tx-concho-mason-mcculloch", lat: 30.75, lon: -99.23, type: "farm", size: 1 },
+    { id: "EDEN", name: "Eden", county: "tx-concho-mason-mcculloch", lat: 31.22, lon: -99.84, type: "farm", size: 1 },
+    // South Texas and the Valley
+    { id: "DLLY", name: "Dilley", county: "tx-frio-la-salle", lat: 28.67, lon: -99.18, type: "farm", size: 1 },
+    // Cotulla: La Salle County's seat, on I-35.
+    { id: "CTLA", name: "Cotulla", county: "tx-frio-la-salle", lat: 28.44, lon: -99.24, type: "farm", size: 1 },
+    // Poteet: the strawberry town.
+    { id: "POTE", name: "Poteet", county: "tx-atascosa-live-oak-mcmullen", lat: 29.04, lon: -98.57, type: "farm", size: 1 },
+    // George West: Live Oak County's seat, where US-59 meets US-281 and I-37.
+    { id: "GWST", name: "George West", county: "tx-atascosa-live-oak-mcmullen", lat: 28.33, lon: -98.12, type: "farm", size: 1 },
+    { id: "KNDY", name: "Kenedy", county: "tx-bee-karnes", lat: 28.81, lon: -97.85, type: "farm", size: 1 },
+    // Carrizo Springs: Dimmit County's seat.
+    { id: "CZSP", name: "Carrizo Springs", county: "tx-dimmit-zavala", lat: 28.53, lon: -99.86, type: "farm", size: 1 },
+    // Quemado: a CDP up the Rio Grande from Eagle Pass (the county's only incorporated place is
+    // Eagle Pass).
+    { id: "QMDO", name: "Quemado", county: "tx-maverick", lat: 28.95, lon: -100.62, type: "farm", size: 1 },
+    // Brackettville: Kinney County's seat, by old Fort Clark.
+    { id: "BKVL", name: "Brackettville", county: "tx-kinney-val-verde", lat: 29.32, lon: -100.41, type: "farm", size: 1 },
+    { id: "RBRV", name: "Rio Bravo", county: "tx-webb", lat: 27.36, lon: -99.48, type: "farm", size: 1 },
+    // Hebbronville: Jim Hogg County's seat (a CDP).
+    { id: "HBVL", name: "Hebbronville", county: "tx-jim-hogg-zapata", lat: 27.33, lon: -98.69, type: "farm", size: 1 },
+    // San Ygnacio: the 1830s sandstone river town on US-83 (a CDP).
+    { id: "SNYG", name: "San Ygnacio", county: "tx-jim-hogg-zapata", lat: 27.05, lon: -99.42, type: "farm", size: 1 },
+    // Roma: the old river port's historic district on the bluffs.
+    { id: "ROMA", name: "Roma", county: "tx-starr", lat: 26.41, lon: -99, type: "farm", size: 1 },
+    // Edinburg: Hidalgo County's seat (100k; the University of Texas Rio Grande Valley), size 2. At
+    // downtown; the Census point is 1.5 miles north.
+    { id: "EDNB", name: "Edinburg", county: "tx-hidalgo", lat: 26.3, lon: -98.16, type: "metro", size: 2 },
+    // Mission: 86k, size 2.
+    { id: "MISN", name: "Mission", county: "tx-hidalgo", lat: 26.2, lon: -98.33, type: "metro", size: 2 },
+    { id: "WSLC", name: "Weslaco", county: "tx-hidalgo", lat: 26.16, lon: -97.99, type: "farm", size: 1 },
+    // Harlingen: 72k (Valley International Airport), size 2.
+    { id: "HRLN", name: "Harlingen", county: "tx-cameron", lat: 26.19, lon: -97.7, type: "metro", size: 2 },
+    { id: "LSFR", name: "Los Fresnos", county: "tx-cameron", lat: 26.07, lon: -97.49, type: "farm", size: 1 },
+    // South Padre Island: the beach resort at the Laguna Madre's mouth, over the Queen Isabella
+    // Causeway from Port Isabel.
+    { id: "SPI", name: "South Padre Island", county: "tx-cameron", lat: 26.12, lon: -97.17, scenic: true, type: "coast", size: 1 },
+    // Raymondville: Willacy County's seat.
+    { id: "RMVL", name: "Raymondville", county: "tx-kenedy-kleberg-willacy", lat: 26.48, lon: -97.78, type: "farm", size: 1 },
+    // Sarita: Kenedy County's seat (a CDP), on US-77 across the Kenedy Ranch.
+    { id: "SRTA", name: "Sarita", county: "tx-kenedy-kleberg-willacy", lat: 27.22, lon: -97.8, type: "farm", size: 1 },
+    // Padre Island National Seashore: the world's longest undeveloped barrier island, at the
+    // Malaquite visitor center (approx.).
+    { id: "PINS", name: "Padre Island National Seashore", county: "tx-kenedy-kleberg-willacy", lat: 27.43, lon: -97.3, scenic: true, type: "coast", size: 1 },
+    // Falfurrias: Brooks County's seat.
+    { id: "FLFR", name: "Falfurrias", county: "tx-brooks-duval-jim-wells", lat: 27.22, lon: -98.15, type: "farm", size: 1 },
+    { id: "FREE", name: "Freer", county: "tx-brooks-duval-jim-wells", lat: 27.88, lon: -98.62, type: "farm", size: 1 },
+    { id: "RBTN", name: "Robstown", county: "tx-nueces", lat: 27.79, lon: -97.67, type: "farm", size: 1 },
+    // Port Aransas: the beach town at Mustang Island's north end, by the ferry from Harbor Island.
+    { id: "PTAS", name: "Port Aransas", county: "tx-nueces", lat: 27.82, lon: -97.09, type: "coast", size: 1 },
+    // Sinton: San Patricio County's seat.
+    { id: "SNTN", name: "Sinton", county: "tx-san-patricio", lat: 28.04, lon: -97.51, type: "farm", size: 1 },
+    // Aransas Pass: at downtown, in its San Patricio County part (the Census point, tagged Aransas,
+    // is in Redfish Bay).
+    { id: "ARNP", name: "Aransas Pass", county: "tx-san-patricio", lat: 27.91, lon: -97.15, type: "coast", size: 1 },
+    // Refugio: Refugio County's seat.
+    { id: "RFGO", name: "Refugio", county: "tx-aransas-refugio", lat: 28.31, lon: -97.27, type: "farm", size: 1 },
+    // The Panhandle and the South Plains
+    // Cadillac Ranch: the ten half-buried Cadillacs by I-40 (old Route 66) west of Amarillo.
+    { id: "CDRN", name: "Cadillac Ranch", county: "tx-potter", lat: 35.19, lon: -101.99, scenic: true, type: "farm", size: 1 },
+    // Palo Duro Canyon: the country's second-largest canyon, at the state park's entrance east of
+    // Canyon (approx.).
+    { id: "PDCN", name: "Palo Duro Canyon", county: "tx-randall", lat: 34.98, lon: -101.7, scenic: true, type: "desert", size: 1 },
+    // Vega: Oldham County's seat, on I-40 (Route 66).
+    { id: "VEGA", name: "Vega", county: "tx-dallam-hartley-oldham", lat: 35.25, lon: -102.43, type: "farm", size: 1 },
+    // Texline: on US-87 and the BNSF at the New Mexico line, toward Clayton.
+    { id: "TXLN", name: "Texline", county: "tx-dallam-hartley-oldham", lat: 36.38, lon: -103.02, type: "farm", size: 1 },
+    // Channing: Hartley County's seat, the XIT Ranch's old headquarters.
+    { id: "CHNG", name: "Channing", county: "tx-dallam-hartley-oldham", lat: 35.68, lon: -102.33, type: "farm", size: 1 },
+    // Stratford: Sherman County's seat, on US-287 toward Boise City.
+    { id: "STFD", name: "Stratford", county: "tx-moore-sherman", lat: 36.34, lon: -102.08, type: "farm", size: 1 },
+    // Spearman: Hansford County's seat.
+    { id: "SPMN", name: "Spearman", county: "tx-hansford-lipscomb-ochiltree", lat: 36.2, lon: -101.19, type: "farm", size: 1 },
+    // Panhandle: Carson County's seat.
+    { id: "PNHD", name: "Panhandle", county: "tx-carson-hutchinson", lat: 35.35, lon: -101.38, type: "farm", size: 1 },
+    // Canadian: Hemphill County's seat, on the Canadian River and US-60.
+    { id: "CNDN", name: "Canadian", county: "tx-gray-hemphill-roberts", lat: 35.91, lon: -100.38, type: "farm", size: 1 },
+    // McLean: on I-40 (Route 66).
+    { id: "MCLE", name: "McLean", county: "tx-gray-hemphill-roberts", lat: 35.23, lon: -100.6, type: "farm", size: 1 },
+    // Wellington: Collingsworth County's seat.
+    { id: "WLGT", name: "Wellington", county: "tx-collingsworth-wheeler", lat: 34.85, lon: -100.21, type: "farm", size: 1 },
+    // Wheeler: Wheeler County's seat.
+    { id: "WHLR", name: "Wheeler", county: "tx-collingsworth-wheeler", lat: 35.44, lon: -100.28, type: "farm", size: 1 },
+    // Claude: Armstrong County's seat, on US-287.
+    { id: "CLDE", name: "Claude", county: "tx-armstrong-donley", lat: 35.11, lon: -101.36, type: "farm", size: 1 },
+    // Memphis: Hall County's seat, on US-287.
+    { id: "MMPH", name: "Memphis", county: "tx-childress-cottle-hall", lat: 34.73, lon: -100.54, type: "farm", size: 1 },
+    // Paducah: Cottle County's seat.
+    { id: "PDCH", name: "Paducah", county: "tx-childress-cottle-hall", lat: 34.01, lon: -100.3, type: "farm", size: 1 },
+    // Dimmitt: Castro County's seat.
+    { id: "DMTT", name: "Dimmitt", county: "tx-castro-deaf-smith-parmer", lat: 34.55, lon: -102.31, type: "farm", size: 1 },
+    // Farwell: Parmer County's seat, at the New Mexico line opposite Texico (Clovis is 9 miles on).
+    { id: "FRWL", name: "Farwell", county: "tx-castro-deaf-smith-parmer", lat: 34.39, lon: -103.04, type: "farm", size: 1 },
+    // Tulia: Swisher County's seat, on I-27.
+    { id: "TULA", name: "Tulia", county: "tx-hale-swisher", lat: 34.54, lon: -101.77, type: "farm", size: 1 },
+    // Silverton: Briscoe County's seat.
+    { id: "SLVT", name: "Silverton", county: "tx-briscoe-floyd-motley", lat: 34.47, lon: -101.3, type: "farm", size: 1 },
+    // Matador: Motley County's seat.
+    { id: "MTDR", name: "Matador", county: "tx-briscoe-floyd-motley", lat: 34.02, lon: -100.82, type: "farm", size: 1 },
+    // Muleshoe: Bailey County's seat, on US-84 toward Clovis.
+    { id: "MLSH", name: "Muleshoe", county: "tx-bailey-lamb", lat: 34.23, lon: -102.73, type: "farm", size: 1 },
+    // Morton: Cochran County's seat.
+    { id: "MRTX", name: "Morton", county: "tx-cochran-hockley", lat: 33.72, lon: -102.76, type: "farm", size: 1 },
+    // Slaton: the Santa Fe's division town south-east of Lubbock.
+    { id: "SLTN", name: "Slaton", county: "tx-lubbock", lat: 33.45, lon: -101.65, type: "farm", size: 1 },
+    { id: "WLFF", name: "Wolfforth", county: "tx-lubbock", lat: 33.51, lon: -102.01, type: "farm", size: 1 },
+    { id: "DNVC", name: "Denver City", county: "tx-terry-yoakum", lat: 32.97, lon: -102.83, type: "farm", size: 1 },
+    { id: "SPUR", name: "Spur", county: "tx-crosby-dickens", lat: 33.48, lon: -100.85, type: "farm", size: 1 },
+    // Tahoka: Lynn County's seat, on US-87.
+    { id: "THKA", name: "Tahoka", county: "tx-borden-dawson-lynn", lat: 33.16, lon: -101.8, type: "farm", size: 1 },
+    // Gail: Borden County's seat (a CDP).
+    { id: "GAIL", name: "Gail", county: "tx-borden-dawson-lynn", lat: 32.77, lon: -101.46, type: "farm", size: 1 },
+    // Post: Garza County's seat, C. W. Post's town at the Caprock's foot.
+    { id: "POST", name: "Post", county: "tx-garza-kent-scurry", lat: 33.19, lon: -101.38, type: "farm", size: 1 },
+    // Jayton: Kent County's seat.
+    { id: "JAYT", name: "Jayton", county: "tx-garza-kent-scurry", lat: 33.25, lon: -100.57, type: "farm", size: 1 },
+    // West Texas and the Trans-Pecos
+    // West Odessa: a CDP (about 25k) on Odessa's west side.
+    { id: "WODS", name: "West Odessa", county: "tx-ector", lat: 31.84, lon: -102.5, type: "desert", size: 1 },
+    // Seminole: Gaines County's seat.
+    { id: "SMNL", name: "Seminole", county: "tx-andrews-gaines", lat: 32.72, lon: -102.65, type: "farm", size: 1 },
+    // Stanton: Martin County's seat, on I-20.
+    { id: "STNN", name: "Stanton", county: "tx-glasscock-howard-martin", lat: 32.13, lon: -101.79, type: "farm", size: 1 },
+    // Garden City: Glasscock County's seat (a CDP).
+    { id: "GRDC", name: "Garden City", county: "tx-glasscock-howard-martin", lat: 31.87, lon: -101.49, type: "farm", size: 1 },
+    // Colorado City: Mitchell County's seat, on I-20.
+    { id: "CLRC", name: "Colorado City", county: "tx-fisher-mitchell-nolan", lat: 32.4, lon: -100.86, type: "farm", size: 1 },
+    { id: "ROTN", name: "Rotan", county: "tx-fisher-mitchell-nolan", lat: 32.85, lon: -100.47, type: "farm", size: 1 },
+    // Robert Lee: Coke County's seat.
+    { id: "RBLE", name: "Robert Lee", county: "tx-coke-runnels-sterling", lat: 31.9, lon: -100.48, type: "farm", size: 1 },
+    // Sterling City: Sterling County's seat.
+    { id: "STCY", name: "Sterling City", county: "tx-coke-runnels-sterling", lat: 31.84, lon: -100.99, type: "farm", size: 1 },
+    // Christoval: on the South Concho (a CDP).
+    { id: "CHRV", name: "Christoval", county: "tx-tom-green", lat: 31.2, lon: -100.49, type: "farm", size: 1 },
+    // Eldorado: Schleicher County's seat.
+    { id: "ELDR", name: "Eldorado", county: "tx-crockett-schleicher-sutton", lat: 30.86, lon: -100.6, type: "farm", size: 1 },
+    // Ozona: Crockett County's seat, on I-10 (a CDP).
+    { id: "OZNA", name: "Ozona", county: "tx-crockett-schleicher-sutton", lat: 30.71, lon: -101.21, type: "farm", size: 1 },
+    // Mertzon: Irion County's seat.
+    { id: "MRTZ", name: "Mertzon", county: "tx-irion-reagan", lat: 31.26, lon: -100.82, type: "farm", size: 1 },
+    { id: "MCMY", name: "McCamey", county: "tx-crane-upton", lat: 31.13, lon: -102.22, type: "desert", size: 1 },
+    // Kermit: Winkler County's seat.
+    { id: "KRMT", name: "Kermit", county: "tx-ward-winkler", lat: 31.85, lon: -103.09, type: "desert", size: 1 },
+    // Balmorhea: by the state park's spring-fed pool.
+    { id: "BLMH", name: "Balmorhea", county: "tx-loving-reeves", lat: 30.98, lon: -103.74, type: "desert", size: 1 },
+    // Mentone: Loving County's seat (a CDP), the least populated county in the country.
+    { id: "MNTN", name: "Mentone", county: "tx-loving-reeves", lat: 31.71, lon: -103.6, type: "desert", size: 1 },
+    // Sanderson: Terrell County's seat (a CDP), on US-90 and the Sunset Route.
+    { id: "SNDS", name: "Sanderson", county: "tx-pecos-terrell", lat: 30.15, lon: -102.41, type: "desert", size: 1 },
+    // Marfa: Presidio County's seat, with Donald Judd's Chinati Foundation and the Marfa lights.
+    { id: "MRFA", name: "Marfa", county: "tx-brewster-jeff-davis-presidio", lat: 30.31, lon: -104.03, scenic: true, type: "desert", size: 1 },
+    // Presidio: on the Rio Grande at Ojinaga, US-67's end.
+    { id: "PRSD", name: "Presidio", county: "tx-brewster-jeff-davis-presidio", lat: 29.56, lon: -104.37, type: "desert", size: 1 },
+    // Fort Davis: Jeff Davis County's seat (a CDP) and the frontier fort's national historic site,
+    // in the Davis Mountains.
+    { id: "FTDV", name: "Fort Davis", county: "tx-brewster-jeff-davis-presidio", lat: 30.58, lon: -103.89, scenic: true, type: "mountain", size: 1 },
+    // McDonald Observatory: the University of Texas's telescopes on Mount Locke (its star parties).
+    { id: "MCDO", name: "McDonald Observatory", county: "tx-brewster-jeff-davis-presidio", lat: 30.68, lon: -104.02, scenic: true, type: "mountain", size: 1 },
+    // Marathon: on US-90 and the Sunset Route, the gateway to Big Bend (a CDP).
+    { id: "MRTH", name: "Marathon", county: "tx-brewster-jeff-davis-presidio", lat: 30.22, lon: -103.24, type: "desert", size: 1 },
+    // Big Bend National Park: the Chisos Mountains and the Rio Grande's canyons, at Panther
+    // Junction (the park headquarters).
+    { id: "BBNP", name: "Big Bend National Park", county: "tx-brewster-jeff-davis-presidio", lat: 29.33, lon: -103.21, scenic: true, type: "desert", size: 1 },
+    // Sierra Blanca: Hudspeth County's seat (a CDP), on I-10 and the Sunset Route.
+    { id: "SRBL", name: "Sierra Blanca", county: "tx-culberson-hudspeth", lat: 31.18, lon: -105.34, type: "desert", size: 1 },
+    { id: "DLCY", name: "Dell City", county: "tx-culberson-hudspeth", lat: 31.93, lon: -105.2, type: "desert", size: 1 },
+    // Guadalupe Mountains National Park: Guadalupe Peak (Texas's highest, 8,751 feet) and El
+    // Capitan, at the Pine Springs visitor center on US-62/180.
+    { id: "GMNP", name: "Guadalupe Mountains National Park", county: "tx-culberson-hudspeth", lat: 31.89, lon: -104.82, scenic: true, type: "mountain", size: 1 },
+    // Socorro: by the Socorro mission on the Mission Trail.
+    { id: "SCRO", name: "Socorro", county: "tx-el-paso", lat: 31.64, lon: -106.26, type: "metro", size: 1 },
+    { id: "HRZC", name: "Horizon City", county: "tx-el-paso", lat: 31.68, lon: -106.19, type: "metro", size: 1 },
+    // Anthony: on I-10 at the New Mexico line.
+    { id: "ANTX", name: "Anthony", county: "tx-el-paso", lat: 31.99, lon: -106.6, type: "farm", size: 1 },
+    // Luling: the oil and watermelon town on I-10 and the San Marcos.
+    { id: "LULN", name: "Luling", county: "tx-caldwell-gonzales", lat: 29.68, lon: -97.65, type: "farm", size: 1 },
+    // Gonzales: Gonzales County's seat, where the Texas Revolution's first shot was fired ("Come
+    // and Take It").
+    { id: "GNZL", name: "Gonzales", county: "tx-caldwell-gonzales", lat: 29.51, lon: -97.45, type: "farm", size: 1 },
+  ],
   levels: [
     {
       name: "Houston & the Gulf Coast",
@@ -497,12 +967,144 @@ NR.addPack({
       ],
     },
   ],
-  // Real mountain passes and canyons: [name, latitude, longitude]. (Part B.)
-  passes: [],
-  // Real bridges: [name, latitude, longitude]. (Part B.)
-  bridges: [],
-  // Bays where water needs a bridge: { name, ring: [lon, lat, ...] }. (Part B.)
-  bays: [],
+  // Real mountain passes and canyons: [name, latitude, longitude]. Texas's map is flat but for a
+  // few mountain cells in the Trans-Pecos (NOTES.md).
+  passes: [
+    ["Guadalupe Pass", 31.87, -104.83], // US-62/180 over the Guadalupe Mountains, El Paso to Carlsbad (approx.)
+  ],
+  // Real bridges: [name, latitude, longitude]. Water crossed near one uses the real bridge
+  // (cheaper, and any length); anywhere else you build a new bridge, if the water is narrow enough.
+  // Placed on the map's river, lake or bay where the real crossing is, or where the map's river
+  // passes the town. Sources in NOTES.md.
+  bridges: [
+    // Galveston Bay and the Houston Ship Channel
+    ["Galveston Causeway (I-45)", 29.32, -94.88], // the first track (Houston–Galveston) crosses here
+    ["Bolivar ferry (Galveston–Port Bolivar)", 29.35, -94.77], // the state's free ferry over Bolivar Roads
+    ["Fred Hartman Bridge (TX-146, La Porte–Baytown)", 29.7, -95.02], // the Ship Channel is too narrow to show here
+    // The Golden Triangle
+    ["Rainbow Bridge (TX-87, Port Arthur–Bridge City)", 29.99, -93.87],
+    ["Neches River bridges (I-10, Beaumont)", 30.09, -94.09],
+    ["Sabine River bridge (I-10, Orange)", 30.09, -93.72], // to Louisiana, later
+    // Corpus Christi, Aransas Bay and the Laguna Madre
+    ["Harbor Bridge (US-181, Corpus Christi)", 27.81, -97.4],
+    ["Nueces Bay Causeway (US-181)", 27.85, -97.37],
+    ["JFK Causeway (Padre Island)", 27.63, -97.27],
+    ["TX-361 causeway (Redfish Bay, Aransas Pass)", 27.89, -97.12],
+    ["Port Aransas ferry (Harbor Island–Port Aransas)", 27.84, -97.07], // its channel is land on this map
+    ["Copano Bay Causeway (TX-35)", 28.11, -97.03],
+    ["Queen Isabella Causeway (Port Isabel–South Padre Island)", 26.08, -97.2],
+    // The Rio Grande: the map's river passes these stations (the international bridges)
+    ["Rio Grande bridges (El Paso)", 31.76, -106.49],
+    ["Rio Grande bridges (Laredo)", 27.5, -99.51],
+    ["Rio Grande bridge (Eagle Pass)", 28.7, -100.49],
+    ["Rio Grande bridges (Brownsville)", 25.9, -97.5],
+    // The Red River (the Oklahoma line; Oklahoma's pack has the I-35, US-69/75, I-44 and
+    // US-271 bridges) and its Prairie Dog Town Fork in the Panhandle
+    ["Red River bridge (TX-78, Bonham–Durant)", 33.76, -96.25],
+    ["Red River bridge (US-81, Ringgold–Terral)", 33.88, -97.94],
+    ["Red River bridge (US-183, Oklaunion–Davidson)", 34.22, -99.17],
+    ["Red River bridge (US-283, Vernon–Altus)", 34.42, -99.29],
+    ["Red River bridge (US-83, north of Childress)", 34.58, -100.21],
+    ["Red River bridge (US-287, Estelline)", 34.56, -100.39],
+    ["Denison Dam (TX-91, Lake Texoma)", 33.83, -96.57],
+    ["Willis Bridge (US-377, Lake Texoma)", 33.88, -96.84],
+    // The Canadian
+    ["Canadian River bridge (US-287, north of Amarillo)", 35.47, -101.88],
+    ["Canadian River bridge (US-385, Channing–Vega)", 35.55, -102.34],
+    ["Canadian River bridge (TX-207, Borger)", 35.75, -101.44],
+    ["Canadian River bridge (US-60/83, Canadian)", 35.95, -100.37],
+    // The Trinity
+    ["Trinity River bridges (downtown Dallas)", 32.77, -96.81],
+    ["Trinity River bridge (TX-31, Trinidad)", 32.15, -96.11],
+    ["Trinity River bridge (US-59, Goodrich)", 30.57, -94.95],
+    ["Trinity River bridge (US-90, Liberty)", 30.05, -94.84],
+    ["Trinity River bridge (I-10, Wallisville)", 29.87, -94.75], // approx.
+    // The Brazos
+    ["Brazos River bridge (US-277, Seymour)", 33.59, -99.26],
+    ["Brazos River bridge (US-180, Palo Pinto)", 32.8, -98.18],
+    ["Brazos River bridge (US-377, Granbury)", 32.44, -97.76],
+    ["Brazos River bridge (I-35, Waco)", 31.62, -97.13], // on the map's river, 4 mi north of the real one
+    ["Brazos River bridges (Waco)", 31.58, -97.11], // the 1870 suspension bridge and Washington Avenue; on the map's river, 2 mi east
+    ["Brazos River bridge (TX-7, Marlin)", 31.27, -96.93],
+    ["Brazos River bridge (TX-21, west of Bryan)", 30.63, -96.55],
+    ["Brazos River bridge (TX-105, Washington)", 30.34, -96.13],
+    ["Brazos River bridge (US-290, Hempstead)", 30.12, -96.17],
+    ["Brazos River bridge (I-10, San Felipe)", 29.8, -96.06],
+    ["Brazos River bridges (Richmond–Rosenberg)", 29.59, -95.75],
+    ["Brazos River bridge (US-59, Sugar Land)", 29.57, -95.66],
+    // The Colorado
+    ["Colorado River bridge (I-20, Colorado City)", 32.37, -100.87],
+    ["Colorado River bridge (US-83, Ballinger)", 31.74, -99.96],
+    ["Colorado River bridge (US-281, Marble Falls)", 30.56, -98.28],
+    ["Congress Avenue Bridge (Austin)", 30.26, -97.75],
+    ["Colorado River bridges (Bastrop)", 30.1, -97.33],
+    ["Colorado River bridges (La Grange)", 29.9, -96.88],
+    ["Colorado River bridge (I-10, Columbus)", 29.71, -96.54],
+    ["Colorado River bridge (TX-35, Bay City)", 28.98, -96.0],
+    // The Neches and the Sabine in East Texas
+    ["Neches River bridge (TX-64, Canton–Tyler)", 32.43, -95.53],
+    ["Neches River bridge (TX-31, Lake Palestine)", 32.31, -95.45],
+    ["Neches River bridge (US-175, Frankston–Jacksonville)", 32.03, -95.43],
+    ["Neches River bridge (US-79, Jacksonville–Palestine)", 31.87, -95.44],
+    ["Neches River bridge (US-59, south of Diboll)", 31.13, -94.78],
+    ["Sabine River bridge (US-69, Mineola)", 32.62, -95.47],
+    ["Sabine River bridge (I-20, Kilgore–Longview)", 32.47, -94.87], // approx.
+    ["Sabine River bridge (US-259, Longview)", 32.43, -94.76],
+    ["Sabine River bridge (TX-43, Tatum–Marshall)", 32.39, -94.53],
+    ["Sabine River bridge (US-59, Marshall–Carthage)", 32.31, -94.34],
+    // The Guadalupe, the San Antonio (with the Medina, which the map names San Antonio) and the Nueces
+    ["Guadalupe River bridges (Kerrville)", 30.04, -99.13],
+    ["Guadalupe River bridges (New Braunfels)", 29.7, -98.12],
+    ["Guadalupe River bridge (I-10, Lake Placid)", 29.57, -98.03],
+    ["Guadalupe River bridge (Seguin)", 29.55, -97.97],
+    ["Guadalupe River bridge (Gonzales)", 29.5, -97.45],
+    ["Guadalupe River bridge (Cuero)", 29.11, -97.33],
+    ["Guadalupe River bridges (Victoria)", 28.8, -97.03],
+    ["Medina River bridge (TX-16, Bandera)", 29.73, -99.07],
+    ["Medina River bridge (US-90, Castroville)", 29.36, -98.89],
+    ["San Antonio River bridge (Floresville)", 29.14, -98.19],
+    ["San Antonio River bridge (Goliad)", 28.66, -97.38],
+    ["Nueces River bridge (US-90, west of Uvalde)", 29.24, -99.92],
+    ["Nueces River bridge (I-35, Cotulla)", 28.42, -99.24],
+    ["Nueces River bridge (US-281, George West)", 28.34, -98.11],
+    // The Pecos
+    ["Pecos River bridge (I-20, east of Pecos)", 31.45, -103.39],
+    ["Pecos River bridge (TX-18, Grandfalls)", 31.33, -102.87],
+    ["Pecos River bridge (I-10, Sheffield)", 30.76, -101.83],
+    ["Pecos River High Bridge (US-90)", 29.69, -101.36], // with the Union Pacific's high bridge beside it
+    // Reservoirs: the main roads' crossings
+    ["I-30 bridge (Lake Ray Hubbard)", 32.88, -96.52],
+    ["TX-334 bridge (Cedar Creek Reservoir)", 32.33, -96.17],
+    ["I-35E bridge (Lewisville Lake)", 33.1, -97.04],
+    ["US-190 bridge (Lake Livingston, Onalaska)", 30.8, -95.16],
+    ["US-190 bridge (B. A. Steinhagen Lake)", 30.83, -94.2],
+    ["US-90 bridges (Amistad Reservoir)", 29.52, -101.04],
+  ],
+  // Bays where water needs a bridge: { name, ring: [lon, lat, ...] }. Rough outlines over the
+  // water inside the barrier islands (land inside a ring stays land). Matagorda and Lavaca bays
+  // and Sabine Lake are land on this map (inside the county outlines), so they need none (NOTES.md).
+  bays: [
+    {
+      name: "Galveston Bay", // with Trinity, East and West bays and the Ship Channel's mouth
+      ring: [-95.05, 29.72, -94.95, 29.79, -94.8, 29.81, -94.65, 29.8, -94.62, 29.7, -94.68, 29.6, -94.55, 29.58, -94.45, 29.62, -94.36, 29.6, -94.38, 29.555, -94.5, 29.51, -94.6, 29.47, -94.66, 29.44, -94.72, 29.4, -94.76, 29.37, -94.72, 29.34, -94.8, 29.3, -94.9, 29.245, -95.0, 29.19, -95.1, 29.12, -95.13, 29.085, -95.18, 29.1, -95.22, 29.2, -95.1, 29.35, -95.06, 29.5],
+    },
+    {
+      name: "Corpus Christi Bay", // with Nueces, Oso and Redfish bays
+      ring: [-97.56, 27.9, -97.4, 27.92, -97.2, 27.93, -97.12, 27.93, -97.07, 27.87, -97.04, 27.84, -97.1, 27.76, -97.16, 27.68, -97.22, 27.62, -97.4, 27.62, -97.42, 27.7, -97.4, 27.78, -97.56, 27.82],
+    },
+    {
+      name: "the Laguna Madre", // with Baffin Bay, from the JFK Causeway to Port Isabel
+      ring: [-97.22, 27.62, -97.26, 27.55, -97.29, 27.5, -97.31, 27.44, -97.33, 27.37, -97.36, 27.25, -97.385, 27.0, -97.37, 26.86, -97.33, 26.71, -97.3, 26.62, -97.24, 26.44, -97.21, 26.3, -97.18, 26.2, -97.165, 26.07, -97.3, 26.05, -97.42, 26.3, -97.52, 26.6, -97.48, 26.9, -97.5, 27.2, -97.72, 27.26, -97.7, 27.35, -97.45, 27.42, -97.4, 27.62],
+    },
+    {
+      name: "Aransas Bay", // with Copano and St. Charles bays
+      ring: [-97.12, 27.93, -97.07, 27.87, -97.03, 27.88, -96.94, 28.0, -96.85, 28.08, -96.8, 28.14, -96.84, 28.22, -96.92, 28.26, -97.0, 28.22, -97.1, 28.22, -97.24, 28.16, -97.24, 28.06, -97.16, 28.0],
+    },
+    {
+      name: "San Antonio Bay", // with Espiritu Santo Bay, inside Matagorda Island
+      ring: [-96.8, 28.14, -96.84, 28.22, -96.83, 28.32, -96.85, 28.42, -96.7, 28.45, -96.42, 28.43, -96.4, 28.38, -96.55, 28.27, -96.7, 28.17],
+    },
+  ],
   // Cartoon look: forest = trees even on the flats; wooded = trees on the hills;
   // dry = sand, cacti or sagebrush. Counties not listed are green farmland and grassland.
   biomes: {
