@@ -210,14 +210,329 @@ NR.addPack({
     // Bainbridge (14,506): the Decatur seat on the Flint and Lake Seminole, on US-84/US-27.
     { id: "BNBR", name: "Bainbridge", county: "ga-decatur-miller-seminole", lat: 30.91, lon: -84.57, type: "farm", size: 1, pop: 45, main: true, level: "south" },
   ],
-  // Towns: appear over time inside counties you own. (Added in part B.)
-  towns: [],
-  // Real passes, canyons and gaps: [name, latitude, longitude]. (Added in part B.)
-  passes: [],
-  // Real bridges: [name, latitude, longitude]. (Added in part B.)
-  bridges: [],
-  // Bays where water needs a bridge. (Added in part B, if any.)
-  bays: [],
+  // Towns: appear over time inside counties you own. About 1.5 per region, the biggest places that are not main stations
+  // (Census 2020: packs/GA/raw/places.json), kept about 4 miles from every station and other town, plus the real scenic places
+  // (scenic: true; sources in NOTES.md). Places on the Census list keep the Census point except where a comment says so.
+  towns: [
+    // Metro Atlanta, the west and the south of the metro
+    // Atlanta (fulton)
+    { id: "SNDY", name: "Sandy Springs", county: "ga-fulton", lat: 33.93, lon: -84.37, type: "metro", size: 2 },
+    { id: "RSWL", name: "Roswell", county: "ga-fulton", lat: 34.04, lon: -84.35, type: "metro", size: 2 },
+    { id: "STHF", name: "South Fulton", county: "ga-fulton", lat: 33.64, lon: -84.58, type: "metro", size: 2 },
+    { id: "ALPH", name: "Alpharetta", county: "ga-fulton", lat: 34.07, lon: -84.27, type: "metro", size: 2 },
+    { id: "JHNS", name: "Johns Creek", county: "ga-fulton", lat: 34.03, lon: -84.2, type: "metro", size: 2 },
+    { id: "CLLG", name: "College Park", county: "ga-fulton", lat: 33.64, lon: -84.46, type: "metro", size: 1 },
+    // Decatur (dekalb)
+    { id: "STNC", name: "Stonecrest", county: "ga-dekalb", lat: 33.68, lon: -84.15, type: "metro", size: 2 },
+    { id: "BROB", name: "Brookhaven", county: "ga-dekalb", lat: 33.86, lon: -84.34, type: "metro", size: 2 },
+    { id: "TCKR", name: "Tucker", county: "ga-dekalb", lat: 33.85, lon: -84.2, type: "metro", size: 1 },
+    // Stone Mountain: scenic: Stone Mountain Park (the granite dome and Confederate memorial carving, the state's most visited park); placed at the mountain, 3 miles east of the city's Census point, so that it stays 4 miles from Tucker
+    { id: "STNM", name: "Stone Mountain", county: "ga-dekalb", lat: 33.8, lon: -84.14, scenic: true, type: "metro", size: 1 },
+    // Marietta (cobb)
+    { id: "SMYS", name: "Smyrna", county: "ga-cobb", lat: 33.86, lon: -84.52, type: "metro", size: 2 },
+    { id: "KENN", name: "Kennesaw", county: "ga-cobb", lat: 34.03, lon: -84.62, type: "metro", size: 1 },
+    { id: "PWDR", name: "Powder Springs", county: "ga-cobb", lat: 33.86, lon: -84.68, type: "metro", size: 1 },
+    // Lawrenceville (gwinnett)
+    { id: "PCCH", name: "Peachtree Corners", county: "ga-gwinnett", lat: 33.97, lon: -84.23, type: "metro", size: 1 },
+    { id: "SWN", name: "Suwanee", county: "ga-gwinnett", lat: 34.05, lon: -84.07, type: "metro", size: 1 },
+    { id: "SNLL", name: "Snellville", county: "ga-gwinnett", lat: 33.86, lon: -84.01, type: "metro", size: 1 },
+    { id: "BFRD", name: "Buford", county: "ga-gwinnett", lat: 34.12, lon: -83.99, type: "metro", size: 1 },
+    { id: "LLBR", name: "Lilburn", county: "ga-gwinnett", lat: 33.89, lon: -84.14, type: "metro", size: 1 },
+    // Forest Park (clayton)
+    { id: "RVRD", name: "Riverdale", county: "ga-clayton", lat: 33.56, lon: -84.41, type: "metro", size: 1 },
+    { id: "LVJY", name: "Lovejoy", county: "ga-clayton", lat: 33.44, lon: -84.32, type: "metro", size: 1 },
+    { id: "JONE", name: "Jonesboro", county: "ga-clayton", lat: 33.52, lon: -84.35, type: "metro", size: 1 },
+    // Stockbridge (henry)
+    { id: "MCDN", name: "McDonough", county: "ga-henry", lat: 33.44, lon: -84.15, type: "metro", size: 1 },
+    { id: "LCST", name: "Locust Grove", county: "ga-henry", lat: 33.35, lon: -84.1, type: "metro", size: 1 },
+    { id: "HAMP", name: "Hampton", county: "ga-henry", lat: 33.38, lon: -84.3, type: "metro", size: 1 },
+    // Woodstock (cherokee)
+    { id: "CANC", name: "Canton", county: "ga-cherokee", lat: 34.25, lon: -84.49, type: "metro", size: 1 },
+    { id: "HLLY", name: "Holly Springs", county: "ga-cherokee", lat: 34.17, lon: -84.48, type: "metro", size: 1 },
+    { id: "BLLG", name: "Ball Ground", county: "ga-cherokee", lat: 34.34, lon: -84.37, type: "metro", size: 1 },
+    // Peachtree City (fayette)
+    { id: "FAYF", name: "Fayetteville", county: "ga-fayette", lat: 33.45, lon: -84.47, type: "metro", size: 1 },
+    { id: "TYRN", name: "Tyrone", county: "ga-fayette", lat: 33.48, lon: -84.59, type: "metro", size: 1 },
+    // Covington (newton)
+    { id: "MANM", name: "Mansfield", county: "ga-newton", lat: 33.52, lon: -83.73, type: "metro", size: 1 },
+    // Dallas (paulding)
+    { id: "HIRA", name: "Hiram", county: "ga-paulding", lat: 33.89, lon: -84.75, type: "metro", size: 1 },
+    // Winder (barrow)
+    { id: "BRSL", name: "Braselton", county: "ga-barrow", lat: 34.11, lon: -83.81, type: "metro", size: 1 },
+    { id: "ABRN", name: "Auburn", county: "ga-barrow", lat: 34.02, lon: -83.83, type: "metro", size: 1 },
+    // Gainesville (hall)
+    { id: "FLWR", name: "Flowery Branch", county: "ga-hall", lat: 34.17, lon: -83.92, type: "metro", size: 1 },
+    { id: "OKWD", name: "Oakwood", county: "ga-hall", lat: 34.22, lon: -83.88, type: "metro", size: 1 },
+    { id: "LULA", name: "Lula", county: "ga-hall", lat: 34.4, lon: -83.66, type: "farm", size: 1 },
+    // Newnan (coweta)
+    { id: "SENO", name: "Senoia", county: "ga-coweta", lat: 33.31, lon: -84.55, type: "farm", size: 1 },
+    { id: "GRAG", name: "Grantville", county: "ga-coweta", lat: 33.24, lon: -84.83, type: "farm", size: 1 },
+    // Monroe (walton)
+    { id: "LGNV", name: "Loganville", county: "ga-walton", lat: 33.84, lon: -83.9, type: "metro", size: 1 },
+    { id: "SCLC", name: "Social Circle", county: "ga-walton", lat: 33.65, lon: -83.71, type: "farm", size: 1 },
+    // Carrollton (carroll)
+    { id: "VLLR", name: "Villa Rica", county: "ga-carroll", lat: 33.73, lon: -84.92, type: "metro", size: 1 },
+    { id: "TEMP", name: "Temple", county: "ga-carroll", lat: 33.73, lon: -85.03, type: "farm", size: 1 },
+    { id: "BWDN", name: "Bowdon", county: "ga-carroll", lat: 33.54, lon: -85.25, type: "farm", size: 1 },
+    // Cartersville (bartow)
+    { id: "ADRS", name: "Adairsville", county: "ga-bartow", lat: 34.37, lon: -84.92, type: "farm", size: 1 },
+    { id: "EHRL", name: "Euharlee", county: "ga-bartow", lat: 34.14, lon: -84.93, type: "farm", size: 1 },
+    { id: "WHIW", name: "White", county: "ga-bartow", lat: 34.28, lon: -84.75, type: "farm", size: 1 },
+    // Barnesville (butts-lamar)
+    { id: "JACJ", name: "Jackson", county: "ga-butts-lamar", lat: 33.29, lon: -83.97, type: "farm", size: 1 },
+    // LaGrange (troup)
+    { id: "WPST", name: "West Point", county: "ga-troup", lat: 32.9, lon: -85.14, type: "farm", size: 1 },
+    { id: "HGNS", name: "Hogansville", county: "ga-troup", lat: 33.17, lon: -84.9, type: "farm", size: 1 },
+    // Franklin (heard)
+    { id: "CENC", name: "Centralhatchee", county: "ga-heard", lat: 33.37, lon: -85.1, type: "farm", size: 1 },
+    // Thomaston (pike-upson)
+    { id: "ZBLN", name: "Zebulon", county: "ga-pike-upson", lat: 33.09, lon: -84.34, type: "farm", size: 1 },
+    // North Georgia: the mountains, the northwest and the northeast
+    // Calhoun (gordon)
+    { id: "RSC", name: "Resaca", county: "ga-gordon", lat: 34.58, lon: -84.94, type: "farm", size: 1 },
+    { id: "FAIF", name: "Fairmount", county: "ga-gordon", lat: 34.44, lon: -84.7, type: "farm", size: 1 },
+    // Dalton (whitfield)
+    { id: "VRNL", name: "Varnell", county: "ga-whitfield", lat: 34.9, lon: -84.97, type: "farm", size: 1 },
+    { id: "TNNL", name: "Tunnel Hill", county: "ga-whitfield", lat: 34.86, lon: -85.04, type: "farm", size: 1 },
+    { id: "CHTT", name: "Cohutta", county: "ga-whitfield", lat: 34.96, lon: -84.97, type: "farm", size: 1 },
+    // Fort Oglethorpe (catoosa)
+    { id: "RNGG", name: "Ringgold", county: "ga-catoosa", lat: 34.91, lon: -85.12, type: "mountain", size: 1 },
+    // LaFayette (walker)
+    // Lookout Mountain: scenic: Rock City Gardens and the Battles for Chattanooga overlook, on Lookout Mountain, Georgia
+    { id: "LKTM", name: "Lookout Mountain", county: "ga-walker", lat: 34.97, lon: -85.36, scenic: true, type: "mountain", size: 1 },
+    { id: "CHCK", name: "Chickamauga", county: "ga-walker", lat: 34.88, lon: -85.29, type: "farm", size: 1 },
+    // Summerville (chattooga)
+    { id: "TRN", name: "Trion", county: "ga-chattooga", lat: 34.55, lon: -85.31, type: "farm", size: 1 },
+    // Rome (floyd)
+    { id: "CVSP", name: "Cave Spring", county: "ga-floyd", lat: 34.11, lon: -85.34, type: "farm", size: 1 },
+    // Cedartown (haralson-polk)
+    { id: "BREM", name: "Bremen", county: "ga-haralson-polk", lat: 33.71, lon: -85.15, type: "farm", size: 1 },
+    { id: "RCKM", name: "Rockmart", county: "ga-haralson-polk", lat: 34.01, lon: -85.05, type: "farm", size: 1 },
+    // Jasper (gilmer-pickens)
+    { id: "ELLJ", name: "Ellijay", county: "ga-gilmer-pickens", lat: 34.69, lon: -84.48, type: "mountain", size: 1 },
+    // Blue Ridge (fannin-union)
+    // Brasstown Bald: scenic: Georgia's highest point (4,784 ft), in the Chattahoochee National Forest; on the Towns-Union line, moved 1 km west so that it sits in the Union half of the region
+    { id: "BRSS", name: "Brasstown Bald", county: "ga-fannin-union", lat: 34.87, lon: -83.82, scenic: true, type: "mountain", size: 1 },
+    // Cleveland (towns-white)
+    { id: "HWSS", name: "Hiawassee", county: "ga-towns-white", lat: 34.95, lon: -83.75, type: "mountain", size: 1 },
+    // Helen: scenic: the Alpine-style Bavarian village on the Chattahoochee (Unicoi State Park, Anna Ruby Falls)
+    { id: "HELE", name: "Helen", county: "ga-towns-white", lat: 34.71, lon: -83.73, scenic: true, type: "mountain", size: 1 },
+    // Cornelia (habersham-rabun)
+    // Tallulah Gorge: scenic: Tallulah Gorge State Park (a two-mile gorge, 1,000 ft deep, and Karl Wallenda's 1970 wire walk)
+    { id: "TLLL", name: "Tallulah Gorge", county: "ga-habersham-rabun", lat: 34.74, lon: -83.39, scenic: true, type: "mountain", size: 1 },
+    { id: "CLAY", name: "Clayton", county: "ga-habersham-rabun", lat: 34.88, lon: -83.4, type: "mountain", size: 1 },
+    // Toccoa (banks-stephens)
+    { id: "MAYM", name: "Maysville", county: "ga-banks-stephens", lat: 34.26, lon: -83.55, type: "mountain", size: 1 },
+    // Hartwell (franklin-hart)
+    { id: "RYST", name: "Royston", county: "ga-franklin-hart", lat: 34.29, lon: -83.11, type: "farm", size: 1 },
+    // Dahlonega (dawson-lumpkin)
+    // Amicalola Falls: scenic: Amicalola Falls State Park (729 ft, the tallest cascading waterfall in Georgia) and the approach trail to the Appalachian Trail
+    { id: "AMCL", name: "Amicalola Falls", county: "ga-dawson-lumpkin", lat: 34.56, lon: -84.25, scenic: true, type: "mountain", size: 1 },
+    // Jefferson (jackson)
+    { id: "CMMR", name: "Commerce", county: "ga-jackson", lat: 34.21, lon: -83.48, type: "farm", size: 1 },
+    { id: "ARCA", name: "Arcade", county: "ga-jackson", lat: 34.07, lon: -83.53, type: "farm", size: 1 },
+    // Comer (madison-oglethorpe)
+    { id: "CRWF", name: "Crawford", county: "ga-madison-oglethorpe", lat: 33.88, lon: -83.16, type: "farm", size: 1 },
+    // Athens (clarke)
+    { id: "WNTR", name: "Winterville", county: "ga-clarke", lat: 33.97, lon: -83.28, type: "farm", size: 1 },
+    // Watkinsville (oconee)
+    { id: "BGRT", name: "Bogart", county: "ga-oconee", lat: 33.95, lon: -83.53, type: "metro", size: 1 },
+    // Middle Georgia: Macon, Columbus, Augusta and the Piedmont
+    // Manchester (harris-meriwether-talbot)
+    // Callaway Gardens: scenic: Callaway Gardens (Pine Mountain, a 13,000-acre garden resort and the Cason J. Callaway Memorial Chapel)
+    { id: "CLLW", name: "Callaway Gardens", county: "ga-harris-meriwether-talbot", lat: 32.84, lon: -84.85, scenic: true, type: "farm", size: 1 },
+    // Warm Springs: scenic: Franklin D. Roosevelt's Little White House (a Georgia State Historic Site); moved 1 mile west of the Census point to stay 4 miles from Manchester
+    { id: "WRMS", name: "Warm Springs", county: "ga-harris-meriwether-talbot", lat: 32.89, lon: -84.7, scenic: true, type: "farm", size: 1 },
+    // Richland (chattahoochee-stewart-webster)
+    // Providence Canyon: scenic: Providence Canyon State Park, 'Georgia's Little Grand Canyon' (eroded farmland canyons in Stewart County)
+    { id: "PRVD", name: "Providence Canyon", county: "ga-chattahoochee-stewart-webster", lat: 32.07, lon: -84.92, scenic: true, type: "farm", size: 1 },
+    // Cusseta: the Chattahoochee County seat, at the town (the Census point is the county's middle, at Fort Moore); a place the phase-1 review named
+    { id: "CSST", name: "Cusseta", county: "ga-chattahoochee-stewart-webster", lat: 32.31, lon: -84.77, type: "farm", size: 1 },
+    // Preston: the Webster County seat, at the town (the Census point is a mile and a half off); named by the phase-1 review
+    { id: "PRES", name: "Preston", county: "ga-chattahoochee-stewart-webster", lat: 32.06, lon: -84.54, type: "farm", size: 1 },
+    { id: "LMPK", name: "Lumpkin", county: "ga-chattahoochee-stewart-webster", lat: 32.05, lon: -84.8, type: "farm", size: 1 },
+    // Butler (marion-schley-taylor)
+    { id: "ELLV", name: "Ellaville", county: "ga-marion-schley-taylor", lat: 32.24, lon: -84.31, type: "farm", size: 1 },
+    // Cuthbert (clay-quitman-randolph)
+    // Georgetown: the Quitman County seat on the Chattahoochee; moved 3 miles east of the town, inside the county, to stay about 5 miles from Alabama's Eufaula station
+    { id: "GEOG", name: "Georgetown", county: "ga-clay-quitman-randolph", lat: 31.87, lon: -85.06, type: "farm", size: 1 },
+    { id: "FRTG", name: "Fort Gaines", county: "ga-clay-quitman-randolph", lat: 31.63, lon: -85.06, type: "farm", size: 1 },
+    // Blakely (baker-calhoun-early)
+    { id: "MORX", name: "Morgan", county: "ga-baker-calhoun-early", lat: 31.54, lon: -84.6, type: "farm", size: 1 },
+    // Americus (sumter-terrell)
+    // Plains: scenic: Jimmy Carter National Historical Park (his boyhood home, the train depot campaign headquarters)
+    { id: "PLNS", name: "Plains", county: "ga-sumter-terrell", lat: 32.03, lon: -84.39, scenic: true, type: "farm", size: 1 },
+    // Andersonville: scenic: Andersonville National Historic Site (the Civil War prison camp and the National Prisoner of War Museum)
+    { id: "ANDE", name: "Andersonville", county: "ga-sumter-terrell", lat: 32.2, lon: -84.15, scenic: true, type: "farm", size: 1 },
+    { id: "DWSN", name: "Dawson", county: "ga-sumter-terrell", lat: 31.77, lon: -84.44, type: "farm", size: 1 },
+    // Warner Robins (houston)
+    { id: "PERR", name: "Perry", county: "ga-houston", lat: 32.47, lon: -83.73, type: "farm", size: 1 },
+    // Fort Valley (crawford-macon-peach)
+    { id: "BYRO", name: "Byron", county: "ga-crawford-macon-peach", lat: 32.65, lon: -83.75, type: "farm", size: 1 },
+    // Forsyth (jones-monroe)
+    { id: "GRY", name: "Gray", county: "ga-jones-monroe", lat: 33, lon: -83.54, type: "farm", size: 1 },
+    // Eatonton (jasper-morgan-putnam)
+    { id: "MADM", name: "Madison", county: "ga-jasper-morgan-putnam", lat: 33.58, lon: -83.48, type: "farm", size: 1 },
+    { id: "MONM", name: "Monticello", county: "ga-jasper-morgan-putnam", lat: 33.3, lon: -83.69, type: "farm", size: 1 },
+    // Greensboro (greene-hancock-taliaferro)
+    { id: "UNNP", name: "Union Point", county: "ga-greene-hancock-taliaferro", lat: 33.62, lon: -83.08, type: "farm", size: 1 },
+    // Cochran (bleckley-twiggs-wilkinson)
+    { id: "GORD", name: "Gordon", county: "ga-bleckley-twiggs-wilkinson", lat: 32.89, lon: -83.33, type: "farm", size: 1 },
+    // Dublin (laurens)
+    { id: "CDWL", name: "Cadwell", county: "ga-laurens", lat: 32.34, lon: -83.04, type: "farm", size: 1 },
+    // Eastman (dodge-pulaski-telfair)
+    // McRae: the 'McRae-Helena' city, at the Census point
+    { id: "MCR", name: "McRae", county: "ga-dodge-pulaski-telfair", lat: 32.06, lon: -82.9, type: "farm", size: 1 },
+    // Cordele (crisp-dooly-wilcox)
+    { id: "UNDL", name: "Unadilla", county: "ga-crisp-dooly-wilcox", lat: 32.26, lon: -83.74, type: "farm", size: 1 },
+    // Elberton (elbert-lincoln-wilkes)
+    { id: "WASW", name: "Washington", county: "ga-elbert-lincoln-wilkes", lat: 33.73, lon: -82.74, type: "farm", size: 1 },
+    // Thomson (glascock-mcduffie-warren)
+    { id: "WARW", name: "Warrenton", county: "ga-glascock-mcduffie-warren", lat: 33.41, lon: -82.67, type: "farm", size: 1 },
+    // Augusta (richmond)
+    { id: "HPHZ", name: "Hephzibah", county: "ga-richmond", lat: 33.29, lon: -82.1, type: "metro", size: 1 },
+    { id: "BLYT", name: "Blythe", county: "ga-richmond", lat: 33.3, lon: -82.21, type: "farm", size: 1 },
+    // Grovetown (columbia)
+    { id: "HRLM", name: "Harlem", county: "ga-columbia", lat: 33.44, lon: -82.32, type: "farm", size: 1 },
+    // Sandersville (jefferson-washington)
+    { id: "LOUL", name: "Louisville", county: "ga-jefferson-washington", lat: 32.99, lon: -82.4, type: "farm", size: 1 },
+    // Waynesboro (burke-jenkins-screven)
+    { id: "MLLN", name: "Millen", county: "ga-burke-jenkins-screven", lat: 32.81, lon: -81.94, type: "farm", size: 1 },
+    // Swainsboro (emanuel-johnson-treutlen)
+    { id: "WRGH", name: "Wrightsville", county: "ga-emanuel-johnson-treutlen", lat: 32.73, lon: -82.72, type: "farm", size: 1 },
+    // The coast, Savannah and south Georgia
+    // Savannah (chatham)
+    { id: "PLR", name: "Pooler", county: "ga-chatham", lat: 32.11, lon: -81.26, type: "metro", size: 1 },
+    { id: "PRTW", name: "Port Wentworth", county: "ga-chatham", lat: 32.19, lon: -81.21, type: "metro", size: 1 },
+    { id: "GCRD", name: "Garden City", county: "ga-chatham", lat: 32.09, lon: -81.18, type: "metro", size: 1 },
+    // Tybee Island: scenic: the Atlantic beach, with the Tybee Island Light Station, 15 miles east of Savannah
+    { id: "TYBS", name: "Tybee Island", county: "ga-chatham", lat: 32.01, lon: -80.86, scenic: true, type: "coast", size: 1 },
+    // Rincon (effingham)
+    { id: "SPRS", name: "Springfield", county: "ga-effingham", lat: 32.36, lon: -81.3, type: "farm", size: 1 },
+    { id: "GYTN", name: "Guyton", county: "ga-effingham", lat: 32.33, lon: -81.39, type: "farm", size: 1 },
+    // Richmond Hill (bryan)
+    { id: "PMBR", name: "Pembroke", county: "ga-bryan", lat: 32.14, lon: -81.62, type: "farm", size: 1 },
+    // Hinesville (liberty)
+    { id: "WLTH", name: "Walthourville", county: "ga-liberty", lat: 31.77, lon: -81.62, type: "farm", size: 1 },
+    { id: "MDWY", name: "Midway", county: "ga-liberty", lat: 31.8, lon: -81.42, type: "coast", size: 1 },
+    // Statesboro (bulloch)
+    { id: "BROG", name: "Brooklet", county: "ga-bulloch", lat: 32.39, lon: -81.67, type: "farm", size: 1 },
+    { id: "PORP", name: "Portal", county: "ga-bulloch", lat: 32.54, lon: -81.93, type: "farm", size: 1 },
+    // Metter (candler-evans-tattnall)
+    { id: "GLNN", name: "Glennville", county: "ga-candler-evans-tattnall", lat: 31.94, lon: -81.93, type: "farm", size: 1 },
+    // Vidalia (montgomery-toombs-wheeler)
+    { id: "LYNS", name: "Lyons", county: "ga-montgomery-toombs-wheeler", lat: 32.2, lon: -82.32, type: "farm", size: 1 },
+    // Jesup (long-mcintosh-wayne)
+    { id: "LDWC", name: "Ludowici", county: "ga-long-mcintosh-wayne", lat: 31.71, lon: -81.74, type: "farm", size: 1 },
+    { id: "DRN", name: "Darien", county: "ga-long-mcintosh-wayne", lat: 31.34, lon: -81.42, type: "coast", size: 1 },
+    // Brunswick (glynn)
+    // St. Simons Island: scenic: the Golden Isles' main island (the St. Simons Island Light, Fort Frederica National Monument), reached by the F.J. Torras Causeway; not in the Census list as a place (a CDP with no figure)
+    { id: "STSM", name: "St. Simons Island", county: "ga-glynn", lat: 31.18, lon: -81.39, scenic: true, type: "coast", size: 1 },
+    // Jekyll Island: scenic: the Jekyll Island Club National Historic Landmark District (the millionaires' winter colony) and the state park, reached by the Jekyll Island Causeway
+    { id: "JKYL", name: "Jekyll Island", county: "ga-glynn", lat: 31.06, lon: -81.42, scenic: true, type: "coast", size: 1 },
+    // St. Marys (camden)
+    // Kingsland: 18,243: just behind St. Marys (the main station), on I-95 and the Georgia end of the Okefenokee and Cumberland Island road
+    { id: "KINK", name: "Kingsland", county: "ga-camden", lat: 30.85, lon: -81.79, type: "coast", size: 1 },
+    { id: "WDBN", name: "Woodbine", county: "ga-camden", lat: 30.96, lon: -81.72, type: "coast", size: 1 },
+    // Folkston (brantley-charlton-pierce)
+    // Okefenokee Swamp: scenic: Stephen C. Foster State Park, the swamp's western entrance in the Okefenokee National Wildlife Refuge (the largest blackwater swamp in North America)
+    { id: "OKFN", name: "Okefenokee Swamp", county: "ga-brantley-charlton-pierce", lat: 30.83, lon: -82.36, scenic: true, type: "farm", size: 1 },
+    // Waycross (clinch-echols-ware)
+    // Statenville: the Echols County seat near the Florida line; named by the phase-1 review
+    { id: "STTN", name: "Statenville", county: "ga-clinch-echols-ware", lat: 30.7, lon: -83.03, type: "farm", size: 1 },
+    { id: "HMRV", name: "Homerville", county: "ga-clinch-echols-ware", lat: 31.04, lon: -82.74, type: "farm", size: 1 },
+    // Baxley (appling-bacon-jeff-davis)
+    { id: "HAZL", name: "Hazlehurst", county: "ga-appling-bacon-jeff-davis", lat: 31.86, lon: -82.6, type: "farm", size: 1 },
+    // Douglas (atkinson-coffee)
+    { id: "NCHL", name: "Nicholls", county: "ga-atkinson-coffee", lat: 31.52, lon: -82.64, type: "farm", size: 1 },
+    // Adel (berrien-cook-lanier)
+    { id: "NASN", name: "Nashville", county: "ga-berrien-cook-lanier", lat: 31.21, lon: -83.25, type: "farm", size: 1 },
+    // Moultrie (brooks-colquitt)
+    { id: "QUIT", name: "Quitman", county: "ga-brooks-colquitt", lat: 30.78, lon: -83.56, type: "farm", size: 1 },
+    { id: "NRMN", name: "Norman Park", county: "ga-brooks-colquitt", lat: 31.27, lon: -83.68, type: "farm", size: 1 },
+    // Valdosta (lowndes)
+    { id: "HHR", name: "Hahira", county: "ga-lowndes", lat: 31, lon: -83.38, type: "farm", size: 1 },
+    { id: "LPK", name: "Lake Park", county: "ga-lowndes", lat: 30.69, lon: -83.19, type: "farm", size: 1 },
+    // Thomasville (thomas)
+    { id: "BSTN", name: "Boston", county: "ga-thomas", lat: 30.79, lon: -83.79, type: "farm", size: 1 },
+    // Tifton (tift)
+    { id: "OMG", name: "Omega", county: "ga-tift", lat: 31.34, lon: -83.59, type: "farm", size: 1 },
+    // Sylvester (lee-worth)
+    { id: "LSBR", name: "Leesburg", county: "ga-lee-worth", lat: 31.73, lon: -84.17, type: "farm", size: 1 },
+    // Fitzgerald (ben-hill-irwin-turner)
+    { id: "ASHB", name: "Ashburn", county: "ga-ben-hill-irwin-turner", lat: 31.71, lon: -83.65, type: "farm", size: 1 },
+    // Cairo (grady-mitchell)
+    { id: "CMLL", name: "Camilla", county: "ga-grady-mitchell", lat: 31.23, lon: -84.21, type: "farm", size: 1 },
+    // Bainbridge (decatur-miller-seminole)
+    { id: "DNLS", name: "Donalsonville", county: "ga-decatur-miller-seminole", lat: 31.04, lon: -84.88, type: "farm", size: 1 },
+  ],
+  // Real passes, canyons and gaps: [name, latitude, longitude]. The Blue Ridge on the map is a thin strip of mountains along the
+  // Tennessee and North Carolina lines (the map's mountains do not go below about 2,000 ft elsewhere in Georgia), so only the well-known
+  // gaps of the roads that cross it are listed (sources in NOTES.md).
+  passes: [
+    ["Neels Gap (US-19/129)", 34.74, -83.92],
+    ["Unicoi Gap (GA-17/75)", 34.76, -83.72],
+    ["Dicks Creek Gap (US-76)", 34.88, -83.8],
+    ["Woody Gap (GA-60)", 34.68, -84.0],
+    ["Hogpen Gap (GA-348)", 34.72, -83.81],
+    ["Rabun Gap (US-23/441)", 34.96, -83.39],
+  ],
+  // Real bridges: [name, latitude, longitude]. Water crossed near one uses the real bridge (cheaper, and any length);
+  // anywhere else you build a new bridge, if the water is narrow enough. Points are the well-known crossings, on the map's
+  // lakes and rivers where they pass a main station (sources in NOTES.md); the map's lake outlines are simplified, so a point can sit
+  // a mile or two off the real structure.
+  bridges: [
+    // Lake Lanier (the Chattahoochee and the Chestatee arms): the dam and the road bridges from south to north
+    ["Buford Dam (GA-20)", 34.16, -84.07],
+    ["Browns Bridge (GA-369)", 34.25, -83.99],
+    ["Dawsonville Highway bridge (GA-53)", 34.31, -83.95],
+    ["Thompson Bridge (GA-60)", 34.34, -83.89],
+    ["Keith Bridge (GA-306)", 34.36, -83.99],
+    ["Belton Bridge (Chattahoochee arm)", 34.4, -83.89],
+    // The Savannah River dams (Hartwell, Richard B. Russell, J. Strom Thurmond: the Georgia-South Carolina line), Lake Allatoona, Lake Chatuge, Lake Sinclair
+    ["Hartwell Dam (US-29)", 34.36, -82.82],
+    ["Richard B. Russell Dam (GA-72)", 34.03, -82.6],
+    ["J. Strom Thurmond Dam (US-221)", 33.66, -82.2],
+    ["Allatoona Dam (Cartersville)", 34.16, -84.73],
+    ["Highway 92 bridge (Lake Allatoona, Acworth)", 34.1, -84.62],
+    ["Lake Chatuge bridge (US-76, Hiawassee)", 34.95, -83.78],
+    ["Sinclair Dam (GA-212)", 33.14, -83.2],
+    // The Chattahoochee: Atlanta, West Point, Columbus, Lake Walter F. George, Fort Gaines and Lake Seminole
+    ["Chattahoochee River bridge (I-75, Cobb-Atlanta)", 33.86, -84.46],
+    ["Chattahoochee River bridge (I-20, west Atlanta)", 33.75, -84.57],
+    ["Chattahoochee River bridge (GA-400, Sandy Springs-Alpharetta)", 33.99, -84.27],
+    ["Chattahoochee River bridge (I-85, West Point)", 32.87, -85.17],
+    ["Dillingham Street Bridge (Columbus-Phenix City)", 32.47, -85],
+    ["Eufaula bridge (US-82, Lake Walter F. George)", 31.9, -85.12],
+    ["Walter F. George Dam road (Fort Gaines-Abbeville)", 31.63, -85.06],
+    ["Lake Seminole bridge (US-84, Bainbridge)", 30.9, -84.59],
+    // The Flint, the Ocmulgee, the Oconee, the Altamaha
+    ["Flint River bridge (US-82, Albany)", 31.58, -84.15],
+    ["Otis Redding Bridge (Ocmulgee River, Macon)", 32.84, -83.62],
+    ["Ocmulgee River bridge (US-129, Hawkinsville)", 32.28, -83.47],
+    ["Oconee River bridge (US-78, Athens)", 33.94, -83.4],
+    ["Oconee River bridge (US-441, Athens)", 33.9, -83.39],
+    ["Oconee River bridge (I-20, Greensboro)", 33.57, -83.27],
+    ["Oconee River bridge (US-441, Milledgeville)", 33.09, -83.22],
+    ["Oconee River bridge (US-441, Dublin)", 32.54, -82.9],
+    ["Altamaha River bridge (US-341, Jesup-Doctortown)", 31.64, -81.82],
+    // The Savannah River and the coast
+    ["Fifth Street Bridge (Savannah River, Augusta)", 33.47, -81.96],
+    ["Houlihan Bridge (US-17, Savannah River, Port Wentworth)", 32.14, -81.14],
+    ["Ogeechee River bridge (I-95, Richmond Hill)", 31.93, -81.27],
+    ["Satilla River bridge (US-17, Woodbine)", 30.96, -81.68],
+    ["Eugene Talmadge Memorial Bridge (US-17, Savannah)", 32.09, -81.07],
+    ["Sidney Lanier Bridge (US-17, Brunswick)", 31.13, -81.49],
+    ["F.J. Torras Causeway (St. Simons Island)", 31.16, -81.42],
+    ["Jekyll Island Causeway", 31.09, -81.44],
+  ],
+  // Bays where water needs a bridge. The map's land runs out around the Golden Isles and the Savannah River's mouth, where the
+  // sounds between the islands and the mainland are real water (NOTES.md); the causeways above cross them.
+  bays: [
+    { name: "Savannah River mouth and Tybee Roads", ring: [-81.1, 32.06, -80.8, 32.06, -80.8, 31.9, -81.1, 31.9] },
+    { name: "St. Simons Sound", ring: [-81.52, 31.17, -81.3, 31.17, -81.3, 31.03, -81.52, 31.03] },
+    { name: "St. Andrew Sound", ring: [-81.5, 31.02, -81.36, 31.02, -81.36, 30.9, -81.5, 30.9] },
+  ],
   // Levels mode (when the game starts here): finish every goal on a level's checklist to open
   // the next part of the state. Goal kinds are described in js/game.js ("Goals and contracts").
   levels: [
