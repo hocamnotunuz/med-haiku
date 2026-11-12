@@ -1297,17 +1297,32 @@ function* along(ring, step) {
     for (let k = 0; k < n; k++) yield [ring[i] + ((ring[i + 2] - ring[i]) * k) / n, ring[i + 1] + ((ring[i + 3] - ring[i + 1]) * k) / n];
   }
 }
-// Split lines into the stretches near the other land and the rest
+// Split lines into the stretches near the other land and the rest. Lines are tested at points
+// every 0.02° along them, not just at their corners: one straight stretch of the 49th parallel can
+// run along two states (Saskatchewan's, from Montana into North Dakota), and is split where it
+// leaves each. The extra points are dropped again, except where a stretch ends.
 function splitNear(lines, near) {
   const out = { near: [], far: [] };
   for (const line of lines) {
-    const n = line.length / 2;
-    const close = Array.from({ length: n }, (_, i) => near(line[2 * i], line[2 * i + 1], NEAR));
+    const pts = [], corner = [];
+    for (let i = 0; i + 3 < line.length; i += 2) {
+      const n = Math.max(1, Math.ceil(Math.hypot(line[i + 2] - line[i], line[i + 3] - line[i + 1]) / 0.02));
+      for (let k = 0; k < n; k++) {
+        pts.push(Math.round((line[i] + ((line[i + 2] - line[i]) * k) / n) * 1000) / 1000, Math.round((line[i + 1] + ((line[i + 3] - line[i + 1]) * k) / n) * 1000) / 1000);
+        corner.push(k === 0);
+      }
+    }
+    pts.push(line[line.length - 2], line[line.length - 1]);
+    corner.push(true);
+    const n = pts.length / 2;
+    const close = Array.from({ length: n }, (_, i) => near(pts[2 * i], pts[2 * i + 1], NEAR));
     const seg = Array.from({ length: n - 1 }, (_, k) => close[k] && close[k + 1]);
     let k0 = 0;
     for (let k = 1; k <= seg.length; k++)
       if (k === seg.length || seg[k] !== seg[k0]) {
-        (seg[k0] ? out.near : out.far).push(line.slice(2 * k0, 2 * k + 2));
+        const piece = [];
+        for (let i = k0; i <= k; i++) if (corner[i] || i === k0 || i === k) piece.push(pts[2 * i], pts[2 * i + 1]);
+        (seg[k0] ? out.near : out.far).push(piece);
         k0 = k;
       }
   }
