@@ -140,7 +140,36 @@ const STATES = {
     // (not to be read as the city of Boise)
     names: { "Boise-Valley": "Valley-Boise County" },
   },
-  MT: { fips: "30", name: "Montana", pop: "census", merge: [] },
+  // Reviewed by the Montana pack agent (packs/MT/NOTES.md): 56 counties to 29 regions, along the
+  // Hi-Line, the old Northern Pacific (I-90/I-94), the river valleys and the eastern plains (huge and
+  // empty). Ravalli (the Bitterroot), Silver Bow (Butte), Lake and Lincoln (the Kootenai valley)
+  // stay alone, each a valley or city of its own.
+  MT: {
+    fips: "30",
+    name: "Montana",
+    pop: "census",
+    merge: [
+      ["Mineral", "Sanders"],
+      ["Deer Lodge", "Granite", "Powell"],
+      ["Beaverhead", "Jefferson", "Madison"],
+      ["Broadwater", "Meagher"],
+      ["Park", "Sweet Grass"],
+      ["Carbon", "Stillwater"],
+      ["Golden Valley", "Musselshell", "Wheatland"],
+      ["Fergus", "Judith Basin", "Petroleum"],
+      ["Glacier", "Liberty", "Toole"],
+      ["Pondera", "Teton"],
+      ["Chouteau", "Hill"],
+      ["Blaine", "Phillips"],
+      ["Roosevelt", "Valley"],
+      ["Daniels", "Sheridan"],
+      ["Garfield", "McCone", "Richland"],
+      ["Dawson", "Prairie", "Wibaux"],
+      ["Carter", "Fallon"],
+      ["Custer", "Powder River"],
+      ["Big Horn", "Rosebud", "Treasure"],
+    ],
+  },
   WY: { fips: "56", name: "Wyoming", pop: "census", merge: [] },
   UT: { fips: "49", name: "Utah", pop: "census", merge: [] },
   CO: { fips: "08", name: "Colorado", pop: "census", merge: [] },
