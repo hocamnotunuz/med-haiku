@@ -49,6 +49,17 @@ const RIVERS = [
   "St. Lawrence", "Saguenay", "Saint-Maurice", "Richelieu", "Saint John", "Miramichi", "Restigouche", "Niagara", "St. Clair",
   "Detroit", "Moose", "Albany", "Rainy", "Nipigon", "French", "Trent", "Rideau", "Grand", "Thames", "Exploits", "Humber", "Gander",
   "La Grande", "Rupert", "Manicouagan", "Outardes", "Chaudière", "Saint-François", "Yamaska", "Matapédia", "Petitcodiac",
+  // The territories and Alaska
+  "Yukon", "Mackenzie", "Porcupine", "Tanana", "Kuskokwim", "Susitna", "Copper", "Koyukuk",
+  // The rest of the US
+  "Mississippi", "Missouri", "Ohio", "Tennessee", "Arkansas", "Rio Grande", "Platte", "North Platte", "South Platte", "Kansas",
+  "Illinois", "Wabash", "Cumberland", "Alabama", "Tombigbee", "Chattahoochee", "Savannah", "Susquehanna", "Delaware", "Hudson",
+  "Connecticut", "Potomac", "James", "Roanoke", "Pee Dee", "Santee", "Altamaha", "Apalachicola", "Suwannee", "St. Johns",
+  "Brazos", "Pecos", "Canadian", "Cimarron", "Yellowstone", "Bighorn", "Green", "Wind", "Bear", "Salmon", "Clearwater",
+  "Kootenai", "Clark Fork", "Flathead", "Musselshell", "Niobrara", "Big Sioux", "Minnesota", "Wisconsin", "Rock", "Des Moines",
+  "Iowa", "Cedar", "Allegheny", "Monongahela", "Kanawha", "Kentucky", "Scioto", "Muskingum", "Maumee", "Penobscot",
+  "Kennebec", "Merrimack", "Neosho", "White", "Ouachita", "Sabine", "Neches", "Atchafalaya", "Pearl", "Yazoo", "Coosa",
+  "Tallapoosa", "Flint", "St. Croix", "Chippewa", "Little Missouri", "Cheyenne", "Holston", "Madison", "Sprague",
 ];
 // Natural Earth spellings to fix
 const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa" };
@@ -250,7 +261,12 @@ const lines = (g) => (g.type === "LineString" ? [g.coordinates] : g.type === "Mu
 const LAKES = [...NE("ne_10m_lakes").features, ...NE("ne_10m_lakes_north_america").features];
 const RIVER_FEATURES = [...NE("ne_10m_rivers_lake_centerlines").features, ...NE("ne_10m_rivers_north_america").features];
 // Mountain range names (Natural Earth), used only to name a range in messages.
-const RANGE_NAMES = { "SIERRA NEVADA": "the Sierra Nevada", "COAST RANGES": "the Coast Ranges", "CASCADE RANGE": "the Cascade Range", "Klamath Mts.": "the Klamath Mountains", "Mogollon Rim": "the Mogollon Rim", "COLUMBIA MTS.": "the Columbia Mountains", "ROCKY MOUNTAINS": "the Rocky Mountains", "COAST MOUNTAINS": "the Coast Mountains", "Cassiar Mts.": "the Cassiar Mountains" };
+const RANGE_NAMES = { "SIERRA NEVADA": "the Sierra Nevada", "COAST RANGES": "the Coast Ranges", "CASCADE RANGE": "the Cascade Range", "Klamath Mts.": "the Klamath Mountains", "Mogollon Rim": "the Mogollon Rim", "COLUMBIA MTS.": "the Columbia Mountains", "ROCKY MOUNTAINS": "the Rocky Mountains", "COAST MOUNTAINS": "the Coast Mountains", "Cassiar Mts.": "the Cassiar Mountains",
+  "ALASKA RANGE": "the Alaska Range", "BROOKS RANGE": "the Brooks Range", "CHUGACH MTS.": "the Chugach Mountains", "Wrangell Mts.": "the Wrangell Mountains",
+  "MACKENZIE MTS.": "the Mackenzie Mountains", "SELWYN MTS.": "the Selwyn Mountains", "Bitterroot Range": "the Bitterroot Range", "Wasatch Range": "the Wasatch Range",
+  "Black Hills": "the Black Hills", "Ouachita Mts.": "the Ouachita Mountains", "Ozark Plateau": "the Ozarks", "APPALACHIAN MTS.": "the Appalachians",
+  "Blue Ridge": "the Blue Ridge", "ALLEGHENY PLATEAU": "the Allegheny Plateau", "CUMBERLAND PLAT.": "the Cumberland Plateau", "Adirondack Mts.": "the Adirondacks",
+  "TORNGAT MTS.": "the Torngat Mountains" };
 const RANGES = NE("ne_10m_geography_regions_polys").features.filter((f) => RANGE_NAMES[f.properties.name || f.properties.NAME]);
 const idOf = (name, x, y) => `${name}@${round(x)},${round(y)}`;
 
