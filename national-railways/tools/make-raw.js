@@ -122,7 +122,8 @@ function nearestRegion(lon, lat) {
 async function usRaw() {
   const base = "https://www2.census.gov";
   const counties = await get(`${base}/programs-surveys/popest/datasets/2020-2023/counties/totals/co-est2023-alldata.csv`, "co-est2023-alldata.csv");
-  const subs = await get(`${base}/programs-surveys/popest/datasets/2020-2023/cities/totals/sub-est2023_${FIPS}.csv`, `sub-est2023_${FIPS}.csv`);
+  // (the Census Bureau names this file without a leading zero: sub-est2023_8.csv for Colorado)
+  const subs = await get(`${base}/programs-surveys/popest/datasets/2020-2023/cities/totals/sub-est2023_${Number(FIPS)}.csv`, `sub-est2023_${FIPS}.csv`);
   const gaz = await get(`${base}/geo/docs/maps-data/data/gazetteer/2023_Gazetteer/2023_gaz_place_${FIPS}.txt`, `2023_gaz_place_${FIPS}.txt`);
 
   // County populations (2020 census base), then each region's total
