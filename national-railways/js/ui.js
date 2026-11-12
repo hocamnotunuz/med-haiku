@@ -266,7 +266,8 @@
     setPaused(false);
     renderLegend();
     show(null);
-    toast(`Drag from ${NR.mainStation[NR.START_COUNTIES[0]].name} to another city to lay your first track.`);
+    const first = NR.firstTrackPair(game);
+    toast(`Drag from ${first ? NR.cityById[first[0]].name : NR.mainStation[NR.START_COUNTIES[0]].name} to another city to lay your first track.`);
     loadNearby();
   }
 

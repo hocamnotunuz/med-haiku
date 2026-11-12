@@ -1567,10 +1567,9 @@
 
   // Before the first line: a moving dashed arrow from Los Angeles to its nearest neighbor.
   function drawFirstTrackHint(ctx, s, now) {
-    const from = s.stations[0] && s.stations[0].id;
-    const others = s.stations.filter((st) => st.id !== from);
-    if (!from || !others.length) return;
-    const to = others.reduce((a, b) => (NR.crowMiles(from, a.id) <= NR.crowMiles(from, b.id) ? a : b)).id;
+    const pair = NR.firstTrackPair(s);
+    if (!pair) return;
+    const [from, to] = pair;
     const [x1, y1] = pos[from], [x2, y2] = pos[to];
     const len = Math.hypot(x2 - x1, y2 - y1);
     if (len < 30) return;

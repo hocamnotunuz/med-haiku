@@ -1236,9 +1236,12 @@ for (const f of JSON.parse(fs.readFileSync(ne1File, "utf8")).features) {
   for (const b of can) {
     const close = edgeGrid(b.outline);
     for (const a of areas.filter((x) => x !== b && (x.country === "USA" || (x.country === "CAN" && x.code < b.code)) && near(x, b))) {
-      let hits = 0;
-      for (const ring of a.outline) for (const [x, y] of along(ring, 0.05)) if (hits < 3 && close(x, y, TOL)) hits++;
-      if (hits < 3) continue;
+      // (and along at least about 30 km: Manitoba and the Northwest Territories meet at one point)
+      let hits = 0, x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (const ring of a.outline)
+        for (const [x, y] of along(ring, 0.05))
+          if (close(x, y, TOL)) (hits++), (x0 = Math.min(x0, x)), (x1 = Math.max(x1, x)), (y0 = Math.min(y0, y)), (y1 = Math.max(y1, y));
+      if (hits < 3 || Math.max((x1 - x0) * Math.cos((y0 * Math.PI) / 180), y1 - y0) < 0.3) continue;
       a.neighbors = [...new Set([...a.neighbors, b.code])].sort();
       b.neighbors = [...new Set([...b.neighbors, a.code])].sort();
     }
