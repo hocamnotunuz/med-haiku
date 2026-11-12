@@ -99,17 +99,82 @@ function download(url, file, seconds = 120) {
 }
 
 // ---------- Elevation from terrarium tiles ----------
-// A tile is 256 x 256 pixels; elevation in meters = R * 256 + G + B / 256 - 32768.
+// A few tiles have a bad row or column: a line of spikes across flat ground (a band of 1,300 m
+// "mountains" on a 260 m plateau in northern Manitoba, a row of -6,279 m near Santa Monica). A
+// point is a spike when it is over 150 m from the points two away on each side while those two
+// agree; a line with more than 32 spikes is bad. A band of bad lines, and the line on each side
+// of it, is redrawn between the good lines beyond (only its points over 150 m off that). A band
+// often runs on a little into the next tile, with too few spikes there to be found: in the tiles
+// beside it, the same lines lose just their spikes.
+const spikeAt = (e, i, step) => {
+  const u = e[i - 2 * step], d = e[i + 2 * step];
+  return Math.abs(u - d) < 60 && Math.abs(e[i] - (u + d) / 2) > 150;
+};
+function badLines(e, across) {
+  const along = across === 256 ? 1 : 256;
+  const bad = [];
+  for (let line = 2; line < 254; line++) {
+    let spikes = 0;
+    for (let k = 0; k < 256; k++) if (spikeAt(e, line * across + k * along, across)) spikes++;
+    if (spikes > 32) bad.push(line);
+  }
+  return bad;
+}
+function repairBands(e, across, bad) {
+  const along = across === 256 ? 1 : 256;
+  for (let b = 0; b < bad.length; ) {
+    let last = b;
+    while (last + 1 < bad.length && bad[last + 1] - bad[last] <= 2) last++;
+    const lo = Math.max(0, bad[b] - 3), hi = Math.min(255, bad[last] + 3); // the good lines
+    for (let k = 0; k < 256; k++) {
+      const u = e[lo * across + k * along], d = e[hi * across + k * along];
+      for (let line = lo + 1; line < hi; line++) {
+        const i = line * across + k * along, want = u + ((d - u) * (line - lo)) / (hi - lo);
+        if (Math.abs(e[i] - want) > 150) e[i] = want;
+      }
+    }
+    b = last + 1;
+  }
+}
+function repairSpikes(e, across, lines) {
+  const along = across === 256 ? 1 : 256;
+  for (const line of lines)
+    for (let l = Math.max(2, line - 1); l <= Math.min(253, line + 1); l++)
+      for (let k = 0; k < 256; k++) {
+        const i = l * across + k * along;
+        if (spikeAt(e, i, across)) e[i] = (e[i - 2 * across] + e[i + 2 * across]) / 2;
+      }
+}
 function elevation(z) {
   const tiles = new Map();
+  const found = new Map(); // each tile's bad rows and columns, as it came
   const n = 2 ** z;
+  function raw(tx, ty) {
+    const file = download(`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${tx}/${ty}.png`, path.join(CACHE, "terrarium", String(z), String(tx), ty + ".png"));
+    const png = PNG.sync.read(fs.readFileSync(file));
+    const e = new Float32Array(256 * 256);
+    for (let i = 0; i < e.length; i++) e[i] = png.data[i * 4] * 256 + png.data[i * 4 + 1] + png.data[i * 4 + 2] / 256 - 32768;
+    return e;
+  }
+  function badOf(tx, ty, e) {
+    const key = tx + "/" + ty;
+    if (!found.has(key)) {
+      if (ty < 0 || ty >= n) return { rows: [], cols: [] };
+      e = e || raw(tx, ty);
+      found.set(key, { rows: badLines(e, 256), cols: badLines(e, 1) });
+    }
+    return found.get(key);
+  }
   function tile(tx, ty) {
     const key = tx + "/" + ty;
     if (!tiles.has(key)) {
-      const file = download(`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${tx}/${ty}.png`, path.join(CACHE, "terrarium", String(z), String(tx), ty + ".png"));
-      const png = PNG.sync.read(fs.readFileSync(file));
-      const e = new Float32Array(256 * 256);
-      for (let i = 0; i < e.length; i++) e[i] = png.data[i * 4] * 256 + png.data[i * 4 + 1] + png.data[i * 4 + 2] / 256 - 32768;
+      const e = raw(tx, ty);
+      const own = badOf(tx, ty, e);
+      repairBands(e, 256, own.rows);
+      repairBands(e, 1, own.cols);
+      const beside = (dx, dy, kind) => badOf((((tx + dx) % n) + n) % n, ty + dy)[kind].filter((l) => !own[kind].includes(l));
+      repairSpikes(e, 256, [...beside(-1, 0, "rows"), ...beside(1, 0, "rows")]);
+      repairSpikes(e, 1, [...beside(0, -1, "cols"), ...beside(0, 1, "cols")]);
       tiles.set(key, e);
     }
     return tiles.get(key);
