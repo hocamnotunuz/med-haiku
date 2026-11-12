@@ -110,7 +110,36 @@ const STATES = {
     },
   },
   // The rest of the US: every county separate until its pack agent's review (Maryland includes DC)
-  ID: { fips: "16", name: "Idaho", pop: "census", merge: [] },
+  // Reviewed by the Idaho pack agent (packs/ID/NOTES.md): 44 counties to 25 regions, along real
+  // routes: US-95 and the railway from Sandpoint to Bonners Ferry; the Silver Valley and the St. Joe;
+  // the upper Clearwater and the Camas Prairie; the lower Payette and Weiser valleys; ID-55 to McCall;
+  // Mountain Home and the Owyhee desert; the Wood River Valley; the north side of the Snake; Mini-
+  // Cassia; US-93 from Arco to Salmon; I-15 north to Montana; Ashton to Driggs; Pocatello's rural west;
+  // Idaho's Bear River valley. Latah (Moscow), Nez Perce (Lewiston) and Bingham (Blackfoot) stay alone.
+  ID: {
+    fips: "16",
+    name: "Idaho",
+    pop: "census",
+    merge: [
+      ["Bonner", "Boundary"],
+      ["Benewah", "Shoshone"],
+      ["Clearwater", "Idaho", "Lewis"],
+      ["Gem", "Payette"],
+      ["Adams", "Washington"],
+      ["Boise", "Valley"],
+      ["Elmore", "Owyhee"],
+      ["Blaine", "Camas"],
+      ["Gooding", "Jerome", "Lincoln"],
+      ["Cassia", "Minidoka"],
+      ["Butte", "Custer", "Lemhi"],
+      ["Clark", "Jefferson"],
+      ["Fremont", "Teton"],
+      ["Oneida", "Power"],
+      ["Bear Lake", "Caribou", "Franklin"],
+    ],
+    // (not to be read as the city of Boise)
+    names: { "Boise-Valley": "Valley-Boise County" },
+  },
   MT: { fips: "30", name: "Montana", pop: "census", merge: [] },
   WY: { fips: "56", name: "Wyoming", pop: "census", merge: [] },
   UT: { fips: "49", name: "Utah", pop: "census", merge: [] },
