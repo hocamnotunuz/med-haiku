@@ -239,7 +239,9 @@ async function canadaRaw() {
   const byName = {};
   const areaCol = csds.data[0].findIndex((h) => /Land area/i.test(h));
   for (const r of csds.data.slice(1))
-    if (r[2] && r[2].slice(4, 9) === "A0005" && r[2].slice(9, 11) === SGC) (byName[r[1]] ||= []).push({ code: r[2].slice(-7), pop: +r[4], km2: +r[areaCol] });
+    if (r[2] && r[2].slice(4, 9) === "A0005" && r[2].slice(9, 11) === SGC)
+      // (a bilingual name is listed under its English part too: "Greater Sudbury / Grand Sudbury")
+      for (const name of new Set([r[1], r[1].replace(/ \/ .*$/, "")])) (byName[name] ||= []).push({ code: r[2].slice(-7), pop: +r[4], km2: +r[areaCol] });
   // Population centres in the province (their parent in the table's metadata is the province)
   const pcs = await statcan("98100011");
   const memberCol = pcs.meta.findIndex((r) => r[0] === "Dimension ID" && r[1] === "Member Name");
@@ -267,6 +269,14 @@ async function canadaRaw() {
       // town's name without being it
       const isMuni = !["community", "locality"].includes(kind);
       let munis = isMuni ? byName[g.name] || [] : [];
+      // A municipality far away is a different place with the same name (a "Perth" in Perth County
+      // isn't the town of Perth, 300 km east): keep only those in the place's region or next to it
+      let farOnly = false; // (then a population centre with the name is far away too)
+      if (inside) {
+        const near = new Set([...inside.fips, ...regions.filter((r) => inside.neighbors.includes(r.id)).flatMap((r) => r.fips)]);
+        farOnly = munis.length > 0 && !munis.some((m) => near.has(m.code.slice(0, 4)));
+        munis = munis.filter((m) => near.has(m.code.slice(0, 4)));
+      }
       // Two municipalities with one name: first keep the one in the place's own census division
       // (Manitoba's city of Thompson, not the rural municipality of Thompson far south); then a
       // city, town or village is the densest one, not the rural municipality around it (the city of
@@ -284,9 +294,9 @@ async function canadaRaw() {
       const place = { name: g.name, kind, lat: +g.latitude.toFixed(4), lon: +g.longitude.toFixed(4), county: region.id, offMap: !inside || undefined };
       if (munis.length === 1) Object.assign(place, { pop: munis[0].pop, popSource: "municipality", csd: munis[0].code });
       else if (munis.length > 1) Object.assign(place, { pop: null, municipalities: munis });
-      else if (pcPop[g.name] !== undefined && (isMuni || !byName[g.name])) Object.assign(place, { pop: pcPop[g.name], popSource: "population centre" });
+      else if (pcPop[g.name] !== undefined && !farOnly && (isMuni || !byName[g.name])) Object.assign(place, { pop: pcPop[g.name], popSource: "population centre" });
       else place.pop = null;
-      if (pcPop[g.name] !== undefined && place.popSource !== "population centre" && isMuni) place.popCentre = pcPop[g.name];
+      if (pcPop[g.name] !== undefined && !farOnly && place.popSource !== "population centre" && isMuni) place.popCentre = pcPop[g.name];
       places.push(place);
     }
   // The same town is often listed twice: as its municipality and as an unincorporated place a

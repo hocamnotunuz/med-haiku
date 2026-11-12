@@ -247,12 +247,30 @@ const STATES = {
     name: "Ontario",
     pop: "statcan",
     // Prince Edward County is cut off by the Bay of Quinte and the Murray Canal: the Bay Bridge
-    // (Belleville, Hastings) and the Glenora Ferry (to Adolphustown, Lennox and Addington)
+    // (Belleville, Hastings) and the Glenora Ferry (to Adolphustown, Lennox and Addington).
+    // Manitoulin Island: the Chi-Cheemaun ferry (Tobermory, Bruce; summer only)
     bridges: [
       ["Prince Edward", "Hastings"],
       ["Prince Edward", "Lennox and Addington"],
+      ["Manitoulin", "Bruce"],
     ],
-    merge: [],
+    // Reviewed by the Ontario pack agent (packs/ON/NOTES.md): 49 census divisions to 41 regions.
+    // Greater Sudbury is an enclave in Sudbury District (apart, the district would be a ring reached
+    // only through the city), with Manitoulin by the Little Current bridge; Fort Frances is on
+    // Highway 71 to Kenora; Highway 35 runs Lindsay to Minden; Highways 11 and 400/69 run from
+    // Muskoka into Parry Sound District; Highway 11 and the Ontario Northland line join Cochrane
+    // and Timiskaming; Napanee is 45 km from Kingston. Every other division has 61,000 people or more.
+    merge: [
+      ["Greater Sudbury", "Sudbury", "Manitoulin"],
+      ["Kenora", "Rainy River"],
+      ["Kawartha Lakes", "Haliburton"],
+      ["Muskoka", "Parry Sound"],
+      ["Cochrane", "Timiskaming"],
+      ["Frontenac", "Lennox and Addington"],
+    ],
+    // Prince Edward's two fixed links (the Bay Bridge, the Murray Canal bridge) both go to Hastings
+    join: [["Prince Edward", "Hastings"]],
+    names: { "Greater Sudbury & Manitoulin & Sudbury": "Sudbury and Manitoulin" },
   },
   QC: { country: "CAN", name: "Quebec", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NB: { country: "CAN", name: "New Brunswick", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
@@ -672,7 +690,8 @@ for (const [i, members] of groupOf) {
     const word = counties[members[0]].properties.name.replace(/ \d+$/, "");
     const big = members.map((j) => biggestTown(String(counties[j].id))).filter(Boolean).sort((a, b) => b.pop - a.pop)[0];
     label = `${big ? big.name.replace(/ \(Part\)$/, "") : STATES[code].name} area (${word} ${nums.join(" & ")})`;
-  } else if (isCanadian(code)) label = kinds.length === 1 && kinds[0] ? `${base} ${kinds[0]}` : sourceOf(code) === "databc" ? `${base} Regional District` : base;
+  } else if (STATES[code].names && STATES[code].names[base]) label = STATES[code].names[base]; // a better name for a merged region
+  else if (isCanadian(code)) label = kinds.length === 1 && kinds[0] ? `${base} ${kinds[0]}` : sourceOf(code) === "databc" ? `${base} Regional District` : base;
   else if (code === "CA" || code === "NV" || code === "AZ" || code === "OR" || code === "WA") label = /City$/.test(base) ? base : `${base} County`;
   else {
     // The Census Bureau's own names: "Orleans Parish", "Bethel Census Area", "Richmond city"; a
@@ -771,11 +790,48 @@ function centroid(ring) {
   }
   return { area: Math.abs(a / 2), lon: cx / (3 * a) / cosLat, lat: cy / (3 * a) };
 }
+// A label spot inside a polygon (with its holes): its centroid when that's inside; otherwise (a
+// bent region like Ontario's Algoma, which wraps around part of Sudbury District) the inside
+// point on a grid that is farthest from the polygon's edges.
+function insideSpot(poly, best) {
+  const inPoly = (x, y) => poly.reduce((s, ring) => {
+    let c = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+    }
+    return c ? !s : s;
+  }, false);
+  if (inPoly(best.lon, best.lat)) return best;
+  const xs = poly[0].map((p) => p[0]), ys = poly[0].map((p) => p[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const edge = (x, y) => {
+    let d = Infinity;
+    for (const ring of poly)
+      for (let i = 1; i < ring.length; i++) {
+        const [ax, ay] = ring[i - 1], [bx, by] = ring[i];
+        const dx = (bx - ax) * cosLat, dy = by - ay, px = (x - ax) * cosLat, py = y - ay;
+        const t = Math.max(0, Math.min(1, (px * dx + py * dy) / (dx * dx + dy * dy || 1)));
+        d = Math.min(d, Math.hypot(px - t * dx, py - t * dy));
+      }
+    return d;
+  };
+  let spot = best, far = -1;
+  for (let a = 0; a < 30; a++)
+    for (let b = 0; b < 30; b++) {
+      const x = x0 + ((a + 0.5) * (x1 - x0)) / 30, y = y0 + ((b + 0.5) * (y1 - y0)) / 30;
+      if (!inPoly(x, y)) continue;
+      const d = edge(x, y);
+      if (d > far) (far = d), (spot = { ...best, lon: x, lat: y });
+    }
+  return spot;
+}
 const regions = [...regionInfo.entries()]
   .sort((a, b) => (a[1].state === b[1].state ? a[1].name.localeCompare(b[1].name) : CODES.indexOf(a[1].state) - CODES.indexOf(b[1].state)))
   .map(([id, info]) => {
     const shape = tc.merge(topoOf(info.state), info.members.map((i) => counties[i]));
-    const best = shape.coordinates.map((poly) => centroid(poly[0])).sort((a, b) => b.area - a.area)[0];
+    const biggest = shape.coordinates.map((poly) => ({ poly, c: centroid(poly[0]) })).sort((a, b) => b.c.area - a.c.area)[0];
+    const best = insideSpot(biggest.poly, biggest.c);
     const near = new Set();
     info.members.forEach((i) => neighbors[i].forEach((j) => near.add(regionKey.get(j))));
     const cfg = STATES[info.state];
