@@ -80,6 +80,8 @@ const RIVERS = [
   // The South
   "Big Black", "Big Sunflower", "Black Warrior", "Cahaba", "Duck", "Clinch", "French Broad", "Ocmulgee", "Oconee",
   "Ogeechee", "Satilla", "St. Marys", "Ochlockonee", "New", "Guyandotte", "Conecuh",
+  // Florida
+  "Saint Johns", "Ocklawaha", "Withlacoochee", "Santa Fe", "Choctawhatchee", "Kissimmee", "Escambia", "Perdido",
 ];
 // Lakes Natural Earth leaves unnamed, by their middle (within 0.1°)
 const UNNAMED_LAKES = [
@@ -87,13 +89,14 @@ const UNNAMED_LAKES = [
   [-93.35, 29.96, "Calcasieu Lake"], [-90.25, 29.77, "Lake Salvador"],
 ];
 // Natural Earth spellings to fix
-const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa", "Elk Horn": "Elkhorn", "Atchafalaya River": "Atchafalaya" };
+const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa", "Elk Horn": "Elkhorn", "Atchafalaya River": "Atchafalaya", "Saint Johns": "St. Johns" };
 // Natural Earth rivers misnamed, by river number: the Snake (from Pasco up through Idaho to
 // Wyoming) is labelled "Columbia" as river 103 (the Columbia itself is river 64)
 const RIVER_FIX = { 103: "Snake" };
 // ...and a river that runs on under another's name: the Madison (river 7) carries on down the
 // Missouri from Three Forks (45.93° N) to Canyon Ferry Lake
-const RIVER_SPLIT = { 7: { north: 45.93, name: "Missouri" } };
+// The Chattahoochee (river 250) carries on as the Apalachicola below the Jim Woodruff Dam (30.71° N)
+const RIVER_SPLIT = { 7: { north: 45.93, name: "Missouri" }, 250: { south: 30.71, name: "Apalachicola" } };
 
 // ---------- Load the game's map and cities ----------
 const ctx = {};
@@ -455,7 +458,7 @@ function buildState(code) {
     if (!RIVERS.includes(neName) || !/river/i.test(f.properties.featurecla || "")) continue;
     const base = RIVER_FIX[f.properties.rivernum] || RIVER_NAMES[neName] || neName;
     const split = RIVER_SPLIT[f.properties.rivernum];
-    const nameAt = (p) => (split && p[1] > split.north ? split.name : base);
+    const nameAt = (p) => (split && (p[1] > split.north || p[1] < split.south) ? split.name : base);
     for (const line of lines(f.geometry)) {
       let part = [];
       let name = nameAt(line[0]);
