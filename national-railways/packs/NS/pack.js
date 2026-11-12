@@ -99,7 +99,7 @@ NR.addPack({
     // Liverpool: Queens' town (population centre 2,546), at the mouth of the Mersey River.
     { id: "LIV", name: "Liverpool", county: "ns-lunenburg-queens", lat: 44.04, lon: -64.71, type: "coast", size: 1 },
     // Chester: the village on Mahone Bay (population centre 1,371).
-    { id: "CHR", name: "Chester", county: "ns-lunenburg-queens", lat: 44.54, lon: -64.24, type: "coast", size: 1 },
+    { id: "CHR", name: "Chester", county: "ns-lunenburg-queens", lat: 44.54, lon: -64.23, type: "coast", size: 1 },
     // Colchester
     // Tatamagouche: the village on the Northumberland Strait.
     { id: "TAT", name: "Tatamagouche", county: "ns-colchester", lat: 45.71, lon: -63.29, type: "coast", size: 1 },
@@ -118,7 +118,7 @@ NR.addPack({
     // Sherbrooke Village: the living-history 1860s village on the St. Mary's River.
     { id: "SBV", name: "Sherbrooke Village", county: "ns-antigonish-guysborough", lat: 45.14, lon: -61.98, scenic: true, type: "farm", size: 1 },
     // Canso: the old fishing port at the mainland's eastern tip (moved 0.5 mi inland onto the map's land).
-    { id: "CSO", name: "Canso", county: "ns-antigonish-guysborough", lat: 45.34, lon: -61.01, type: "coast", size: 1 },
+    { id: "CSO", name: "Canso", county: "ns-antigonish-guysborough", lat: 45.33, lon: -61.01, type: "coast", size: 1 },
     // Cabot Trail & Bras d'Or
     // Baddeck: on the Bras d'Or Lake, the Alexander Graham Bell historic site, where the Cabot Trail
     // begins.

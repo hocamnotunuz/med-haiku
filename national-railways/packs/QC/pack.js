@@ -83,7 +83,7 @@ NR.addPack({
     // Val-des-Monts: the biggest municipality (13,328), in the Gatineau Hills, so mountain.
     { id: "VDM", name: "Val-des-Monts", county: "qc-les-collines-de-l-outaouais-pontiac", lat: 45.66, lon: -75.73, type: "mountain", size: 1, pop: 69, main: true, level: "west" },
     { id: "MLR", name: "Mont-Laurier", county: "qc-antoine-labelle-la-vallee-de-la-gatineau", lat: 46.55, lon: -75.5, type: "mountain", size: 1, pop: 57, main: true, level: "west" },
-    { id: "TR", name: "Trois-Rivières", county: "qc-francheville", lat: 46.34, lon: -72.54, type: "metro", size: 2, pop: 158, main: true, level: "west" },
+    { id: "TR", name: "Trois-Rivières", county: "qc-francheville", lat: 46.34, lon: -72.55, type: "metro", size: 2, pop: 158, main: true, level: "west" },
     // Shawinigan: the hydro and aluminium city at the gate of La Mauricie, whose region runs up the
     // Saint-Maurice into the forest of the Haute-Mauricie, so mountain.
     { id: "SHW", name: "Shawinigan", county: "qc-la-tuque-mekinac-shawinigan", lat: 46.54, lon: -72.75, type: "mountain", size: 1, pop: 77, main: true, level: "west" },
