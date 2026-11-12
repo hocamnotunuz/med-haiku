@@ -261,8 +261,8 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 The online game stays at version 38 (California to British Columbia) until **every** province, territory and state is done, checked and tested. Then it is published once. Work is still saved to GitHub as it goes (that is only the safety copy).
 
 ### Order
-1. **Canada:** Alberta → Saskatchewan → Manitoba → Ontario → Quebec → New Brunswick → Nova Scotia → Prince Edward Island → Newfoundland and Labrador → Yukon → Northwest Territories (all done) → Nunavut (in progress). The territories are a few huge regions, as decided: Yukon is one, the Northwest Territories four.
-2. **US West:** Idaho, Montana, Wyoming, Utah, Colorado, New Mexico, Alaska (opens from Yukon and British Columbia).
+1. **Canada:** Alberta → Saskatchewan → Manitoba → Ontario → Quebec → New Brunswick → Nova Scotia → Prince Edward Island → Newfoundland and Labrador → Yukon → Northwest Territories → Nunavut (**all done**). The territories are a few huge regions, as decided: Yukon is one, the Northwest Territories four.
+2. **US West:** Idaho, Montana, Wyoming, Utah, Colorado, New Mexico, Alaska (opens from Yukon and British Columbia) (**all done**; the group check passed: every game test and pack test, and with all 25 packs loaded (489 regions, 1,421 places) loading takes 0.1–0.25 s, memory 40–114 MB, 60 frames a second).
 3. **Plains & Texas:** North Dakota, South Dakota, Nebraska, Kansas, Oklahoma, Texas, Minnesota, Iowa.
 4. **Midwest & South Central:** Missouri, Arkansas, Louisiana, Wisconsin, Illinois, Michigan, Indiana, Ohio.
 5. **South:** Kentucky, Tennessee, Mississippi, Alabama, Georgia, Florida, South Carolina, North Carolina.
@@ -279,7 +279,7 @@ The online game stays at version 38 (California to British Columbia) until **eve
 
 ### Tool work still to do (as each comes up)
 - **Links across water between states and provinces** that count as borders for unlocking: Confederation Bridge (PEI–New Brunswick), the Newfoundland ferries, the Mackinac Bridge, the Detroit, St. Clair, Niagara and St. Lawrence crossings if the map doesn't already join them, the Hawaiian islands, and Hawaii's sea link.
-- **Special counties:** Virginia's independent cities, Louisiana's parishes, Alaska's boroughs and census areas (names and labels), Connecticut (2020 populations for its old counties), DC with Maryland.
+- **Special counties:** Virginia's independent cities, Louisiana's parishes, Connecticut (2020 populations for its old counties: in both tools now), DC with Maryland.
 - **Terrain:** the big US rivers (Mississippi, Missouri, Ohio, Tennessee, Arkansas, Red, Rio Grande, Platte...) and eastern ranges (Appalachians, Ozarks...).
 - **The finished map:** a speed test with all of North America, the start menu with every home, opening order across the border.
 
@@ -294,6 +294,9 @@ The online game stays at version 38 (California to British Columbia) until **eve
 - **The map's rounding grid is fixed** to all of North America, so adding a province no longer moves the others by a few metres (which tipped coastal towns in and out of their regions).
 - **Game fixes found by the agents:** riders delivered next to a not-yet-loaded state no longer crash the game; a start that is the whole state (PEI, Yukon) opens its neighbours at once; a start of one region opens its nearest town too; the first-track hint suggests two stations that track can join.
 - **Raw facts:** a municipality is matched in its own region (Thompson, Perth), by its English, tidy-hyphen or accent-free name (Greater Sudbury, Happy Valley-Goose Bay, Délı̨nę), and towns renamed since 2021 (New Brunswick) keep their census populations; population centres named after two places count for each (Sydney); one number goes to one place; hamlets are fetched (most northern communities).
+- **Alaska:** its islands past the date line (the Rat and Near Islands) sit just west of -180°, next to the rest of Alaska, on the map and in the raw facts; Valdez-Cordova (split in 2019) gets Chugach plus Copper River's population; the Aleutians are one region (Aleutians West has no land neighbour).
+- **US towns' populations:** some states' Census city files write place codes without leading zeros (Alaska's), which left Anchorage with no population; codes are padded now.
+- **Rivers:** Natural Earth's stray river stubs only metres long no longer hide the real stretch that starts at the same point (the Yukon Flats were missing). Only Alaska's terrain was rebuilt with it; the other packs keep the terrain their agents checked against (a rebuild would also bring Arizona, Nevada and Wyoming the Southwest rivers added for Utah to New Mexico, and the Canadian packs the newer elevation repairs).
 - **City maps in Canada and on the Great Lakes:** land from Statistics Canada's census subdivisions and lakes and rivers from NRCan CanVec (1:250,000); everything outside the land shapes is water, so the Great Lakes show on the Chicago, Detroit, Cleveland and Toronto maps. A preview mode draws a city's water and hills from its stops before it goes into a pack (tested on Toronto, Ottawa, Vancouver, Calgary, Edmonton, Chicago and Detroit).
 
 ### Size
