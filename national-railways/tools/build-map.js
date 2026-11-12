@@ -369,7 +369,18 @@ const STATES = {
       ["Westmorland", "PE:Prince"],
       ["Saint John", "NS:Digby"],
     ],
-    merge: [],
+    // Reviewed by the New Brunswick pack agent (packs/NB/NOTES.md): 15 counties to 11 regions.
+    // Greater Moncton (Riverview is across the Petitcodiac in Albert); the Route 11 coast from
+    // Miramichi to Kent; the upper Saint John valley (Edmundston and Grand Falls); the lower Saint
+    // John and Grand Lake (Oromocto). Restigouche (Campbellton), Carleton (Woodstock) and Charlotte
+    // (St. Stephen, St. Andrews) stay alone: each has a real town and a border crossing.
+    merge: [
+      ["Albert", "Westmorland"],
+      ["Kent", "Northumberland"],
+      ["Madawaska", "Victoria"],
+      ["Queens", "Sunbury"],
+    ],
+    names: { "Kent & Northumberland": "Miramichi & Kent" },
   },
   NS: { country: "CAN", name: "Nova Scotia", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   PE: { country: "CAN", name: "Prince Edward Island", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
@@ -430,7 +441,7 @@ let csdCache = null;
 // special areas, improvement districts and unorganized land. (Some Manitoba "rural municipalities"
 // are a town and its countryside, merged in 2015: Gimli, Killarney - Turtle Mountain.)
 const RURAL_TYPES = new Set(["RM", "MD", "SA", "ID", "NO", "SNO", "UNO"]);
-const URBAN_TYPES = new Set(["CY", "C", "CV", "T", "TV", "V", "VL", "VC", "VN"]); // cities, towns, villages
+const URBAN_TYPES = new Set(["CY", "C", "CV", "T", "TV", "V", "VL"]); // cities, towns, villages (not Quebec's Cree and Naskapi "villages", VC and VN)
 function biggestTown(cd) {
   if (!csdCache) {
     const service = "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/9/query";

@@ -238,10 +238,15 @@ async function canadaRaw() {
   const csds = await statcan("98100002");
   const byName = {};
   const areaCol = csds.data[0].findIndex((h) => /Land area/i.test(h));
+  // Each subdivision's type (city, town, village, parish, rural municipality...), from Statistics
+  // Canada's boundary service
+  const typeList = JSON.parse(fs.readFileSync(await get("https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/9/query?where=1%3D1&outFields=CSDUID,CSDTYPE&returnGeometry=false&f=json", "csd-types.json", CA_CACHE), "utf8"));
+  const csdType = Object.fromEntries(typeList.features.map((f) => [f.attributes.CSDUID, f.attributes.CSDTYPE]));
+  const URBAN = new Set(["CY", "C", "CV", "T", "TV", "V", "VL"]); // cities, towns, villages (not Quebec's Cree and Naskapi "villages", VC and VN: land with no people)
   for (const r of csds.data.slice(1))
     if (r[2] && r[2].slice(4, 9) === "A0005" && r[2].slice(9, 11) === SGC)
       // (a bilingual name is listed under its English part too: "Greater Sudbury / Grand Sudbury")
-      for (const name of new Set([r[1], r[1].replace(/ \/ .*$/, "")])) (byName[name] ||= []).push({ code: r[2].slice(-7), pop: +r[4], km2: +r[areaCol] });
+      for (const name of new Set([r[1], r[1].replace(/ \/ .*$/, "")])) (byName[name] ||= []).push({ code: r[2].slice(-7), pop: +r[4], km2: +r[areaCol], type: csdType[r[2].slice(-7)] });
   // Population centres in the province (their parent in the table's metadata is the province)
   const pcs = await statcan("98100011");
   const memberCol = pcs.meta.findIndex((r) => r[0] === "Dimension ID" && r[1] === "Member Name");
@@ -286,6 +291,9 @@ async function canadaRaw() {
         const here = munis.filter((m) => at.fips.includes(m.code.slice(0, 4)));
         if (here.length) munis = here;
       }
+      // (a city, town or village is a city, town or village subdivision first: Grand Manan the village,
+      // not the parish around it)
+      if (munis.length > 1 && ["city", "town", "village"].includes(kind) && munis.some((m) => URBAN.has(m.type))) munis = munis.filter((m) => URBAN.has(m.type));
       if (munis.length > 1 && ["city", "town", "village"].includes(kind)) munis = [munis.reduce((a, b) => (b.pop / b.km2 > a.pop / a.km2 ? b : a))];
       // A municipality's region comes from its census code (first 4 digits: its census division)
       // when it has one: places on the coast can sit just off the simplified outline
@@ -305,6 +313,19 @@ async function canadaRaw() {
   const kept = places.filter((p) => !(p.kind === "locality" && places.some((q) => q !== p && q.kind !== "locality" && q.name === p.name && km(p, q) < 10)));
   places.length = 0;
   places.push(...kept);
+  // A town that the names database no longer lists as a municipality (New Brunswick merged its
+  // towns in 2023: Sackville, Richibucto and Dalhousie are now localities in it) still takes the
+  // 2021 population of the city, town or village of its name in its own census division, when
+  // no other place has taken it
+  const used = new Set(places.map((p) => p.csd).filter(Boolean));
+  for (const p of places) {
+    if (p.pop || !["locality", "community"].includes(p.kind)) continue;
+    const region = regions.find((r) => r.id === p.county);
+    const towns = (byName[p.name] || []).filter((m) => URBAN.has(m.type) && region && region.fips.includes(m.code.slice(0, 4)) && !used.has(m.code));
+    if (towns.length !== 1) continue;
+    Object.assign(p, { pop: towns[0].pop, popSource: "municipality (2021)", csd: towns[0].code });
+    used.add(towns[0].code);
+  }
   places.sort((a, b) => (b.pop || 0) - (a.pop || 0) || a.name.localeCompare(b.name));
 
   // Parks and other protected areas (English or untranslated names only)
