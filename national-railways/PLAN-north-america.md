@@ -261,7 +261,7 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 The online game stays at version 38 (California to British Columbia) until **every** province, territory and state is done, checked and tested. Then it is published once. Work is still saved to GitHub as it goes (that is only the safety copy).
 
 ### Order
-1. **Canada:** Alberta (done) → Saskatchewan (done) → Manitoba (in progress) → Ontario → Quebec → New Brunswick → Nova Scotia → Prince Edward Island → Newfoundland and Labrador → Yukon → Northwest Territories → Nunavut (the territories as a few huge regions, as decided).
+1. **Canada:** Alberta → Saskatchewan → Manitoba → Ontario → Quebec → New Brunswick → Nova Scotia → Prince Edward Island → Newfoundland and Labrador → Yukon → Northwest Territories (all done) → Nunavut (in progress). The territories are a few huge regions, as decided: Yukon is one, the Northwest Territories four.
 2. **US West:** Idaho, Montana, Wyoming, Utah, Colorado, New Mexico, Alaska (opens from Yukon and British Columbia).
 3. **Plains & Texas:** North Dakota, South Dakota, Nebraska, Kansas, Oklahoma, Texas, Minnesota, Iowa.
 4. **Midwest & South Central:** Missouri, Arkansas, Louisiana, Wisconsin, Illinois, Michigan, Indiana, Ohio.
@@ -288,6 +288,12 @@ The online game stays at version 38 (California to British Columbia) until **eve
 - **Canadian borders match everywhere:** every census division keeps its points as they came. Before, some were rounded and some weren't, and the borders between the two kinds didn't match (Manitoba lost four neighbours; Alberta's Lethbridge region had a hole).
 - **Region names are towns:** a rural municipality around a city gives way to the city when the city has at least half its people (Selkirk, not St. Andrews).
 - **Town populations:** when two municipalities share a name (a city and the rural municipality around it, or two far apart), the one in the place's own census division, then the densest, is used (Thompson, Portage la Prairie, Dauphin, North Battleford).
+- **Lakes keep their islands** (Manitoulin, Hecla: islands of 10 km² or more are land), and a lake outline lying inside a bigger lake (Natural Earth's Georgian Bay over Lake Huron) is dropped.
+- **Elevation glitch lines** (a band of 1,300 m spikes on a flat plateau in northern Manitoba) are repaired when a tile loads.
+- **Water links count both ways** and make states and provinces neighbours too (the Confederation Bridge, the Digby, Wood Islands, Port aux Basques and Argentia ferries), so Prince Edward Island opens from its neighbours; two areas that only meet at a point (Manitoba and the Northwest Territories) aren't neighbours.
+- **The map's rounding grid is fixed** to all of North America, so adding a province no longer moves the others by a few metres (which tipped coastal towns in and out of their regions).
+- **Game fixes found by the agents:** riders delivered next to a not-yet-loaded state no longer crash the game; a start that is the whole state (PEI, Yukon) opens its neighbours at once; a start of one region opens its nearest town too; the first-track hint suggests two stations that track can join.
+- **Raw facts:** a municipality is matched in its own region (Thompson, Perth), by its English, tidy-hyphen or accent-free name (Greater Sudbury, Happy Valley-Goose Bay, Délı̨nę), and towns renamed since 2021 (New Brunswick) keep their census populations; population centres named after two places count for each (Sydney); one number goes to one place; hamlets are fetched (most northern communities).
 - **City maps in Canada and on the Great Lakes:** land from Statistics Canada's census subdivisions and lakes and rivers from NRCan CanVec (1:250,000); everything outside the land shapes is water, so the Great Lakes show on the Chicago, Detroit, Cleveland and Toronto maps. A preview mode draws a city's water and hills from its stops before it goes into a pack (tested on Toronto, Ottawa, Vancouver, Calgary, Edmonton, Chicago and Detroit).
 
 ### Size
