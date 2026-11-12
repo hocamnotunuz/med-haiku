@@ -703,7 +703,55 @@ const STATES = {
     ],
     names: { "Des Moines-Henry": "Henry-Des Moines County", "Fremont-Mills": "Mills-Fremont County" },
   },
-  MO: { fips: "29", name: "Missouri", pop: "census", merge: [] },
+  // Reviewed by the Missouri pack agent (packs/MO/NOTES.md): 115 counties and St. Louis city to 60
+  // regions, along US-36 (Maryville, Cameron, Chillicothe, Hannibal), US-63 (Kirksville), I-70
+  // (Marshall), the Lake of the Ozarks (Osage Beach), I-44 (Rolla, Lebanon), the Ozarks (West
+  // Plains, Poplar Bluff) and the Bootheel (Sikeston). The counties of 50k or more stay alone, and
+  // St. Louis city; also Callaway (the Missouri cuts it off from Jefferson City's side) and Pettis
+  // (Sedalia, a rail hub whose small neighbours have better partners).
+  MO: {
+    fips: "29",
+    name: "Missouri",
+    pop: "census",
+    merge: [
+      ["Andrew", "Atchison", "Holt"],
+      ["Gentry", "Nodaway", "Worth"],
+      ["Clinton", "DeKalb"],
+      ["Caldwell", "Daviess", "Livingston"],
+      ["Grundy", "Harrison", "Mercer"],
+      ["Linn", "Putnam", "Sullivan"],
+      ["Adair", "Schuyler", "Scotland"],
+      ["Clark", "Knox", "Lewis"],
+      ["Chariton", "Macon", "Shelby"],
+      ["Howard", "Randolph"],
+      ["Marion", "Monroe", "Ralls"],
+      ["Audrain", "Pike"],
+      ["Montgomery", "Warren"],
+      ["Carroll", "Ray"],
+      ["Lafayette", "Saline"],
+      ["Cooper", "Moniteau", "Morgan"],
+      ["Camden", "Miller"],
+      ["Gasconade", "Maries", "Osage"],
+      ["Benton", "Hickory", "St. Clair"],
+      ["Bates", "Henry"],
+      ["Barton", "Cedar", "Vernon"],
+      ["Dade", "Polk"],
+      ["Dallas", "Laclede"],
+      ["Douglas", "Webster", "Wright"],
+      ["Lawrence", "Stone"],
+      ["Barry", "McDonald"],
+      ["Howell", "Oregon", "Ozark"],
+      ["Butler", "Carter", "Ripley"],
+      ["Dent", "Reynolds", "Shannon"],
+      ["Phelps", "Texas"],
+      ["Crawford", "Iron", "Washington"],
+      ["Bollinger", "Madison", "Wayne"],
+      ["Perry", "Ste. Genevieve"],
+      ["Dunklin", "Stoddard"],
+      ["New Madrid", "Pemiscot"],
+      ["Mississippi", "Scott"],
+    ],
+  },
   AR: { fips: "05", name: "Arkansas", pop: "census", merge: [] },
   LA: { fips: "22", name: "Louisiana", pop: "census", merge: [] },
   WI: { fips: "55", name: "Wisconsin", pop: "census", merge: [] },
@@ -1441,11 +1489,21 @@ for (const code of CODES) {
 const idOf = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const regionKey = new Map(); // county index -> region id
 const regionInfo = new Map(); // region id -> { name, state, members }
+// A county named like another in its state (Missouri's St. Louis County and St. Louis city,
+// Baltimore, Virginia's Richmond, Roanoke, Fairfax and Franklin) goes by its full Census name,
+// or the two would share one region id and one would be lost
+const twinName = new Set();
+for (const [, members] of groupOf)
+  for (const j of members) {
+    const st = stateOf(counties[j]);
+    if (!isCanadian(st) && counties.some((g, k) => k !== j && stateOf(g) === st && g.properties.name === counties[j].properties.name)) twinName.add(j);
+  }
+const nameOf = (j) => (twinName.has(j) && censusNames()[String(counties[j].id)]) || counties[j].properties.name;
 for (const [i, members] of groupOf) {
   const code = stateOf(counties[i]);
   const base = members.every((j) => counties[j].properties.numbered)
     ? `${counties[members[0]].properties.name.replace(/ \d+$/, "")} ${members.map((j) => +counties[j].properties.name.match(/\d+$/)[0]).sort((a, b) => a - b).join("-")}`
-    : members.map((j) => counties[j].properties.name).sort().join(sourceOf(code) === "statcan" ? " & " : "-");
+    : members.map(nameOf).sort().join(sourceOf(code) === "statcan" ? " & " : "-");
   const id = code === "CA" ? idOf(base) : `${code.toLowerCase()}-${idOf(base)}`; // California keeps its old ids
   // "Kern County"; in Canada "Capital Regional District", "Simcoe County", "Charlevoix", or
   // for numbered census divisions "Calgary area (Division No. 6)"
