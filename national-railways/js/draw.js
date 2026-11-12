@@ -884,7 +884,14 @@
       const p = NR.toScreen(r.label[0], r.label[1]);
       if (p[0] < -100 || p[0] > view.w + 100 || p[1] < -50 || p[1] > view.h + 50) continue;
       // Long merged names go on several lines: DEL NORTE- / SISKIYOU- / TRINITY
-      const parts = r.name.replace(/, .*$/, "").replace(/ (County|Regional District|Regional Municipality|Region)$/, "").toUpperCase().split("-");
+      // "Kern County" → KERN; also parishes, boroughs, census areas, Canadian districts and
+      // regions; "Calgary area (Division No. 6)" → CALGARY AREA
+      const parts = r.name
+        .replace(/, .*$/, "")
+        .replace(/ \((Division|Region) [^)]*\)$/, "")
+        .replace(/ (County|Counties|Parish|Borough|City and Borough|Census Area|Municipality|District|Regional District|Regional Municipality|Region)$/, "")
+        .toUpperCase()
+        .split("-");
       const lines = parts.length > 1 && r.name.length > 18 ? parts.map((s, i) => (i < parts.length - 1 ? s + "-" : s)) : [parts.join("-")];
       lines.forEach((text, i) => halo(ctx, text, p[0], p[1] + (i - (lines.length - 1) / 2) * 11, colors.countyText, colors.land));
     }
