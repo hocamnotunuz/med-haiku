@@ -1275,6 +1275,16 @@ for (const [code, cfg] of Object.entries(STATES))
       a.neighbors = [...new Set([...a.neighbors, b.code])].sort();
       b.neighbors = [...new Set([...b.neighbors, a.code])].sort();
     }
+// And two states or provinces in the game whose regions are neighbours are neighbours (Nunavut and
+// Labrador share a short border on Killiniq Island, too short for the outline test above)
+for (const r of regions)
+  for (const n of r.neighbors) {
+    const other = regions.find((q) => q.id === n);
+    const a = other && areas.find((x) => x.code === r.state), b = other && areas.find((x) => x.code === other.state);
+    if (!a || !b || a === b) continue;
+    a.neighbors = [...new Set([...a.neighbors, b.code])].sort();
+    b.neighbors = [...new Set([...b.neighbors, a.code])].sort();
+  }
 areas.sort((a, b) => a.code.localeCompare(b.code));
 
 // ---------- Write ----------
