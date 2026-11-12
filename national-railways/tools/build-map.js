@@ -272,7 +272,31 @@ const STATES = {
     join: [["Prince Edward", "Hastings"]],
     names: { "Greater Sudbury & Manitoulin & Sudbury": "Sudbury and Manitoulin" },
   },
-  QC: { country: "CAN", name: "Quebec", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  QC: {
+    country: "CAN",
+    name: "Quebec",
+    pop: "statcan",
+    // Islands and the St. Lawrence, crossed by real bridges: the island of Montreal (the Jacques
+    // Cartier, Champlain, Mercier, Galipeault and Le Gardeur bridges, and the bridges to Laval),
+    // Laval (the bridges over the Rivière des Mille Îles), the Île d'Orléans bridge, the Quebec and
+    // Pierre Laporte bridges (Québec-Lévis), the Laviolette bridge (Trois-Rivières-Bécancour)
+    bridges: [
+      ["Montréal", "Longueuil"],
+      ["Montréal", "Roussillon"],
+      ["Montréal", "Vaudreuil-Soulanges"],
+      ["Montréal", "L'Assomption"],
+      ["Montréal", "Laval"],
+      ["Laval", "Deux-Montagnes"],
+      ["Laval", "Thérèse-De Blainville"],
+      ["Laval", "Les Moulins"],
+      ["L'Île-d'Orléans", "La Côte-de-Beaupré"],
+      ["Québec", "Lévis"],
+      ["Francheville", "Bécancour"],
+      // The Magdalen Islands' ferry from Souris (counts once Prince Edward Island is in the game)
+      ["Communauté maritime des Îles-de-la-Madeleine", "PE:Kings"],
+    ],
+    merge: [],
+  },
   NB: { country: "CAN", name: "New Brunswick", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NS: { country: "CAN", name: "Nova Scotia", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   PE: { country: "CAN", name: "Prince Edward Island", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
