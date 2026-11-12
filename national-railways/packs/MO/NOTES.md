@@ -78,3 +78,101 @@ Corridors stay clean chains: I-70 (Jackson, Lafayette-Saline, Cooper-Moniteau-Mo
 2. Newton lists `ks-cherokee-crawford` as a neighbour. Newton County only meets Kansas at a corner (the Jasper/Newton line is on the Kansas border): it is probably a point contact. Jasper's link is the real one. Check the shared length.
 3. places.json gives no population for CDPs and military posts (Fort Leonard Wood in Pulaski, Whiteman AFB in Johnson), so Pulaski's station is Waynesville (5,421) and the largest town of Pulaski is understated. Incorporated Philadelphia (Marion) and Fairdealing (Ripley) have null population too.
 4. Illinois, Arkansas, Tennessee and Kentucky are not in the game yet, so the Mississippi-side counties (Clark, Lewis, Marion, Pike, Lincoln, St. Charles, St. Louis, Jefferson, Ste. Genevieve, Perry, Cape Girardeau, Scott, Mississippi, New Madrid, Pemiscot) and the southern tier have no neighbours across the river or border for now.
+
+## The pack (phase 2)
+
+**Outcome:** the merges were applied (60 regions: St. Louis city is now its own region, `mo-st-louis-city`, and St. Louis County is `mo-st-louis-county`). The pack has 60 main stations, 106 towns, 0 passes, 48 bridges, 4 levels, no bays and no city maps.
+
+**Sources.** Populations and points: `packs/MO/raw/` (U.S. Census Bureau, 2020). Station `pop` is the region's population in thousands from counties.json. Coordinates are places.json points rounded to 2 decimals, except where listed below. Everything added by hand (bridges, scenic places, airports, roads and railways named in comments) is well known from memory; a point marked "approx." was given from memory within about a mile. Bridge points were then snapped to the nearest point of the map's river or lake (never more than 2.3 mi away), as the earlier packs place them. A helper script (`/tmp/mo-work/`) checked every place against the region polygons in map.js and the lakes in terrain.js.
+
+### Start
+
+`start: ["mo-st-louis-county", "mo-st-louis-city", "mo-franklin"]`: Clayton, St. Louis and Washington. The city and Franklin both touch the county. Types: metro, metro, farm. **Franklin is farm** (it holds wine country and farms west of the Meramec; Washington is on the Missouri), so the first track, Clayton to Washington (43 mi of track), has riders; the pack test laid it and 8 passengers arrived in the first week. St. Charles was left out because it is metro as well. St. Louis city touches only St. Louis County until Illinois exists.
+
+### Main stations (60)
+
+All ids are unused in every other pack (the checker checks). Many natural ones were taken (TROY, CUBA, BLTN, NVDA, CMRN...), so those got an "MO" or similar ending (TRMO, CBMO, BLTM, NVMO, CMMO).
+
+**Sizes** follow the other packs (size 2 from about 60k when the place is a real city, as in Iowa; size 1 below):
+- **St. Louis city is size 5** although its region is only 302k: San Francisco (874k) is 5, and this is the core of a metro of about 2.8 million with the Arch and Lambert. St. Louis County (Clayton, 1.0M) is 4, as Omaha and Denver. St. Charles (405k) is 3. Arnold (227k), Washington (105k), Troy (60k), Farmington, Cape Girardeau, Columbia, Jefferson City, Rolla (69k), Liberty (253k), Parkville, Belton, St. Joseph, Nixa and Joplin are 2.
+- **Kansas City (Jackson, 717k) is 4**, as Denver (716k). Springfield (299k) is 3, as Lincoln (323k) and Norman (296k).
+- The other 41 are size 1.
+
+**Types:** metro 15 (St. Louis and its counties, Kansas City's three counties, Columbia, Jefferson City, Cape Girardeau, St. Joseph, Springfield, Nixa, Joplin); mountain 8 (the Ozark highlands: Farmington, Cuba, Fredericktown, Rolla, Salem, Waynesville, West Plains, Branson, by Colorado's and Oklahoma's use of "mountain" for forested uplands); coast 1 (Osage Beach, a lake resort, as Iowa's Arnolds Park is typed "coast"); farm 36.
+
+**Airports:** St. Louis Lambert International (on the city's station; the airport is in north St. Louis County at Bridgeton, but the brief puts it in "St. Louis") and Kansas City International (in Platte County's part of Kansas City, on the Kansas City station). Both are over 5 million passengers a year (from memory), the bar the other packs use. Springfield-Branson (about a million) is left out, as Lincoln and Norman have none. **No port:** St. Louis is the biggest port on the inland rivers (from memory, rank moderately known), but the other packs mark `port` only for seaports and Duluth, so none is marked.
+
+**Points changed from the Census point:**
+- **St. Louis (38.63, -90.20):** downtown by the Arch; the Census point is 2.6 mi west-southwest. St. Louis County's station, Clayton, is 7.9 mi away.
+- **Clayton (38.65, -90.34):** the county seat and second downtown (offices, MetroLink, I-64), not its biggest place, Florissant (52,536, 11 mi north). It sits in the middle of the county. Florissant, Chesterfield and Kirkwood are towns.
+- **St. Charles (38.78, -90.48):** the historic Main Street, county seat, the I-70 crossing of the Missouri and the Katy Trail's old town, rather than the biggest place, O'Fallon (91,332; a size-2 town here, with St. Peters and Wentzville).
+- **Kansas City (39.09, -94.56):** 18th and Vine, east of downtown, to keep it 4.0 mi from the Kansas station (KCK, 39.11, -94.63). The Census point (39.12, -94.56) is 2.2 mi north; the real downtown (39.10, -94.58) is 2.9 mi from KCK.
+- **Liberty (39.25, -94.42):** its square, 0.7 mi from the Census point. Independence (39.09, -94.42) is a town, at its Square (the Census point is 4 mi east). Clay's second city Gladstone is a size-2 town; Platte's is Parkville (Platte City is a town).
+- **Cape Girardeau (37.31, -89.53):** downtown on the Mississippi, 2.4 mi east of the Census point.
+- **Jefferson City (38.58, -92.17):** the Capitol, 0.7 mi from the Census point.
+- **Springfield (37.21, -93.29):** the downtown square, 1.1 mi north of the Census point.
+- **Joplin (37.08, -94.51):** downtown, 0.7 mi from the Census point.
+- **Osage Beach (38.15, -92.63):** nudged 1.3 mi, because its Census point falls inside the Lake of the Ozarks on the map.
+- **Waynesville** (Pulaski): the biggest place with a Census population; Fort Leonard Wood has none, and St. Robert (5,240) is 3.6 mi east.
+- All other stations are at their Census points. The biggest place is the station in every region except Clayton and St. Charles, as above.
+
+### Towns (106)
+
+About 1.8 per region, the next-biggest real places, spread out (the checker finds none under 4 mi apart). The St. Louis, Kansas City, Springfield and Lake of the Ozarks areas have more, from the suburbs (size 2: Florissant, Chesterfield, O'Fallon, St. Peters, Gladstone, Independence, Lee's Summit). Most are county seats. Kansas City's other towns are Blue Springs and Independence; the south west has Republic, Ozark, Webb City and Carthage.
+
+**Scenic places (14, all well known):** St. Louis (the Gateway Arch), Kansas City (barbecue, jazz and the museums), Sedalia (the Missouri State Fair), Hannibal (Mark Twain's boyhood home), Branson (the show town on Lake Taneycomo), Silver Dollar City (the theme park near Branson West, in Stone County: Lawrence-Stone), Rocheport (the Katy Trail's best-known town), Ha Ha Tonka State Park (the castle ruin above the Lake of the Ozarks, approx.), Elephant Rocks State Park (granite boulders, Iron County, approx.), Bennett Springs State Park (a big spring and trout stream, approx.), Johnson's Shut-Ins State Park (Reynolds County, approx.), Meramec Caverns (Stanton, approx.), Hermann (the German wine town on the Missouri) and Sainte Genevieve (Missouri's oldest town, a national historical park). Region membership was checked: Elephant Rocks is at 37.64, -90.63 (moved 0.7 mi: the map puts the line at 37.65 in St. Francois), and Silver Dollar City is in the Lawrence-Stone region (it is in Stone County).
+Not used: Taum Sauk Mountain (the state's high point, a place with no town), the Gateway Arch as its own point (the city station is scenic), and Truman Library (Independence is a town).
+
+### Levels (4)
+
+Areas by regions (60): **stl** (14: St. Louis city and county, St. Charles, Jefferson, Franklin, Lincoln, Montgomery-Warren, St. Francois, Perry-Ste. Genevieve, Cape Girardeau, Crawford-Iron-Washington, Gasconade-Maries-Osage, Audrain-Pike, Bollinger-Madison-Wayne), **central** (16: Boone, Cole, Callaway, Cooper-Moniteau-Morgan, Howard-Randolph, Camden-Miller, Pettis, Benton-Hickory-St. Clair, Pulaski, Phelps-Texas, Dent-Reynolds-Shannon, Marion-Monroe-Ralls, Chariton-Macon-Shelby, Lafayette-Saline, Carroll-Ray, Johnson), **west** (14: Jackson, Clay, Platte, Cass, Buchanan, Clinton-DeKalb, Andrew-Atchison-Holt, Gentry-Nodaway-Worth, Caldwell-Daviess-Livingston, Grundy-Harrison-Mercer, Linn-Putnam-Sullivan, Adair-Schuyler-Scotland, Clark-Knox-Lewis, Bates-Henry) and **south** (16: Greene, Christian, Taney, Newton, Jasper, Barry-McDonald, Lawrence-Stone, Dade-Polk, Dallas-Laclede, Douglas-Webster-Wright, Howell-Oregon-Ozark, Butler-Carter-Ripley, Mississippi-Scott, New Madrid-Pemiscot, Dunklin-Stoddard, Barton-Cedar-Vernon).
+1. St. Louis & the East: 50 passengers, 5 counties, 10 crates of produce.
+2. Columbia, Jefferson City & the Lake of the Ozarks: 140 passengers, connect Clayton to Columbia (I-70), 12 counties.
+3. Kansas City, St. Joseph & the North: 280 passengers, connect Columbia to Kansas City (the rest of I-70), a high-speed train.
+4. Springfield, the Ozarks & the Bootheel: 450 passengers, connect Clayton to Springfield (I-44), 25 counties.
+(The pack test starts Levels mode and reads level 1.)
+
+### Passes, bridges, water, biomes
+
+**Passes: none.** The map's grid has 90 hill cells and no mountain cell, so a pass would have nothing to cross (the checker warns for any pass without mountains within about 7 mi). The Ozarks, Taum Sauk and the Missouri bluffs are hills here.
+
+**Geography code reads** (js/geography.js): rivers never block, they only cost a bridge ($10k, or $3k at a real bridge in Gentle); the only blockers are lakes (more than 8 mi in Gentle, 2 mi in Tough) with no real bridge within 4 (3) mi of the line. So the bridge list matters most for track costs, the big lakes in Tough, and for consistency with the neighbours.
+
+**Bridges (48), all real and well known; points snapped to the map's rivers and lakes:**
+- **Mississippi (18):** St. Louis (Eads, Poplar Street, Martin Luther King, Stan Musial Veterans Memorial, Merchants (rail), Chain of Rocks (I-270)), Alton (Clark Bridge, Missouri side of the river), Jefferson Barracks (I-255), Hannibal (Mark Twain Memorial Bridge, US-36), Louisiana (Champ Clark Bridge, US-54), Quincy (Bayview Bridge, US-24), Canton, Cape Girardeau (Bill Emerson Memorial), Chester (Route 51), Ste. Genevieve-Modoc (Route 32, opened 2022, moderately known), Thebes (rail), Cairo (US-60/62, moderately known) and Caruthersville (I-155).
+- **Missouri (15):** Kansas City (Heart of America and ASB bridges; Christopher S. Bond Bridge, I-29/35), St. Charles (Blanchette, I-70), Chesterfield (Daniel Boone Bridge, I-64), Washington (Route 47), Hermann (Route 19), Jefferson City (US-54/63), Boonville (Route 5), Rocheport (I-70), Glasgow (Route 240), Lexington (US-24), Waverly (US-65), and the Nebraska line at Rulo (US-159) and Brownville (Route 136). Kansas's pack has Fairfax, Leavenworth, Atchison and the Pony Express bridge (St. Joseph), which this pack does not repeat.
+- **Lakes (6):** the Lake of the Ozarks (Grand Glaize Bridge, US-54; the Community Bridge, Route 242; Bagnell Dam; the Hurricane Deck Bridge, Route 5, approx.), Truman Lake (US-65, Warsaw) and Table Rock Lake (Kimberling City bridge, Route 13; the dam, Route 65 side: moderately known). Left out: Bull Shoals (the map's lake line is 7 mi from the Theodosia bridge; the lake runs into Arkansas) and Stockton, Pomme de Terre, Wappapello and Mark Twain lakes (no main line crosses them).
+- **Other rivers (7):** the Meramec (I-44 at Valley Park and at Pacific; Route 8 at Steelville), the Black (US-67, Poplar Bluff), the Current (Van Buren, Doniphan), the Grand (Gallatin), the Osage (Tuscumbia) and the Platte (Platte City).
+- Not listed (no certain location): the Gasconade, Salt and Des Moines rivers' bridges; the Chouteau and St. Joseph bridges.
+
+**Bays:** none. No water in Missouri is a bay; Lake Taneycomo and the lakes above are on the terrain's lake list.
+
+**Biomes:**
+- **forest:** the Ozark highlands (Dent-Reynolds-Shannon, Howell-Oregon-Ozark, Butler-Carter-Ripley, Crawford-Iron-Washington, Bollinger-Madison-Wayne, Phelps-Texas, Douglas-Webster-Wright, Taney): the Mark Twain National Forest and the Ozark National Scenic Riverways, as Oklahoma's Ozark plateau across the line.
+- **wooded:** St. Francois, Jefferson, Franklin, Gasconade-Maries-Osage, Camden-Miller, Benton-Hickory-St. Clair, Pulaski, Dallas-Laclede, Lawrence-Stone, Barry-McDonald, Christian, Perry-Ste. Genevieve and Cooper-Moniteau-Morgan: the Ozarks' edges and the Missouri River bluffs.
+- **not listed:** the northern and western prairies and farms, the river bottoms and the Bootheel. No `dry`.
+
+### Reachability (Gentle and Tough)
+
+Checked with `NR.blockedReason`, loading the game as `tools/check-pack.js` does plus `js/geography.js`, with every pack's map, terrain and bridges (so Iowa's, Kansas's, Nebraska's and Oklahoma's stations count).
+- **Neighbours:** all 177 neighbouring pairs of main stations (inside Missouri and across the Kansas, Iowa, Nebraska and Oklahoma lines) are open in both modes. Every Missouri station has at least two open neighbours except St. Louis city (its only neighbour is St. Louis County until Illinois exists).
+- **Towns:** every town has an open link to its region's station in both modes.
+- **Chains, open in both modes:** I-70 (St. Louis, Clayton, St. Charles, Warrenton, Fulton, Columbia, Boonville, Marshall, Kansas City); I-44 (Clayton, Washington, Cuba, Rolla, Lebanon, Marshfield, Springfield, Aurora, Joplin); I-55 (St. Louis, Clayton, Arnold, Perryville, Cape Girardeau, Sikeston, Caruthersville); I-29/I-35 (St. Joseph, Savannah, Cameron, Liberty, Kansas City); US-36 (St. Joseph, Cameron, Chillicothe, Brookfield, Macon, Hannibal); US-71 (Kansas City, Belton, Clinton, Nevada, Neosho); US-54/63 (Columbia, Jefferson City, Salem); the Missouri (Kansas City, Parkville, St. Joseph); US-61 (St. Louis, St. Charles, Troy, Mexico, Hannibal, Canton).
+- **Links into other states** (all open): Kansas City to Kansas City and Overland Park (Kansas), Parkville to Leavenworth and Atchison, Belton to Overland Park and Paola, Joplin and Neosho to Pittsburg and to Miami (Oklahoma, Neosho 26 mi), Nevada to Fort Scott, Savannah and Maryville to the Iowa and Nebraska stations across the Missouri's corner.
+- **Not checked:** Illinois, Arkansas, Tennessee and Kentucky (they do not exist yet). The Mississippi bridges listed above match what those states will place.
+
+### First track and screenshots
+
+The pack test laid Clayton to Washington (43 mi, 1 train) and 8 passengers arrived in the first week; it bought the Crawford-Iron-Washington region, saved and loaded, started Levels mode and took the Arcade/Classic, light/dark and phone pictures (`test-out/MO/`). In the arcade picture the stations sit sensibly: Clayton, St. Louis and Washington along the Missouri, Cuba on I-44 and the Ozarks' forest and "mountain" stations in the south east.
+
+### Unsure
+
+- **Hurricane Deck, Ha Ha Tonka, Elephant Rocks, Bennett Springs, Johnson's Shut-Ins, Meramec Caverns, Ste. Genevieve-Modoc and Cairo:** locations approximate (within about a mile); sizes and names are right.
+- **St. Louis size 5 and port:** a judgment call (see above).
+- **Springfield size 3**, **Clayton and St. Charles instead of Florissant and O'Fallon**, and **Franklin as the farm start**: judgment calls, easy to change.
+
+## Main agent's review
+
+- **St. Louis is size 4, not 5:** like Denver and Kansas City, the cores of metros of 2 to 3 million (Denver 4, Kansas City 4, Omaha 4; size 5 is for Los Angeles, Phoenix, Houston, Minneapolis and the like).
+- **Moved to the real places:** Branson to its downtown (36.64, -93.22; the Census point is 7 km southwest), Elephant Rocks State Park to the park (37.65, -90.69), Bennett Spring State Park (its real name) to the park (37.72, -92.86).
+- check-pack MO: 0 errors, 0 warnings; test-pack MO passed after the changes.
