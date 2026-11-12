@@ -157,15 +157,18 @@ window.NR = window.NR || {};
     // Terrain: each state's grid and relief picture; lakes, rivers and ranges that touch two
     // states are in both packs, so keep one copy of each
     const terrain = NR.PACK_LIST.filter((code) => NR.isLoaded(code)).map((code) => NR.PACK_TERRAIN[code]);
-    const unique = (list) => {
+    const unique = (list, key = (x) => x.id) => {
       const ids = new Set();
-      return list.filter((x) => !ids.has(x.id) && ids.add(x.id));
+      return list.filter((x) => !ids.has(key(x)) && ids.add(key(x)));
     };
+    // (a river stretch's id is its name and first point, and two stretches of one river can start
+    // at the same point, like the Smoky Hill's: a stretch is the same one only if its last point is too)
+    const riverKey = (r) => `${r.id}>${r.line.slice(-2).join(",")}`;
     NR.TERRAIN = {
       grids: terrain.map((t) => ({ code: t.code, box: t.box, step: t.step, cols: t.cols, rows: t.rows, cells: t.cells || (t.cells = decodeGrid(t)) })),
       reliefs: terrain.map((t) => ({ code: t.code, src: t.relief.src, box: t.relief.box })),
       lakes: unique(terrain.flatMap((t) => t.lakes)),
-      rivers: unique(terrain.flatMap((t) => t.rivers)),
+      rivers: unique(terrain.flatMap((t) => t.rivers), riverKey),
       ranges: unique(terrain.flatMap((t) => t.ranges)),
       cities: Object.assign({}, ...terrain.map((t) => t.cities)),
       passes: NR.PASSES,
