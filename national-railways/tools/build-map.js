@@ -1230,6 +1230,8 @@ const STATES = {
       ["DeSoto", "Hardee"],
       ["Glades", "Hendry", "Okeechobee"],
     ],
+    // The Sunshine Skyway (I-275) across Tampa Bay
+    bridges: [["Manatee", "Pinellas"]],
   },
   SC: { fips: "45", name: "South Carolina", pop: "census", merge: [] },
   NC: { fips: "37", name: "North Carolina", pop: "census", merge: [] },
