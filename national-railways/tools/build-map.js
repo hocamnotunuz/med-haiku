@@ -962,7 +962,7 @@ const regions = [...regionInfo.entries()]
       if (!m) return regionKey.get(find(info.state, name));
       return CODES.includes(m[1]) ? regionKey.get(find(m[1], m[2])) : null;
     };
-    const links = [...(cfg.bridges || []), ...Object.entries(STATES).filter(([code]) => code !== info.state && CODES.includes(code)).flatMap(([code, other]) => (other.bridges || []).filter(([x, y]) => /^[A-Z]{2}:/.test(x + y)).map(([x, y]) => [/^[A-Z]{2}:/.test(x) ? x : `${code}:${x}`, /^[A-Z]{2}:/.test(y) ? y : `${code}:${y}`]))];
+    const links = [...(cfg.bridges || []), ...Object.entries(STATES).filter(([code]) => code !== info.state && CODES.includes(code)).flatMap(([code, other]) => (other.bridges || []).filter(([x, y]) => /^[A-Z]{2}:/.test(x) || /^[A-Z]{2}:/.test(y)).map(([x, y]) => [/^[A-Z]{2}:/.test(x) ? x : `${code}:${x}`, /^[A-Z]{2}:/.test(y) ? y : `${code}:${y}`]))];
     for (const [a, b] of links) {
       const ra = where(a);
       const rb = where(b);
