@@ -323,14 +323,16 @@
   // Why track can't be built between two stations, or null.
   NR.blockedReason = (a, b) => NR.segmentGeo(a, b).blocked;
   // The first track the game suggests: the nearest two start stations that track can join (not
-  // across a big lake, like Yellowknife's), from the first start station when it can; else the
-  // nearest two.
+  // across a big lake, like Yellowknife's) and that are different types of place (so riders use
+  // it), from the first start station when it can; else the nearest two.
   NR.firstTrackPair = function (s) {
     const ids = s.stations.map((st) => st.id);
     const pairs = [];
     for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) pairs.push([ids[i], ids[j]]);
     if (!pairs.length) return null;
-    const rank = ([a, b]) => (NR.blockedReason(a, b) ? 2e6 : 0) + (a === ids[0] ? 0 : 1e6) + NR.crowMiles(a, b);
+    // (riders only go to a different type of place, so two of one type come after every other pair)
+    const sameType = (a, b) => NR.cityById[a] && NR.cityById[b] && NR.cityById[a].type === NR.cityById[b].type;
+    const rank = ([a, b]) => (NR.blockedReason(a, b) ? 4e6 : 0) + (sameType(a, b) ? 2e6 : 0) + (a === ids[0] ? 0 : 1e6) + NR.crowMiles(a, b);
     return pairs.sort((p, q) => rank(p) - rank(q))[0];
   };
   // A short description of what the track crosses: ["Cajon Pass (slow climb)", "tunnels 12 mi", ...]
