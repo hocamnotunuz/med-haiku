@@ -849,7 +849,49 @@ const STATES = {
       ["Pepin", "Pierce"],
     ],
   },
-  IL: { fips: "17", name: "Illinois", pop: "census", merge: [] },
+  // Reviewed by the Illinois pack agent (packs/IL/NOTES.md), with two changes by the main agent
+  // (Stephenson with Carroll and Jo Daviess around Freeport; Livingston with Ford and Iroquois
+  // around Pontiac): 102 counties to 61 regions, along the Mississippi (Galena, Monmouth, Macomb),
+  // the Illinois River (Princeton, Canton, Beardstown), I-55 (Lincoln, Taylorville), I-57 and I-70
+  // (Effingham, Vandalia, Mount Vernon), the Wabash side (Paris, Robinson, Olney, Mount Carmel) and
+  // Little Egypt (West Frankfort, Harrisburg, Metropolis, Anna). Chicagoland's counties and the
+  // others of 50k or more stay alone, and Henry, Coles, Macoupin and Lee, whose small neighbours are
+  // taken.
+  IL: {
+    fips: "17",
+    name: "Illinois",
+    pop: "census",
+    merge: [
+      ["Carroll", "Jo Daviess", "Stephenson"],
+      ["Bureau", "Putnam", "Stark"],
+      ["Marshall", "Woodford"],
+      ["Henderson", "Mercer", "Warren"],
+      ["Hancock", "McDonough"],
+      ["Brown", "Cass", "Schuyler"],
+      ["Fulton", "Mason"],
+      ["Logan", "Menard"],
+      ["Morgan", "Pike", "Scott"],
+      ["Calhoun", "Greene", "Jersey"],
+      ["Bond", "Fayette", "Montgomery"],
+      ["Christian", "Shelby"],
+      ["De Witt", "Piatt"],
+      ["Douglas", "Moultrie"],
+      ["Clark", "Edgar"],
+      ["Cumberland", "Effingham"],
+      ["Clay", "Jasper", "Richland"],
+      ["Crawford", "Lawrence"],
+      ["Edwards", "Wabash", "White"],
+      ["Marion", "Wayne"],
+      ["Hamilton", "Jefferson"],
+      ["Clinton", "Washington"],
+      ["Monroe", "Randolph"],
+      ["Franklin", "Perry"],
+      ["Gallatin", "Hardin", "Saline"],
+      ["Johnson", "Massac", "Pope"],
+      ["Alexander", "Pulaski", "Union"],
+      ["Ford", "Iroquois", "Livingston"],
+    ],
+  },
   MI: { fips: "26", name: "Michigan", pop: "census", merge: [] },
   IN: { fips: "18", name: "Indiana", pop: "census", merge: [] },
   OH: { fips: "39", name: "Ohio", pop: "census", merge: [] },
