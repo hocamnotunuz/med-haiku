@@ -382,7 +382,19 @@ const STATES = {
     ],
     names: { "Kent & Northumberland": "Miramichi & Kent" },
   },
-  NS: { country: "CAN", name: "Nova Scotia", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
+  NS: {
+    country: "CAN",
+    name: "Nova Scotia",
+    pop: "statcan",
+    // The Caribou-Wood Islands ferry to Prince Edward Island and the North Sydney-Port aux Basques
+    // ferry to Newfoundland (each counts once that province is in the game; the Digby ferry to
+    // Saint John is listed with New Brunswick)
+    bridges: [
+      ["Pictou", "PE:Queens"],
+      ["Cape Breton", "NL:Division No. 3"],
+    ],
+    merge: [],
+  },
   PE: { country: "CAN", name: "Prince Edward Island", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   NL: { country: "CAN", name: "Newfoundland and Labrador", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
   YT: { country: "CAN", name: "Yukon", pop: "statcan", merge: [] }, // (all separate until its pack agent's review)
