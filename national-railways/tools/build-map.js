@@ -243,7 +243,26 @@ const STATES = {
     // (not to be read as Cheyenne, Wyoming)
     names: { "Cheyenne-Kit Carson": "Kit Carson-Cheyenne County" },
   },
-  NM: { fips: "35", name: "New Mexico", pop: "census", merge: [] },
+  // Reviewed by the New Mexico pack agent (packs/NM/NOTES.md): 33 counties to 22 regions. US-64/87
+  // from Raton to Clayton; the Canadian River at Tucumcari; I-25 and the Southwest Chief by Las Vegas;
+  // the upper Rio Grande; I-40 from Moriarty to Santa Rosa; Clovis and Portales; I-25 to T or C and
+  // US-60 west; I-10 and US-180 to Silver City. Los Alamos (its plateau), Lincoln (Ruidoso) and
+  // Cibola (Grants) stay alone.
+  NM: {
+    fips: "35",
+    name: "New Mexico",
+    pop: "census",
+    merge: [
+      ["Colfax", "Union"],
+      ["Harding", "Quay"],
+      ["Mora", "San Miguel"],
+      ["Rio Arriba", "Taos"],
+      ["Guadalupe", "Torrance"],
+      ["Curry", "De Baca", "Roosevelt"],
+      ["Catron", "Sierra", "Socorro"],
+      ["Grant", "Hidalgo", "Luna"],
+    ],
+  },
   AK: { fips: "02", name: "Alaska", pop: "census", merge: [] },
   HI: { fips: "15", name: "Hawaii", pop: "census", merge: [] },
   ND: { fips: "38", name: "North Dakota", pop: "census", merge: [] },
