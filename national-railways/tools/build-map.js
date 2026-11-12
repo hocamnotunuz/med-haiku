@@ -790,7 +790,34 @@ const STATES = {
       ["Montgomery", "Polk", "Scott"],
     ],
   },
-  LA: { fips: "22", name: "Louisiana", pop: "census", merge: [] },
+  // Reviewed by the Louisiana pack agent (packs/LA/NOTES.md): 64 parishes to 41 regions, along I-20
+  // (Minden, Ruston), the northeast Delta (Bastrop, Winnsboro, Tallulah, Vidalia), the piney woods
+  // (Jena, DeRidder), Cajun prairie (Ville Platte, Jennings), the Felicianas, the River Parishes and
+  // St. Bernard-Plaquemines. The parishes of 50k or more stay alone, and Natchitoches, Vernon, St.
+  // Mary and Washington, whose small neighbours are all in other groups.
+  LA: {
+    fips: "22",
+    name: "Louisiana",
+    pop: "census",
+    merge: [
+      ["Bienville", "Claiborne", "Webster"],
+      ["De Soto", "Red River", "Sabine"],
+      ["Jackson", "Lincoln"],
+      ["Morehouse", "Union"],
+      ["Caldwell", "Franklin", "Richland"],
+      ["East Carroll", "Madison", "West Carroll"],
+      ["Catahoula", "Concordia", "Tensas"],
+      ["Grant", "LaSalle", "Winn"],
+      ["Allen", "Beauregard"],
+      ["Cameron", "Jefferson Davis"],
+      ["Avoyelles", "Evangeline"],
+      ["East Feliciana", "St. Helena", "West Feliciana"],
+      ["Pointe Coupee", "West Baton Rouge"],
+      ["Assumption", "Iberville"],
+      ["St. James", "St. John the Baptist"],
+      ["Plaquemines", "St. Bernard"],
+    ],
+  },
   WI: { fips: "55", name: "Wisconsin", pop: "census", merge: [] },
   IL: { fips: "17", name: "Illinois", pop: "census", merge: [] },
   MI: { fips: "26", name: "Michigan", pop: "census", merge: [] },
