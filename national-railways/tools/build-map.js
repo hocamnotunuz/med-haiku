@@ -287,7 +287,26 @@ const STATES = {
     ],
     names: { "Aleutians East-Aleutians West": "Aleutians Area", "Bristol Bay-Dillingham-Lake and Peninsula": "Bristol Bay Area" },
   },
-  HI: { fips: "15", name: "Hawaii", pop: "census", merge: [] },
+  // Hawaii: 5 counties, 1.46 million people (Census 2020); 4 regions, one per island county. Kalawao
+  // (Kalaupapa on Molokai, 82 people) joins Maui County, which holds the rest of Molokai. Sea links
+  // stand for the regular inter-island shipping (Young Brothers' barges, and the Maui-Lanai ferry)
+  // between neighbouring islands, Kauai to Oahu to Maui to the Big Island, and for Matson's ships
+  // between Honolulu and Los Angeles, Hawaii's link to the mainland.
+  HI: {
+    fips: "15",
+    name: "Hawaii",
+    pop: "census",
+    merge: [
+      ["Kalawao", "Maui"],
+    ],
+    names: { "Kalawao-Maui": "Maui", "Honolulu": "Oahu", "Hawaii": "Big Island", "Kauai": "Kauai" },
+    bridges: [
+      ["Kauai", "Honolulu"],
+      ["Honolulu", "Maui"],
+      ["Maui", "Hawaii"],
+      ["Honolulu", "CA:Los Angeles"],
+    ],
+  },
   // Reviewed by the North Dakota pack agent (packs/ND/NOTES.md): 53 counties to 25 regions, along
   // the Hi-Line (Williston, Stanley, Rugby, Devils Lake), I-94 (Dickinson, Mandan, Jamestown, Valley
   // City), the Red River valley (Grafton, Mayville, Wahpeton) and the James (Oakes). Bismarck and
