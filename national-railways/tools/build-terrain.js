@@ -65,7 +65,7 @@ const RIVERS = [
   "Kootenai", "Clark Fork", "Flathead", "Musselshell", "Niobrara", "Big Sioux", "Minnesota", "Wisconsin", "Rock", "Des Moines",
   "Iowa", "Cedar", "Allegheny", "Monongahela", "Kanawha", "Kentucky", "Scioto", "Muskingum", "Maumee", "Penobscot",
   "Kennebec", "Merrimack", "Neosho", "White", "Ouachita", "Sabine", "Neches", "Atchafalaya", "Pearl", "Yazoo", "Coosa",
-  "Tallapoosa", "Flint", "St. Croix", "Chippewa", "Little Missouri", "Cheyenne", "Holston", "Madison", "Sprague",
+  "Tallapoosa", "Flint", "St. Croix", "Chippewa", "Little Missouri", "Cheyenne", "Holston", "Madison", "Sprague", "Cowpasture",
   // Utah, Colorado, New Mexico and Arizona's other rivers
   "San Juan", "Virgin", "Sevier", "Duchesne", "Gunnison", "Dolores", "Animas", "Yampa", "Rio Chama", "Jordan", "Little Snake",
   "Purgatoire", "Little Colorado", "Verde", "Salt", "San Pedro", "Santa Cruz", "Bill Williams",
@@ -99,8 +99,11 @@ const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottaw
 const RIVER_FIX = { 103: "Snake" };
 // ...and a river that runs on under another's name: the Madison (river 7) carries on down the
 // Missouri from Three Forks (45.93° N) to Canyon Ferry Lake
-// The Chattahoochee (river 250) carries on as the Apalachicola below the Jim Woodruff Dam (30.71° N)
-const RIVER_SPLIT = { 7: { north: 45.93, name: "Missouri" }, 250: { south: 30.71, name: "Apalachicola" } };
+// The Chattahoochee (river 250) carries on as the Apalachicola below the Jim Woodruff Dam (30.71° N),
+// and the James (river 789) is labelled "Cowpasture" all the way down from the Cowpasture's mouth at
+// Iron Gate (37.80° N), past Lynchburg and Richmond to Hopewell (the Cowpasture itself is all north of
+// Iron Gate and west of 79.3° W)
+const RIVER_SPLIT = { 7: { north: 45.93, name: "Missouri" }, 250: { south: 30.71, name: "Apalachicola" }, 789: { south: 37.8, east: -79.3, name: "James" } };
 
 // ---------- Load the game's map and cities ----------
 const ctx = {};
@@ -462,7 +465,7 @@ function buildState(code) {
     if (!RIVERS.includes(neName) || !/river/i.test(f.properties.featurecla || "")) continue;
     const base = RIVER_FIX[f.properties.rivernum] || RIVER_NAMES[neName] || neName;
     const split = RIVER_SPLIT[f.properties.rivernum];
-    const nameAt = (p) => (split && (p[1] > split.north || p[1] < split.south) ? split.name : base);
+    const nameAt = (p) => (split && (p[1] > split.north || p[1] < split.south || p[0] > split.east) ? split.name : base);
     for (const line of lines(f.geometry)) {
       let part = [];
       let name = nameAt(line[0]);
