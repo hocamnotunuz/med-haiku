@@ -93,3 +93,14 @@ forest: Western Maryland (the Allegheny forests) and Worcester (Pocomoke pine an
 - **Sizes** accepted: Washington 5; Baltimore, Rockville (Montgomery) and Bowie (Prince George's) 4, like Fairfax; Towson 3, like Arlington.
 - **The start** (Montgomery, the District, Frederick) gives a quiet first week (6 riders on Rockville–Frederick); acceptable, noted for later tuning.
 - **Checks:** `check-pack` MD passed (20 stations, 36 towns, 20 bridges), 0 errors, 0 warnings; all packs passed; `test-pack` MD passed (17 passed).
+
+## City maps
+
+Coordinates are from general knowledge (Wikipedia articles of each place, Amtrak/WMATA/MTA station pages, USGS GNIS), good to about 0.2 mile; the previews show no stop in water.
+
+**Washington** (key `WDC`, size 5, 12 stops, 7 miles at most from Union Station; it crosses into Virginia). **Union Station** (hub, 38.897, -77.006), **National Mall** (Smithsonian), **Dupont Circle**, **Georgetown**, **Navy Yard** (Nationals Park), **Pentagon**, **Reagan National** (Arlington, VA), **Old Town Alexandria** (VA), **Clarendon** (Arlington, VA), **Bethesda** (MD), **Silver Spring** (MD), **College Park** (University of Maryland). No cable stops. Left out: Capitol Hill, White House, Foggy Bottom and Rosslyn (under a mile from a stop), Anacostia, Tysons.
+- Unsure: Navy Yard is 0.1 mile (one grid cell) from the Anacostia in the preview; it is on land.
+
+**Baltimore** (key `BALM`, size 4, 12 stops; Annapolis is 23.9 miles from the main station, just inside the 25-mile limit). **Penn Station** (hub, 39.308, -76.616), **Inner Harbor**, **Fells Point**, **Canton**, **Johns Hopkins** (Homewood), **Towson**, **BWI Airport**, **Dundalk**, **Columbia**, **Annapolis**, **Catonsville**, **Pikesville**. No cable stops. Left out: Mount Vernon, Camden Yards, Federal Hill (under a mile from Penn Station or the Inner Harbor), Hampden, Glen Burnie, Essex. Fells Point sits on the harbor shore in the preview (one cell north of the water); it is on land.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

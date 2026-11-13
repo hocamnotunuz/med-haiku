@@ -130,3 +130,12 @@ Forest: the Adirondack core (Essex-Franklin-Hamilton). Wooded: Warren, Lewis, St
 - **Links checked** (Gentle and Tough, open): Manhattan–Staten Island, Staten Island–Elizabeth, Manhattan–Newark, Buffalo–Niagara Falls, Binghamton–Scranton.
 - **Checks:** `check-pack` NY passed (53 stations, 104 towns, 6 passes, 64 bridges), 0 errors, 4 warnings (above); all packs passed; `test-pack` NY passed (17 passed).
 - **Orient Point** (added with the Connecticut pack): a coastal town at the Cross Sound Ferry's terminal (41.16, -72.25), 0.2 mi off the simplified outline, so the ferry from New London lands at a town.
+
+## City maps
+
+**New York** (key `NYC`, size 5, 12 stops; the map covers the five boroughs and Newark Airport, 13 miles from Penn Station at most). Coordinates are from general knowledge (Wikipedia articles of each place, MTA/Port Authority/NJ Transit station pages, USGS GNIS), good to about 0.2 mile; the preview picture (`tools/build-terrain.js` preview) shows no stop in water.
+- **Penn Station** (hub, 40.751, -73.994): Amtrak/NJ Transit/LIRR terminal, Manhattan. **Financial District** (Wall Street, Manhattan). **Harlem** (125th Street). **Upper East Side** (cable) and **Roosevelt Island** (cable): the Roosevelt Island Tramway, the only cable-hauled line in the city. Its Manhattan terminal is at 60th Street and Second Avenue (about 0.7 mile south of the stop); the stop is put in the neighbourhood it serves, 74th Street, so the two stops are 1.1 miles apart and the island is reached across the East River. **Downtown Brooklyn** (Borough Hall), **Coney Island** (Brooklyn), **JFK Airport** (Queens), **LaGuardia Airport** (Queens), **Yankee Stadium** (Bronx), **St. George** (Staten Island Ferry terminal and the Staten Island Railway), **Newark Airport** (New Jersey).
+- Left out: Times Square, Grand Central and Hudson Yards (0.5 mile from Penn Station, closer than the 1-mile rule), Long Island City, Flushing, Jersey City.
+- Unsure: Roosevelt Island is a narrow strip (0.2 mile wide at the stop): the preview shows it as a land cell ringed by water, which is right.
+
+- **Main agent's review of the city maps:** every stop checked against its real location. New York's tram stop moved to the Roosevelt Island Tramway's real Manhattan station at 59th/60th Street (it was an "Upper East Side" stop at 74th Street marked as a cable stop). Hills and water built (CITIES_ONLY); `test-pack` NY passed (18 passed).

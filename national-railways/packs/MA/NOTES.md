@@ -183,3 +183,11 @@ Checked with scripts that load the game as `tools/check-pack.js` does plus `js/g
 - **Coordinates:** every station, town, scenic place, pass and bridge or ferry point checked against its real location; all within about a mile and a half.
 - **Accepted:** Lowell for Middlesex (Cambridge, 3.4 mi from Boston, would crowd it); Worcester 3 (862,000, level with New Haven and Montgomery, Pennsylvania at 3).
 - **Checks:** `check-pack` MA passed (12 stations, 30 towns, 2 passes, 17 bridges), 0 errors, 0 warnings; all packs passed; `test-pack` MA passed (17 passed).
+
+## City maps
+
+**Boston** (key `BOS`, size 5, 12 stops, 14 miles at most from South Station; Cambridge is here, as the main-station note above says). Coordinates are from general knowledge (Wikipedia articles of each place, MBTA station pages, USGS GNIS), good to about 0.2 mile; the preview shows no stop in water.
+- **South Station** (hub, 42.352, -71.055), **North Station** (TD Garden, 1.0 mile away), **Back Bay**, **Fenway** (Fenway Park), **Harvard Square** (Cambridge), **Kendall/MIT** (Cambridge), **Logan Airport** (East Boston), **South Boston**, **Jamaica Plain**, **Quincy Center**, **Salem**, **Waltham**. No cable stops.
+- Left out: Dorchester, Somerville, Brookline, Lynn, Chestnut Hill (the 12-stop limit); the Seaport and Beacon Hill (under a mile from South Station and North Station).
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

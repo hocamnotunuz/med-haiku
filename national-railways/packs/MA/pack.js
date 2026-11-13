@@ -125,6 +125,27 @@ NR.addPack({
     // Nantucket (about 14,000, the island and the town): the cobblestone whaling town and the ferry harbour 30 mi off Hyannis
     { id: "NTKT", name: "Nantucket", county: "ma-barnstable-dukes-nantucket", lat: 41.28, lon: -70.1, scenic: true, type: "coast", size: 1 },
   ],
+  // City map, keyed by its main station (South Station). Sources in NOTES.md.
+  metros: {
+    BOS: {
+      name: "Boston",
+      size: 5,
+      stops: [
+        { id: "SOS", name: "South Station", lat: 42.352, lon: -71.055, hub: true },
+        { id: "NOS", name: "North Station", lat: 42.366, lon: -71.062 },
+        { id: "BAB", name: "Back Bay", lat: 42.347, lon: -71.075 },
+        { id: "FEN", name: "Fenway", lat: 42.346, lon: -71.097 },
+        { id: "HVD", name: "Harvard Square", lat: 42.373, lon: -71.119 },
+        { id: "KEN", name: "Kendall/MIT", lat: 42.362, lon: -71.086 },
+        { id: "LOG", name: "Logan Airport", lat: 42.366, lon: -71.015 },
+        { id: "SBO", name: "South Boston", lat: 42.342, lon: -71.039 },
+        { id: "JPL", name: "Jamaica Plain", lat: 42.31, lon: -71.114 },
+        { id: "QUI", name: "Quincy Center", lat: 42.251, lon: -71.005 },
+        { id: "SAL", name: "Salem", lat: 42.521, lon: -70.898 },
+        { id: "WAL", name: "Waltham", lat: 42.376, lon: -71.236 },
+      ],
+    },
+  },
   // Real passes and tunnels: [name, latitude, longitude]. See NOTES.md for sources. The Taconic and Berkshire hills
   // are hills on the map; the only mountains are Greylock and the Hoosac Range at North Adams, so these two are all.
   passes: [

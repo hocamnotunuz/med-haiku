@@ -129,6 +129,45 @@ NR.addPack({
     // Assateague Island National Seashore (the wild ponies)
     { id: "ASSA", name: "Assateague Island", county: "md-worcester", lat: 38.23, lon: -75.16, scenic: true, type: "coast", size: 1 },
   ],
+  // City maps, keyed by their main stations (Washington, Baltimore). Sources in NOTES.md.
+  metros: {
+    WDC: {
+      name: "Washington",
+      size: 5,
+      stops: [
+        { id: "UNS", name: "Union Station", lat: 38.897, lon: -77.006, hub: true },
+        { id: "NMA", name: "National Mall", lat: 38.889, lon: -77.026 },
+        { id: "DUP", name: "Dupont Circle", lat: 38.909, lon: -77.043 },
+        { id: "GTN", name: "Georgetown", lat: 38.907, lon: -77.063 },
+        { id: "NAV", name: "Navy Yard", lat: 38.873, lon: -77.007 },
+        { id: "PNT", name: "Pentagon", lat: 38.872, lon: -77.056 },
+        { id: "DCA", name: "Reagan National", lat: 38.851, lon: -77.04 },
+        { id: "ALX", name: "Old Town Alexandria", lat: 38.805, lon: -77.047 },
+        { id: "CLA", name: "Clarendon", lat: 38.887, lon: -77.096 },
+        { id: "BET", name: "Bethesda", lat: 38.985, lon: -77.094 },
+        { id: "SSP", name: "Silver Spring", lat: 38.994, lon: -77.027 },
+        { id: "UMD", name: "College Park", lat: 38.987, lon: -76.943 },
+      ],
+    },
+    BALM: {
+      name: "Baltimore",
+      size: 4,
+      stops: [
+        { id: "PSB", name: "Penn Station", lat: 39.308, lon: -76.616, hub: true },
+        { id: "INH", name: "Inner Harbor", lat: 39.286, lon: -76.612 },
+        { id: "FEL", name: "Fells Point", lat: 39.283, lon: -76.593 },
+        { id: "CAN", name: "Canton", lat: 39.282, lon: -76.571 },
+        { id: "JHU", name: "Johns Hopkins", lat: 39.329, lon: -76.62 },
+        { id: "TOW", name: "Towson", lat: 39.401, lon: -76.602 },
+        { id: "BWI", name: "BWI Airport", lat: 39.177, lon: -76.668 },
+        { id: "DUN", name: "Dundalk", lat: 39.251, lon: -76.521 },
+        { id: "COL", name: "Columbia", lat: 39.204, lon: -76.861 },
+        { id: "ANN", name: "Annapolis", lat: 38.979, lon: -76.492 },
+        { id: "CAT", name: "Catonsville", lat: 39.272, lon: -76.732 },
+        { id: "PIK", name: "Pikesville", lat: 39.375, lon: -76.723 },
+      ],
+    },
+  },
   // Real passes and tunnels: [name, latitude, longitude]. See NOTES.md for sources.
   // (none: Sideling Hill's I-68 cut, at 39.72, -78.27, has no mountains within 7 miles on the map,
   // and Western Maryland's ridges are hills there, so track needs no pass or tunnel)

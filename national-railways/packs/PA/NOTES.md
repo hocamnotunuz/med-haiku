@@ -116,3 +116,15 @@ Coordinates of scenic places and bridges are general knowledge, accurate to abou
 - **Sizes:** accepted, except Williamsport 1 → 2 (Lycoming 114,000, a metro of its own, like Altoona and State College 2).
 - **Links checked** (Gentle and Tough, open): Philadelphia–Wilmington, the Pennsylvania Railroad chain Harrisburg–Altoona–Johnstown–Pittsburgh, Pittsburgh–Wheeling, Erie–Meadville, St. Marys–DuBois, Jim Thorpe–Allentown.
 - **Checks:** `check-pack` PA passed (55 stations, 99 towns, 2 passes, 60 bridges), 0 errors, 2 warnings (explained above); all packs passed; `test-pack` PA passed (17 passed).
+
+## City maps
+
+Coordinates are from general knowledge (Wikipedia articles of each place, SEPTA/Amtrak/Pittsburgh Regional Transit station pages, USGS GNIS), good to about 0.2 mile; the previews show no stop in water.
+
+**Philadelphia** (key `PHL`, size 5, 12 stops, 14 miles at most from the main station). **30th Street Station** (hub, id TSS, 39.956, -75.182; Penn and Drexel in University City are in it), **Center City** (City Hall, 1.0 mile east), **Stadium District** (South Philadelphia sports complex), **Airport** (PHL), **Temple University**, **Germantown**, **Manayunk**, **Frankford** (Frankford Transportation Center), **Camden** (New Jersey waterfront), **Chester**, **King of Prussia**, **Upper Darby** (69th Street Terminal). No cable stops. Left out: Old City (0.7 mile from Center City), Norristown, Media, Cherry Hill.
+
+**Pittsburgh** (key `PIT`, size 4, 12 stops, 13 miles at most from the main station). **Downtown** (hub, 40.443, -80.000, the Amtrak station and the Golden Triangle), **Station Square** (cable) and **Mount Washington** (cable): the Monongahela Incline (1870) and Duquesne Incline (1877) run between the Monongahela's South Shore and Grandview Avenue on Mount Washington, the only cable-hauled lines in the city; **Oakland** (Pitt, Carnegie Mellon), **Squirrel Hill**, **East Liberty**, **Strip District**, **South Side**, **Airport** (PIT), **Sewickley**, **Monroeville**, **Mt. Lebanon**.
+- The cable pair is 0.8 mile apart and Downtown to Station Square 0.8 mile (the Strip District is exactly 1.0 mile from the hub): the geography is that tight, and only these two are under the 1-mile rule. One stop stands for both inclines; the two ends are 0.4 mile apart on Mount Washington.
+- Left out: the North Side stadiums (0.7 mile from Downtown), Lawrenceville, McKeesport, Cranberry. The first preview put Downtown in the Allegheny River; it was moved to 40.443, -80.000. Unsure: Station Square and Mount Washington are by hand, good to about 0.2 mile.
+
+- **Main agent's review of the city maps:** every stop checked against its real location. Mount Washington's cable stop moved to Grandview Avenue at the Duquesne Incline's top (40.438, -80.018). Hills and water built (CITIES_ONLY); `test-pack` PA passed (19 passed).

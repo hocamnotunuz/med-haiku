@@ -393,6 +393,27 @@ NR.addPack({
     // Ausable Chasm: the sandstone gorge on the Ausable River, 'the Grand Canyon of the Adirondacks' (open since 1870).
     { id: "ASCH", name: "Ausable Chasm", county: "ny-clinton", lat: 44.52, lon: -73.46, scenic: true, type: "mountain", size: 1 },
   ],
+  // City map, keyed by its main station (Penn Station): all of New York City, not only Manhattan. Sources in NOTES.md.
+  metros: {
+    NYC: {
+      name: "New York",
+      size: 5,
+      stops: [
+        { id: "PEN", name: "Penn Station", lat: 40.751, lon: -73.994, hub: true },
+        { id: "FID", name: "Financial District", lat: 40.707, lon: -74.009 },
+        { id: "HAR", name: "Harlem", lat: 40.81, lon: -73.945 },
+        { id: "TRM", name: "59th Street Tram", lat: 40.761, lon: -73.964, cable: true }, // the Roosevelt Island Tramway's Manhattan station (2nd Avenue and 60th Street; main agent)
+        { id: "RIS", name: "Roosevelt Island", lat: 40.757, lon: -73.954, cable: true },
+        { id: "DTB", name: "Downtown Brooklyn", lat: 40.693, lon: -73.99 },
+        { id: "CIS", name: "Coney Island", lat: 40.575, lon: -73.988 },
+        { id: "JFK", name: "JFK Airport", lat: 40.641, lon: -73.778 },
+        { id: "LGA", name: "LaGuardia Airport", lat: 40.773, lon: -73.874 },
+        { id: "YNK", name: "Yankee Stadium", lat: 40.829, lon: -73.926 },
+        { id: "STG", name: "St. George", lat: 40.644, lon: -74.074 },
+        { id: "EWR", name: "Newark Airport", lat: 40.69, lon: -74.175 },
+      ],
+    },
+  },
   // Real mountain passes: [name, latitude, longitude]. Sources in NOTES.md.
   passes: [
     ["Pine Hill and Highmount (NY-28 over the Catskill divide, Kingston to Margaretville, Belleayre)",42.14,-74.48],

@@ -302,6 +302,45 @@ NR.addPack({
     // Horseshoe Curve, the Pennsylvania Railroad's curve up the Allegheny Front (National Historic Landmark; Railroaders Memorial Museum).
     { id: "HOCU", name: "Horseshoe Curve", county: "pa-blair", lat: 40.49, lon: -78.48, scenic: true, type: "mountain", size: 1 },
   ],
+  // City maps, keyed by their main stations (Philadelphia, Pittsburgh). Sources in NOTES.md.
+  metros: {
+    PHL: {
+      name: "Philadelphia",
+      size: 5,
+      stops: [
+        { id: "TSS", name: "30th Street Station", lat: 39.956, lon: -75.182, hub: true },
+        { id: "CHC", name: "Center City", lat: 39.953, lon: -75.164 },
+        { id: "STD", name: "Stadium District", lat: 39.901, lon: -75.168 },
+        { id: "PHA", name: "Airport", lat: 39.872, lon: -75.241 },
+        { id: "TEM", name: "Temple University", lat: 39.981, lon: -75.155 },
+        { id: "GER", name: "Germantown", lat: 40.035, lon: -75.174 },
+        { id: "MAN", name: "Manayunk", lat: 40.026, lon: -75.226 },
+        { id: "FRK", name: "Frankford", lat: 40.023, lon: -75.078 },
+        { id: "CAM", name: "Camden", lat: 39.943, lon: -75.121 },
+        { id: "CHE", name: "Chester", lat: 39.849, lon: -75.356 },
+        { id: "KOP", name: "King of Prussia", lat: 40.089, lon: -75.383 },
+        { id: "UDB", name: "Upper Darby", lat: 39.962, lon: -75.259 },
+      ],
+    },
+    PIT: {
+      name: "Pittsburgh",
+      size: 4,
+      stops: [
+        { id: "PGH", name: "Downtown", lat: 40.443, lon: -80, hub: true },
+        { id: "STS", name: "Station Square", lat: 40.435, lon: -80.01, cable: true },
+        { id: "MTW", name: "Mount Washington", lat: 40.438, lon: -80.018, cable: true }, // Grandview Avenue at the Duquesne Incline's top (main agent)
+        { id: "OAK", name: "Oakland", lat: 40.444, lon: -79.953 },
+        { id: "SQH", name: "Squirrel Hill", lat: 40.437, lon: -79.923 },
+        { id: "ELB", name: "East Liberty", lat: 40.465, lon: -79.926 },
+        { id: "STP", name: "Strip District", lat: 40.452, lon: -79.985 },
+        { id: "SSD", name: "South Side", lat: 40.428, lon: -79.975 },
+        { id: "PIA", name: "Airport", lat: 40.491, lon: -80.233 },
+        { id: "SWK", name: "Sewickley", lat: 40.536, lon: -80.185 },
+        { id: "MON", name: "Monroeville", lat: 40.421, lon: -79.788 },
+        { id: "MTL", name: "Mt. Lebanon", lat: 40.377, lon: -80.04 },
+      ],
+    },
+  },
   // Real mountain passes and gaps: [name, latitude, longitude]. See NOTES.md for sources. The map's ridges are
   // mostly hills, so only these gaps (where the grid has mountains within about 7 miles) are accepted; the
   // Horseshoe Curve, the Gallitzin tunnels and the Turnpike tunnels lie in hills on the map and need none.
