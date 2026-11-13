@@ -1,19 +1,87 @@
 # National Railways
 
-A passenger-rail strategy game set in California and its neighbors. Lay track between real cities, run trains, and get passengers where they are going before any station overflows. Own all of California and Nevada, Arizona and Oregon open next; own all of Oregon and Washington opens; own all of Washington and British Columbia, Canada's westernmost province, opens.
+A passenger-rail strategy game set across **Canada and the United States**. Lay track between real cities, run trains, and get passengers where they are going before any station overflows. Start in any state, province or territory (California by default); own all of it and its neighbors open, all the way from Hawaii and Alaska to Newfoundland and Florida.
+
+## What's new in version 39
+
+- **All of Canada and the United States.** Every state, Washington, D.C. (in Maryland's pack), every province and the three territories: 63 packs, 3,435 counties and census divisions merged into **2,127 regions**, each with a main station, and 3,704 towns. Each state and province was reviewed and built one at a time, its small counties merged with neighbours along real valleys, coasts and corridors, every station and scenic place checked against its real location, and each one passed the automatic checker and a browser test game.
+- **41 city maps** (36 new): New York, Boston, Philadelphia, Pittsburgh, Washington, Baltimore, Chicago, Detroit, Cleveland, Columbus, Cincinnati, Indianapolis, Minneapolis–St. Paul, St. Louis, Kansas City, Denver, Nashville, Charlotte, Dallas–Fort Worth, Houston, San Antonio, Austin, Atlanta, Miami, Tampa, Orlando, Phoenix, Las Vegas, Seattle, Portland, Toronto, Ottawa, Montréal, Vancouver, Calgary and Edmonton, joining Los Angeles, San Francisco, San Diego, Sacramento and San Jose. New cable lines: Pittsburgh's inclines, New York's Roosevelt Island Tramway and Portland's Aerial Tram.
+- **Real water links** count as borders and let track cross: the Mackinac Bridge, the Chesapeake Bay Bridge-Tunnel and the Hampton Roads tunnels, the Staten Island bridges and ferry, the Long Island Sound ferries, Narragansett Bay's bridges, the ferries to Martha's Vineyard, Nantucket and Block Island, the CAT from Bar Harbor to Nova Scotia, the Confederation Bridge and the Newfoundland ferries, and Hawaii's inter-island barges and Matson's ships from Honolulu to Los Angeles.
+- **Fixes along the way:** same-named counties (Virginia's independent cities, St. Louis city, Baltimore) are told apart; Washington, D.C. has its population; rivers that Natural Earth leaves out or misnames are on the map (the James, the Atchafalaya, the Apalachicola, the Missouri above Three Forks, Pennsylvania's and New York's rivers) and no river stretch is dropped; Alaska's islands past the date line sit next to the rest of Alaska; a straight border is no longer drawn as a coast; the first-track hint suggests two stations track can join; an island joined to a county follows it into its merge group.
+- Version 38 (California to British Columbia) is kept as a separate demo: see `demos/national-railways-v38/`.
 
 ## The map
 
-Five states and a province share one map: **California, Nevada, Arizona, Oregon, Washington and British Columbia**, divided into their real counties (U.S. Census Bureau borders) or, in Canada, census divisions (British Columbia's regional districts, from BC's open data). Counties with fewer than 50,000 people are merged with small neighbors into regions such as **Del Norte-Siskiyou-Trinity County**:
+Every state, province and territory of Canada and the United States shares one map, divided into their real counties (U.S. Census Bureau borders) or, in Canada, census divisions (British Columbia's regional districts, from BC's open data). Counties with fewer than 50,000 people are merged with small neighbors into regions such as **Del Norte-Siskiyou-Trinity County**:
 
-| State or province | Counties | Regions | Towns |
+| State | Counties | Regions | Towns |
 | --- | --- | --- | --- |
-| California | 58 | 49 | 72 |
-| Nevada | 17 | 9 | 19 |
+| Alabama | 67 | 43 | 78 |
+| Alaska | 29 | 16 | 38 |
 | Arizona | 15 | 12 | 31 |
+| Arkansas | 75 | 39 | 60 |
+| California | 58 | 49 | 72 |
+| Colorado | 64 | 36 | 77 |
+| Connecticut | 8 | 8 | 18 |
+| Delaware | 3 | 3 | 9 |
+| Florida | 67 | 52 | 79 |
+| Georgia | 159 | 93 | 143 |
+| Hawaii | 5 | 4 | 16 |
+| Idaho | 44 | 25 | 42 |
+| Illinois | 102 | 61 | 90 |
+| Indiana | 92 | 56 | 90 |
+| Iowa | 99 | 53 | 81 |
+| Kansas | 105 | 52 | 88 |
+| Kentucky | 120 | 60 | 92 |
+| Louisiana | 64 | 41 | 71 |
+| Maine | 16 | 11 | 27 |
+| Maryland (with Washington, D.C.) | 25 | 20 | 36 |
+| Massachusetts | 14 | 12 | 30 |
+| Michigan | 83 | 54 | 92 |
+| Minnesota | 87 | 51 | 90 |
+| Mississippi | 82 | 43 | 65 |
+| Missouri | 115 | 60 | 106 |
+| Montana | 56 | 29 | 51 |
+| Nebraska | 93 | 42 | 68 |
+| Nevada | 17 | 9 | 19 |
+| New Hampshire | 10 | 8 | 15 |
+| New Jersey | 21 | 21 | 38 |
+| New Mexico | 33 | 22 | 56 |
+| New York | 62 | 53 | 105 |
+| North Carolina | 100 | 73 | 126 |
+| North Dakota | 53 | 25 | 41 |
+| Ohio | 88 | 69 | 124 |
+| Oklahoma | 77 | 42 | 77 |
 | Oregon | 36 | 24 | 34 |
+| Pennsylvania | 67 | 55 | 99 |
+| Rhode Island | 5 | 5 | 11 |
+| South Carolina | 46 | 32 | 47 |
+| South Dakota | 66 | 30 | 60 |
+| Tennessee | 95 | 60 | 97 |
+| Texas | 254 | 150 | 249 |
+| Utah | 29 | 18 | 39 |
+| Vermont | 14 | 7 | 17 |
+| Virginia | 133 | 69 | 109 |
 | Washington | 39 | 28 | 43 |
+| West Virginia | 55 | 32 | 55 |
+| Wisconsin | 72 | 49 | 73 |
+| Wyoming | 23 | 15 | 26 |
+
+| Province or territory | Census divisions | Regions | Towns |
+| --- | --- | --- | --- |
+| Alberta | 19 | 14 | 24 |
 | British Columbia | 29 | 22 | 35 |
+| Manitoba | 23 | 13 | 23 |
+| New Brunswick | 15 | 11 | 25 |
+| Newfoundland and Labrador | 11 | 6 | 31 |
+| Northwest Territories | 6 | 4 | 18 |
+| Nova Scotia | 18 | 12 | 30 |
+| Nunavut | 3 | 3 | 17 |
+| Ontario | 49 | 41 | 68 |
+| Prince Edward Island | 3 | 3 | 10 |
+| Quebec | 98 | 65 | 94 |
+| Saskatchewan | 18 | 11 | 18 |
+| Yukon | 1 | 1 | 11 |
 
 Every region has one main station at its biggest city, with a few exceptions to keep stations apart or names clear: Yuba County uses Wheatland (its larger towns sit across the river from Yuba City), Clackamas County uses Oregon City (Lake Oswego is right next to Portland), Pinal County uses Casa Grande (the city of Maricopa shares its name with Maricopa County), and Thurston County uses Olympia, the capital, over the slightly bigger Lacey. Washington's small counties are merged by their real metro areas (Chelan and Douglas around Wenatchee; Whitman, Asotin and Garfield around Pullman), and the San Juan Islands, which no bridge reaches, are part of Skagit's region. Regions outside California are named with their state, like "Clark County, Nevada".
 
@@ -69,7 +137,7 @@ All these numbers live in `js/geography.js` (`NR.GEO`).
 
 ### Opening more states
 
-- **Choose your home state** under **Settings → Start in**: California (the default, around Los Angeles), Nevada (Las Vegas), Arizona (Phoenix), Oregon (Portland), Washington (Seattle) or British Columbia (Vancouver). Levels mode is in California, Washington (from Puget Sound to the Inland Northwest) and British Columbia (from Vancouver and Victoria to the North), four levels each. Best scores are kept per home state.
+- **Choose your home state** under **Settings → Start in**: any state, province or territory (California, around Los Angeles, is the default; each one starts around its biggest city). Levels mode is in every one except Nevada, Arizona and Oregon, three or four levels each. Best scores are kept per home state.
 - The other states are hidden under clouds (shaded darker in the Classic look) until they open.
 - A state's **neighbors open once you own every county in it** (in Levels mode, also when you finish the last level). Each newly opened state starts with a FB200k budget, and the map zooms out to show it. The clouds say which state to finish to open them.
 - Their counties are then unlocked like the home state's: next to one you own, by paying or by reaching the free-unlock goal.
@@ -156,15 +224,15 @@ Pinch or scroll to zoom, drag empty map to move around, or use the + / − butto
 
 ### City maps: trams, metro and cable cars
 
-Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own city maps (an **M** badge on the station). Once you own the county, tap the station and choose **Open city map**. **← California** takes you back.
+41 big cities have their own city maps (an **M** badge on the station): Los Angeles, San Francisco, San Diego, Sacramento, San Jose, New York, Boston, Philadelphia, Pittsburgh, Washington, Baltimore, Chicago, Detroit, Cleveland, Columbus, Cincinnati, Indianapolis, Minneapolis–St. Paul, St. Louis, Kansas City, Denver, Nashville, Charlotte, Dallas–Fort Worth, Houston, San Antonio, Austin, Atlanta, Miami, Tampa, Orlando, Phoenix, Las Vegas, Seattle, Portland, Toronto, Ottawa, Montréal, Vancouver, Calgary and Edmonton. Once you own the county, tap the station and choose **Open city map**. The button with the state's name (**← California**) takes you back.
 
 | Line | Track | Vehicle | Riders | Notes |
 | --- | --- | --- | --- | --- |
 | Tram | FB3k/mi | FB40k | 8 | Street-running, cheap. |
 | Metro | FB10k/mi | FB120k | 16 | Fast; riders pay ×1.3. |
-| Cable car | FB8k/mi | FB60k | 6 | San Francisco only, between cable car stops (Transit Center, Union Square, Nob Hill, Fisherman's Wharf), up to 3.5 miles; riders pay ×2. |
+| Cable car | FB8k/mi | FB60k | 6 | Only where real cable-hauled lines run, between their stops: San Francisco's cable cars (Transit Center, Union Square, Nob Hill, Fisherman's Wharf), Pittsburgh's inclines (Station Square, Mount Washington), New York's Roosevelt Island Tramway and Portland's Aerial Tram (South Waterfront, OHSU); up to 3.5 miles; riders pay ×2. |
 
-- Riders appear in the neighborhoods: most cross town, some (orange tags) head for the main station to catch a train and then join the trains across California.
+- Riders appear in the neighborhoods: most cross town, some (orange tags) head for the main station to catch a train and then join the trains across the map.
 - **Hills and water:** each city map shows its real hills and water (San Francisco's hills, the Hollywood Hills, San Diego Bay and Mission Bay, the Sacramento and American rivers). Trams slow down on hills (Castro to Haight-Ashbury is a 6% climb). Metro tunnels under hills cost more but don't slow down. Cable cars climb at full speed but can't cross water. Water needs a bridge (or a tube for the metro): cheaper at a real bridge like the Coronado Bridge or Tower Bridge, and impossible if too wide. Lines can run along a shore.
 - Half of the train passengers arriving at the city's main station ride the metro home.
 - A city keeps running once opened. **Only the map you're looking at can overflow**: while you're on a city map, the state map and the other cities keep running (trains, passengers, money, weeks) with their stations kept at most half full, and while you're on the state map, every city is kept that way. When you come back to a map, it's live again.
@@ -258,7 +326,7 @@ Tap the **clipboard** on the bottom bar.
 | `packs/<code>/pack.js` | One per state: its main stations, towns, levels, starting counties, city maps, mountain passes, bridges, bays and biomes (hand-made). See `PACKS.md`. |
 | `js/cities.js` | The kinds of place and line names shared by every state. |
 | `tools/build-map.js` | Rebuilds `packs/index.js` and each state's `map.js` from Census data and Natural Earth outlines (see below). |
-| `tools/build-terrain.js` | Rebuilds every state's geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. It reads the city maps and passes from the packs. |
+| `tools/build-terrain.js` | Rebuilds every state's geography (terrain file and relief pictures) from elevation, Natural Earth and Census data. It reads the city maps and passes from the packs. `CITIES_ONLY=1` rebuilds only the named states' city maps, keeping their state terrain. |
 | `tools/check-pack.js` | Checks the state packs for mistakes (`node tools/check-pack.js`). Every pack must pass. |
 | `tools/make-raw.js` | Writes the facts a state's pack is made from into `packs/<code>/raw/` (not saved to git): county region populations, and every city and town with its population and location, from U.S. Census Bureau data (for a Canadian province: Statistics Canada and the Canadian Geographical Names Database, plus its parks). |
 | `tools/test-pack.js` | Plays a short game in one state in a real browser and takes screenshots (`node tools/test-pack.js CA`). Every pack must pass. |
