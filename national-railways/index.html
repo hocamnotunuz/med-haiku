@@ -1,0 +1,398 @@
+<title>National Railways</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Jost:wght@400;500;600;700&family=Overpass:wght@400;600;700;800&family=Overpass+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+
+<div id="app">
+  <canvas id="map" aria-label="Map of real states and counties with your rail network. Drag between cities to lay track."></canvas>
+
+  <!-- Top: name, mode and score -->
+  <header id="hud-top" class="hud-top">
+    <div class="brand">
+      <div class="brand-row">
+        <span class="brand-name">National Railways</span>
+        <span id="paused-pill" class="paused-pill" hidden>Paused</span>
+      </div>
+      <span id="mode-label" class="mode-label">Endless · Type of place</span>
+      <button id="btn-legend" class="legend-toggle" type="button" aria-expanded="false" aria-controls="legend">Legend</button>
+      <div id="legend" class="legend"></div>
+      <div id="city-bar" class="city-bar" hidden>
+        <button id="btn-back" class="btn btn-small" type="button">← State map</button>
+        <div class="mode-pick" role="group" aria-label="Kind of line to build">
+          <button type="button" class="mode-btn" data-mode="tram" aria-pressed="true">Tram</button>
+          <button type="button" class="mode-btn" data-mode="metro" aria-pressed="false">Metro</button>
+          <button type="button" class="mode-btn" data-mode="cable" aria-pressed="false">Cable car</button>
+        </div>
+        <button id="btn-city-budget" class="btn btn-small" type="button">City budget</button>
+        <span id="city-head" class="head-chip">No head of transportation</span>
+        <span id="city-hint" class="city-hint"></span>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="stat-label">Delivered</span><span id="score" class="stat-value">0</span></div>
+      <div class="stat"><span class="stat-label">Cargo</span><span id="cargo" class="stat-value">0</span></div>
+      <div class="stat"><span id="goal-label" class="stat-label">Best</span><span id="goal" class="stat-value">0</span></div>
+      <div class="stat"><span id="clock-label" class="stat-label">Week 1</span><span id="clock" class="stat-value">Mon 06:00</span></div>
+    </div>
+  </header>
+
+  <!-- Bottom: lines, trains, track and controls -->
+  <footer class="hud-bottom">
+    <div id="bar" class="bar">
+      <div id="line-chips" class="chips" aria-label="Your lines"></div>
+      <div class="resources">
+        <div id="res-depot" class="res"><span class="res-label">In depot</span><span id="trains-free" class="res-value">3</span></div>
+        <button id="btn-budgets" class="res-group" type="button" aria-label="Budgets: national money and state budgets">
+          <span class="res"><span id="money-label" class="res-label">National</span><span id="money" class="res-value">FB0k</span></span>
+          <span class="res"><span id="state-money-label" class="res-label">California</span><span id="state-money" class="res-value">FB400k</span></span>
+        </button>
+        <div id="res-counties" class="res"><span class="res-label">Counties</span><span id="counties" class="res-value">3/49</span></div>
+        <div id="res-city" class="res" hidden><span class="res-label">City budget</span><span id="city-budget" class="res-value">FB0k</span></div>
+      </div>
+      <div class="controls">
+        <button id="btn-contracts" class="icon-btn contracts-btn" type="button" aria-label="Goals and contracts">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3.5h6v3H9z"/><path d="M8 5H6.8A1.3 1.3 0 0 0 5.5 6.3v13.4A1.3 1.3 0 0 0 6.8 21h10.4a1.3 1.3 0 0 0 1.3-1.3V6.3A1.3 1.3 0 0 0 17.2 5H16M8.5 11h7M8.5 15h4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span id="contracts-badge" class="badge" hidden>0</span>
+        </button>
+        <button id="btn-pause" class="icon-btn" type="button" aria-label="Pause"></button>
+        <button id="btn-speed" class="icon-btn speed" type="button" aria-label="Double speed" aria-pressed="false">1×</button>
+        <button id="btn-menu" class="icon-btn" type="button" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="2" rx="1"/><rect x="4" y="11" width="16" height="2" rx="1"/><rect x="4" y="16" width="16" height="2" rx="1"/></svg>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Zoom: pinch or scroll on the map, drag empty map to move, or use these buttons -->
+  <div id="zoom-controls" class="zoom-controls">
+    <button id="btn-zoom-in" class="icon-btn" type="button" aria-label="Zoom in">+</button>
+    <button id="btn-zoom-out" class="icon-btn" type="button" aria-label="Zoom out">−</button>
+    <button id="btn-zoom-fit" class="icon-btn" type="button" aria-label="Switch between your network and the whole map" title="Your network / the whole map">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
+  <!-- Options for one line -->
+  <div id="line-panel" class="line-panel" role="dialog" aria-labelledby="lp-name" hidden>
+    <div class="lp-head">
+      <span id="lp-dot" class="lp-dot"></span>
+      <span id="lp-name" class="lp-name">Golden Line</span>
+      <button id="lp-close" class="lp-close" type="button" aria-label="Close line options">×</button>
+    </div>
+    <p id="lp-meta" class="lp-meta"></p>
+    <p id="lp-stops" class="lp-stops"></p>
+    <p id="lp-geo" class="lp-geo" hidden></p>
+    <p class="lp-section">Trains on this line</p>
+    <ul id="lp-trains" class="lp-trains"></ul>
+    <p id="lp-buy-head" class="lp-section">Add a train</p>
+    <div id="lp-buy" class="lp-buy"></div>
+    <div class="lp-actions">
+      <button id="lp-upgrade" class="btn btn-small" type="button">High-speed track</button>
+      <button id="lp-tunnel" class="btn btn-small" type="button" hidden>Dig tunnels</button>
+      <button id="lp-loop" class="btn btn-small" type="button" hidden>Close into a loop</button>
+      <button id="lp-delete" class="btn btn-small btn-danger" type="button">Delete line</button>
+    </div>
+  </div>
+
+  <!-- Details for one county (tap a county on the map) -->
+  <!-- A state's lines: tap a county you own, or Lines at the bottom -->
+  <div id="lines-panel" class="line-panel" role="dialog" aria-labelledby="lsp-name" hidden>
+    <div class="lp-head">
+      <span id="lsp-name" class="lp-name">California lines</span>
+      <button id="lsp-close" class="lp-close" type="button" aria-label="Close lines">×</button>
+    </div>
+    <div id="lsp-body"></div>
+  </div>
+  <div id="county-panel" class="line-panel" role="dialog" aria-labelledby="cp-name" hidden>
+    <div class="lp-head">
+      <span id="cp-name" class="lp-name">Kern County</span>
+      <button id="cp-close" class="lp-close" type="button" aria-label="Close county details">×</button>
+    </div>
+    <p id="cp-status" class="lp-meta"></p>
+    <p id="cp-connect" class="lp-meta" hidden></p>
+    <p id="cp-info" class="lp-stops"></p>
+    <div id="cp-goal" class="cp-goal" hidden>
+      <p id="cp-goal-text" class="cp-goal-text"></p>
+      <div class="cp-bar"><span id="cp-goal-fill"></span></div>
+    </div>
+    <div class="lp-actions">
+      <button id="cp-buy" class="btn btn-small btn-primary" type="button">Unlock</button>
+      <button id="cp-city" class="btn btn-small" type="button" hidden>Open city map</button>
+    </div>
+    <!-- The station that was tapped: its size, and upgrades -->
+    <div id="cp-station" hidden>
+      <p id="cp-st-head" class="lp-section">Station</p>
+      <p id="cp-st-info" class="lp-meta"></p>
+      <div class="lp-actions">
+        <button id="cp-st-up" class="btn btn-small" type="button">Upgrade</button>
+      </div>
+      <p id="cp-links-head" class="lp-section">Emergency link to…</p>
+      <div id="cp-links" class="lp-actions"></div>
+    </div>
+  </div>
+
+  <!-- Goals and contracts (clipboard button) -->
+  <div id="contracts-panel" class="line-panel" role="dialog" aria-labelledby="ct-title" hidden>
+    <div class="lp-head">
+      <span id="ct-title" class="lp-name">Goals and contracts</span>
+      <button id="ct-close" class="lp-close" type="button" aria-label="Close goals and contracts">×</button>
+    </div>
+    <div id="ct-level" hidden>
+      <p id="ct-level-title" class="lp-section">Level checklist</p>
+      <ul id="ct-level-goals" class="ct-list"></ul>
+    </div>
+    <p class="lp-section">Contracts</p>
+    <ul id="ct-list" class="ct-list"></ul>
+    <p class="ct-note">New contracts are offered every so often, up to 3 at a time. Finish one before its time runs out to earn the reward.</p>
+  </div>
+
+  <!-- A city's own budget and its head of transportation -->
+  <div id="city-panel" class="line-panel" role="dialog" aria-labelledby="cy-title" hidden>
+    <div class="lp-head">
+      <span id="cy-title" class="lp-name">City budget</span>
+      <button id="cy-close" class="lp-close" type="button" aria-label="Close city budget">×</button>
+    </div>
+    <p id="cy-budget" class="cy-budget">FB0k</p>
+    <p id="cy-week" class="lp-meta"></p>
+    <p id="cy-note" class="cy-note">The city map opened with 200k from the state budget. City fares go into this budget, less a 10% tax to the state, and city track, vehicles and running costs are paid from it. When it runs short, the state budget pays the rest.</p>
+    <p class="lp-section">Head of transportation</p>
+    <p id="cy-head" class="cp-goal-text"></p>
+    <div id="cy-head-bar" class="cp-bar" hidden><span id="cy-head-fill"></span></div>
+    <div class="lp-actions">
+      <button id="cy-hire" class="btn btn-small btn-primary" type="button">Hire</button>
+    </div>
+  </div>
+
+  <!-- National money and each state's budget (tap the money at the bottom) -->
+  <div id="budget-panel" class="line-panel" role="dialog" aria-labelledby="bp-title" hidden>
+    <div class="lp-head">
+      <span id="bp-title" class="lp-name">Budgets</span>
+      <button id="bp-close" class="lp-close" type="button" aria-label="Close budgets">×</button>
+    </div>
+    <p id="bp-national-title" class="lp-section">National money</p>
+    <p id="bp-national" class="cy-budget">FB0k</p>
+    <p id="bp-national-note" class="cy-note"></p>
+    <p id="bp-national-week" class="lp-meta"></p>
+    <div id="bp-abroad"></div>
+    <div id="bp-states" class="bp-states"></div>
+    <details class="guide">
+      <summary>How a state's head of transportation works</summary>
+      <p id="bp-head-help" class="cy-note"></p>
+    </details>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <button id="btn-results" class="btn btn-primary results-btn" type="button" hidden>Back to results</button>
+
+  <!-- Start screen -->
+  <section id="screen-start" class="overlay" aria-labelledby="start-title" hidden>
+    <div class="card card-start">
+      <p class="eyebrow">California and the West · Passenger rail</p>
+      <h1 id="start-title">National Railways</h1>
+      <p class="lede">Lay track between real cities, run your trains, and get every passenger where they are going before a station overflows. Own all of your home state (California, unless you pick another in Settings) and the states next to it open.</p>
+
+      <fieldset class="choice">
+        <legend>Game mode</legend>
+        <div class="options">
+          <label class="option"><input type="radio" name="mode" value="endless" id="mode-endless"><span class="option-title">Endless</span><span class="option-text">Play until a station overflows.</span></label>
+          <label class="option"><input type="radio" name="mode" value="timed" id="mode-timed"><span class="option-title">Timed</span><span class="option-text">Four weeks on the clock. Deliver as many as you can.</span></label>
+          <label class="option"><input type="radio" name="mode" value="levels" id="mode-levels"><span class="option-title">Levels</span><span class="option-text">Hit each goal to unlock the next region.</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="choice">
+        <legend>Passengers want to reach</legend>
+        <div class="options">
+          <label class="option"><input type="radio" name="style" value="type" id="style-type"><span class="option-title">A type of place</span><span class="option-text">Any city of that type, like any beach town. Shown by shape.</span></label>
+          <label class="option"><input type="radio" name="style" value="city" id="style-city"><span class="option-title">A specific city</span><span class="option-text">One city, shown by its code, like FRE for Fresno.</span></label>
+        </div>
+      </fieldset>
+
+      <details class="guide settings">
+        <summary>Settings</summary>
+        <fieldset class="choice">
+          <legend>Start in</legend>
+          <div class="options" id="home-options"></div>
+        </fieldset>
+        <fieldset class="choice">
+          <legend>Difficulty</legend>
+          <div class="options">
+            <label class="option"><input type="radio" name="geo" value="gentle" id="geo-gentle"><span class="option-title">Gentle</span><span class="option-text">Towns appear slowly and passengers increase slowly. Mountains and water cost a little more and slow trains a little; long tunnels and bridges are allowed.</span></label>
+            <label class="option"><input type="radio" name="geo" value="tough" id="geo-tough"><span class="option-title">Tough</span><span class="option-text">Towns appear and passengers increase faster. Mountains and water are real obstacles: pricey and slow, and some routes need the right pass or bridge.</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="choice">
+          <legend>Look</legend>
+          <div class="options">
+            <label class="option"><input type="radio" name="look" value="arcade" id="look-arcade"><span class="option-title">Arcade</span><span class="option-text">A cartoon map: little mountains, forests, cacti and waves, bright colors and chunky buttons.</span></label>
+            <label class="option"><input type="radio" name="look" value="classic" id="look-classic"><span class="option-title">Classic</span><span class="option-text">A calm, plain map with shaded mountains, like a printed atlas.</span></label>
+            <label class="option"><input type="radio" name="look" value="minimal" id="look-minimal"><span class="option-title">Neo minimalist</span><span class="option-text">A flat transit-map style: plain land and water, bold lines that bend at 45°, simple shapes.</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="choice">
+          <legend>Theme</legend>
+          <div class="options">
+            <label class="option"><input type="radio" name="theme" value="auto" id="theme-auto"><span class="option-title">Automatic</span><span class="option-text">Light or dark, following your device.</span></label>
+            <label class="option"><input type="radio" name="theme" value="light" id="theme-light"><span class="option-title">Light</span><span class="option-text">Always light.</span></label>
+            <label class="option"><input type="radio" name="theme" value="dark" id="theme-dark"><span class="option-title">Dark</span><span class="option-text">Always dark, easier on the eyes at night.</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="choice" id="mini-bg-choice">
+          <legend>Neo minimalist: mountains</legend>
+          <div class="options">
+            <label class="option"><input type="radio" name="miniBg" value="bare" id="mini-bg-bare"><span class="option-title">Hidden</span><span class="option-text">Plain, flat land. County borders only around the counties you own.</span></label>
+            <label class="option"><input type="radio" name="miniBg" value="hints" id="mini-bg-hints"><span class="option-title">Faint</span><span class="option-text">Soft, flat mountain areas, and every county border as a fine line.</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="choice">
+          <legend>Test mode</legend>
+          <div class="options">
+            <label class="option"><input type="radio" name="test" value="off" id="test-off"><span class="option-title">Off</span><span class="option-text">A normal game: a station that stays overcrowded ends it.</span></label>
+            <label class="option"><input type="radio" name="test" value="on" id="test-on"><span class="option-title">On</span><span class="option-text">Nothing can be lost: when a station or city stop overflows, its riders give up and leave, and the game carries on. Best scores aren't kept.</span></label>
+          </div>
+        </fieldset>
+      </details>
+
+      <details class="guide howto-guide">
+        <summary>How to play</summary>
+      <ul class="howto">
+        <li><b>Build:</b> drag from one city to another to lay track. Keep dragging to add stops.</li>
+        <li><b>Extend:</b> drag the tab at either end of a line. Drag an end to the line's other end (3 stations or more) to close it into a loop: trains then go round and round.</li>
+        <li><b>Grow:</b> you start with 3 counties around Los Angeles. Tap a county with a dashed orange outline to unlock it with money, or deliver passengers next to it to earn it for free. Towns appear inside counties you own.</li>
+        <li><b>Cargo:</b> farms send produce, ships bring containers to ports (anchor), and desert and mountain towns send trucks. Cargo waits in a yard left of the station and needs its own train: Freight, Dock train or Truck bypass. Cargo never ends your game, but it pays well.</li>
+        <li><b>Day and night:</b> fewer people travel at night, when Night trains run. Tourists (★) head for scenic places, most at weekends. Flights land at airports (✈) with a burst of travelers.</li>
+        <li><b>Earthquakes and wildfires:</b> from week 10 they damage track (red ✕). Trains turn back at the damage. A Work train on that line repairs it (you get one free when they begin, and a Work train waiting in your depot goes to the damage by itself); otherwise it mends after 3 days.</li>
+        <li><b>Cities:</b> Los Angeles, San Francisco, San Diego, Sacramento and San Jose have their own city maps (M badge). Tap the station and choose Open city map, then build Tram, Metro or (in San Francisco) Cable car lines between neighborhoods. Riders cross town or come to the main station to catch a train, and train passengers ride home. Neighborhoods can overflow too, but only on the map you're looking at (the others keep running safely, half full at most), and an overwhelmed city doesn't end the game: a head of transportation takes it over, for a fee, and its lines are frozen while they run it. Each city has its own budget (it opens with 200k from its state, and the state pays when it runs short), and you can hire a head of transportation: after 3 weeks of settling in (you still run the city), they run it safely for 100 weeks, but its lines are frozen and management keeps 90% of its profit.</li>
+        <li><b>Goals:</b> tap the clipboard to see contracts (optional jobs with a reward and a deadline) and, in Levels mode, the checklist for the current level.</li>
+        <li><b>Stations:</b> tap a station to upgrade it: an Interchange (FB150k) holds twice the riders and cargo, a Grand terminal (FB400k more) three times, and people change trains faster there.</li>
+        <li><b>Emergency links:</b> tap a station to join it to a station up to 60 miles away. It costs 20 times normal track but needs no free line, and runs its own shuttle.</li>
+        <li><b>Zoom:</b> pinch or scroll to zoom, drag empty map to move around.</li>
+        <li><b>Lines:</b> tap a county you own (or Lines at the bottom) to see that state's lines: its own (bright colors), national lines that cross a state border (deep colors) and international lines that cross into Canada (pastel, twice as thick). Each kind has its own count; tap + to buy one more. Tap a line there to add trains, upgrade to high-speed track, or delete it.</li>
+        <li><b>Geography:</b> the map shows real mountains, lakes and rivers. Track over a mountain pass (like Donner Pass) costs more and trains slow down on the climb; elsewhere mountains need an expensive tunnel, and some are too wide to tunnel. Bays and lakes need a bridge: cheaper at real bridges like the Golden Gate. Rivers need small bridges. Choose Gentle or Tough difficulty under Settings.</li>
+        <li><b>Money:</b> track and trains cost money. Passengers pay a fare when they arrive, and trains cost a little to run each week.</li>
+        <li><b>Budgets and states:</b> every state has its own budget (tap the money at the bottom). Fares for trips inside a state go to its budget (less a 10% tax to national money; cities pay 10% of their fares to their state), and the state pays for its own track, trains and counties. Across a state border the states share: track by how much of it is on each one's land, and each fare by the miles the trip rode on each one's land. National money gets the taxes, contract rewards and grants, and covers any state that runs short. Money can't be moved between budgets by hand. Once you own all of California, Nevada, Arizona and Oregon open. A state can hire a head of transportation too, just like a city.</li>
+      </ul>
+      </details>
+
+      <details class="guide">
+        <summary>Train types</summary>
+        <ul id="train-guide" class="train-guide"></ul>
+      </details>
+
+      <div class="actions">
+        <button id="btn-start" class="btn btn-primary" type="button">Start new game</button>
+        <button id="btn-resume" class="btn" type="button" hidden>Resume game</button>
+      </div>
+      <p id="best-line" class="best-line"></p>
+    </div>
+  </section>
+
+  <!-- End of each week -->
+  <section id="screen-week" class="overlay" aria-labelledby="week-title" hidden>
+    <div class="card">
+      <p id="week-eyebrow" class="eyebrow">Week 2</p>
+      <h2 id="week-title">A new Regular train has arrived</h2>
+      <p id="week-summary"></p>
+      <p id="week-news" class="week-news" hidden></p>
+      <p>The train is in your depot, or already running on a line that had none. Pick one more upgrade for the week ahead:</p>
+      <div id="upgrade-list" class="upgrades"></div>
+    </div>
+  </section>
+
+  <!-- Level complete -->
+  <section id="screen-level" class="overlay" aria-labelledby="level-title" hidden>
+    <div class="card">
+      <p id="level-eyebrow" class="eyebrow">Level 1 complete</p>
+      <h2 id="level-title">Southern California is connected</h2>
+      <p id="level-text"></p>
+      <ul id="level-cities" class="city-list"></ul>
+      <div class="actions"><button id="btn-level-next" class="btn btn-primary" type="button">Continue</button></div>
+    </div>
+  </section>
+
+  <!-- Game over -->
+  <section id="screen-over" class="overlay" aria-labelledby="over-title" hidden>
+    <div class="card">
+      <p id="over-eyebrow" class="eyebrow">Game over</p>
+      <h2 id="over-title"></h2>
+      <p id="over-text"></p>
+      <div id="over-actions" class="actions"></div>
+    </div>
+  </section>
+</div>
+
+<script src="js/packs.js"></script>
+<script src="packs/index.js"></script>
+<!-- Each state's map.js and terrain.js load when needed (js/packs.js, NR.loadPacks) -->
+<script src="packs/CA/pack.js"></script>
+<script src="packs/NV/pack.js"></script>
+<script src="packs/AZ/pack.js"></script>
+<script src="packs/OR/pack.js"></script>
+<script src="packs/WA/pack.js"></script>
+<script src="packs/BC/pack.js"></script>
+<script src="packs/AB/pack.js"></script>
+<script src="packs/SK/pack.js"></script>
+<script src="packs/MB/pack.js"></script>
+<script src="packs/ON/pack.js"></script>
+<script src="packs/QC/pack.js"></script>
+<script src="packs/NB/pack.js"></script>
+<script src="packs/NS/pack.js"></script>
+<script src="packs/PE/pack.js"></script>
+<script src="packs/NL/pack.js"></script>
+<script src="packs/YT/pack.js"></script>
+<script src="packs/NT/pack.js"></script>
+<script src="packs/NU/pack.js"></script>
+<script src="packs/ID/pack.js"></script>
+<script src="packs/MT/pack.js"></script>
+<script src="packs/WY/pack.js"></script>
+<script src="packs/UT/pack.js"></script>
+<script src="packs/CO/pack.js"></script>
+<script src="packs/NM/pack.js"></script>
+<script src="packs/AK/pack.js"></script>
+<script src="packs/ND/pack.js"></script>
+<script src="packs/SD/pack.js"></script>
+<script src="packs/NE/pack.js"></script>
+<script src="packs/KS/pack.js"></script>
+<script src="packs/OK/pack.js"></script>
+<script src="packs/TX/pack.js"></script>
+<script src="packs/MN/pack.js"></script>
+<script src="packs/IA/pack.js"></script>
+<script src="packs/MO/pack.js"></script>
+<script src="packs/AR/pack.js"></script>
+<script src="packs/LA/pack.js"></script>
+<script src="packs/WI/pack.js"></script>
+<script src="packs/IL/pack.js"></script>
+<script src="packs/MI/pack.js"></script>
+<script src="packs/IN/pack.js"></script>
+<script src="packs/OH/pack.js"></script>
+<script src="packs/KY/pack.js"></script>
+<script src="packs/TN/pack.js"></script>
+<script src="packs/MS/pack.js"></script>
+<script src="packs/AL/pack.js"></script>
+<script src="packs/GA/pack.js"></script>
+<script src="packs/FL/pack.js"></script>
+<script src="packs/SC/pack.js"></script>
+<script src="packs/NC/pack.js"></script>
+<script src="packs/VA/pack.js"></script>
+<script src="packs/WV/pack.js"></script>
+<script src="packs/MD/pack.js"></script>
+<script src="packs/DE/pack.js"></script>
+<script src="packs/PA/pack.js"></script>
+<script src="packs/NJ/pack.js"></script>
+<script src="packs/NY/pack.js"></script>
+<script src="packs/CT/pack.js"></script>
+<script src="packs/RI/pack.js"></script>
+<script src="packs/MA/pack.js"></script>
+<script src="packs/VT/pack.js"></script>
+<script src="packs/NH/pack.js"></script>
+<script src="packs/ME/pack.js"></script>
+<script src="packs/HI/pack.js"></script>
+<script src="js/cities.js"></script>
+<script src="js/game.js"></script>
+<script src="js/geography.js"></script>
+<script src="js/metro.js"></script>
+<script src="js/cartoon.js"></script>
+<script src="js/draw.js"></script>
+<script src="js/ui.js"></script>

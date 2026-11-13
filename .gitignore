@@ -1,0 +1,15 @@
+# Claude Code: local-only files
+.claude/.prompt-count
+.claude/settings.local.json
+
+# Map tool downloads
+national-railways/tools/node_modules/
+
+# Geography tool downloads
+national-railways/.terrain-cache/
+
+# Pack test screenshots
+national-railways/test-out/
+
+# Raw facts for pack agents (remade by tools/make-raw.js)
+national-railways/packs/*/raw/

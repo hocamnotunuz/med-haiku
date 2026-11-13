@@ -1,0 +1,21 @@
+{
+  "name": "national-railways-tools",
+  "private": true,
+  "description": "Builds map and geography data for National Railways from U.S. Census Bureau, DataBC, Statistics Canada, AWS Terrain Tiles and Natural Earth data.",
+  "scripts": {
+    "build-map": "cd .. && node tools/build-map.js tools/node_modules .terrain-cache CA NV AZ OR WA BC",
+    "build-terrain": "cd .. && node tools/build-terrain.js tools/node_modules .terrain-cache",
+    "check-pack": "cd .. && node tools/check-pack.js",
+    "test-pack": "cd .. && node tools/test-pack.js"
+  },
+  "devDependencies": {
+    "d3-contour": "4.0.2",
+    "pngjs": "7.0.0",
+    "polygon-clipping": "0.15.7",
+    "shapefile": "0.6.6",
+    "topojson-client": "3.1.0",
+    "topojson-server": "3.0.1",
+    "topojson-simplify": "3.0.3",
+    "us-atlas": "3.0.1"
+  }
+}
