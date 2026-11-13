@@ -170,6 +170,8 @@ NR.addPack({
     { id: "SOTH", name: "Southampton", county: "ny-suffolk", lat: 40.88, lon: -72.4, scenic: true, type: "coast", size: 1 },
     // Montauk: the eastern tip of Long Island, Montauk Point Lighthouse and the end of the LIRR; no population in the data.
     { id: "MNTK", name: "Montauk", county: "ny-suffolk", lat: 41.05, lon: -71.95, scenic: true, type: "coast", size: 1 },
+    // Orient Point: the tip of the North Fork, where the Cross Sound Ferry from New London lands (added by the main agent with the Connecticut pack, so the ferry has a town at each end)
+    { id: "ORPT", name: "Orient Point", county: "ny-suffolk", lat: 41.16, lon: -72.25, type: "coast", size: 1 },
     // rockland
     // Haverstraw (12,321): the Hudson shore town on US-9W.
     { id: "HAVR", name: "Haverstraw", county: "ny-rockland", lat: 41.18, lon: -73.94, type: "metro", size: 1 },

@@ -129,3 +129,4 @@ Forest: the Adirondack core (Essex-Franklin-Hamilton). Wooded: Warren, Lewis, St
 - **Bays:** only Long Island Sound; the county outlines cover the Hudson, the East River and New York Harbor, so a bay there changes nothing (the harbour crossings are bridge points anyway). The three bridge warnings (the Mario Cuomo, Hell Gate and RFK bridges) are for that reason; the bridges are real.
 - **Links checked** (Gentle and Tough, open): Manhattan–Staten Island, Staten Island–Elizabeth, Manhattan–Newark, Buffalo–Niagara Falls, Binghamton–Scranton.
 - **Checks:** `check-pack` NY passed (53 stations, 104 towns, 6 passes, 64 bridges), 0 errors, 4 warnings (above); all packs passed; `test-pack` NY passed (17 passed).
+- **Orient Point** (added with the Connecticut pack): a coastal town at the Cross Sound Ferry's terminal (41.16, -72.25), 0.2 mi off the simplified outline, so the ferry from New London lands at a town.
