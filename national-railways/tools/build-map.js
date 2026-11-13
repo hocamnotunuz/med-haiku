@@ -1461,7 +1461,31 @@ const STATES = {
       ["Cape May", "DE:Sussex"],
     ],
   },
-  NY: { fips: "36", name: "New York", pop: "census", merge: [] },
+  // New York: 62 counties, 20.2 million people (Census 2020); reviewed by the New York pack agent
+  // (packs/NY/NOTES.md), 53 regions. New York City's five boroughs stay alone under their own names;
+  // upstate, small counties join neighbours in the Adirondacks, the Finger Lakes, the Erie Canal
+  // country, the Southern Tier and the northern Catskills, and Lewis (27,000, Tug Hill and the Black
+  // River valley) stays alone between big neighbours. Water links: the Verrazzano-Narrows Bridge
+  // (Staten Island to Brooklyn) and the Staten Island Ferry (to Manhattan).
+  NY: {
+    fips: "36",
+    name: "New York",
+    pop: "census",
+    merge: [
+      ["Essex", "Franklin", "Hamilton"],
+      ["Schuyler", "Seneca", "Yates"],
+      ["Genesee", "Orleans"],
+      ["Allegany", "Wyoming"],
+      ["Chenango", "Delaware"],
+      ["Greene", "Schoharie"],
+      ["Cortland", "Tioga"],
+    ],
+    names: { "New York": "Manhattan", "Kings": "Brooklyn", "Queens": "Queens", "Bronx": "The Bronx", "Richmond": "Staten Island", "Essex-Franklin-Hamilton": "Adirondacks" },
+    bridges: [
+      ["Richmond", "Kings"],
+      ["Richmond", "New York"],
+    ],
+  },
   CT: { fips: "09", name: "Connecticut", pop: "census", merge: [] },
   RI: { fips: "44", name: "Rhode Island", pop: "census", merge: [] },
   MA: { fips: "25", name: "Massachusetts", pop: "census", merge: [] },
