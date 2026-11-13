@@ -1564,7 +1564,25 @@ const STATES = {
     ],
     names: { "Carroll-Coos": "White Mountains" },
   },
-  ME: { fips: "23", name: "Maine", pop: "census", merge: [] },
+  // Maine: 16 counties, 1.36 million people (Census 2020); 11 regions, set by the main agent. Small
+  // counties pair along the coast and the valleys: Knox with Waldo (Penobscot Bay: Rockland,
+  // Belfast), Lincoln with Sagadahoc (Bath and Wiscasset), Hancock with Washington (Downeast:
+  // Ellsworth, Bar Harbor, Machias, Calais), Franklin with Oxford (the Western Mountains) and
+  // Piscataquis with Somerset (Moosehead Lake and the woods, the railway through Jackman and
+  // Greenville). Aroostook (67,000) stays alone, the size of a small state.
+  ME: {
+    fips: "23",
+    name: "Maine",
+    pop: "census",
+    merge: [
+      ["Knox", "Waldo"],
+      ["Lincoln", "Sagadahoc"],
+      ["Hancock", "Washington"],
+      ["Franklin", "Oxford"],
+      ["Piscataquis", "Somerset"],
+    ],
+    names: { "Hancock-Washington": "Downeast", "Franklin-Oxford": "Western Mountains" },
+  },
   // Canada: regions are census divisions (in British Columbia, its regional districts). Small
   // ones are merged automatically from Statistics Canada's 2021 populations, for the pack
   // agent to review.
