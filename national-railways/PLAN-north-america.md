@@ -251,7 +251,7 @@ Agents can sound sure and still be wrong (a pass in the wrong place, a misspelle
 2. **Alaska and Hawaii:** Alaska opens by land from Yukon or British Columbia. Hawaii comes last, reached by a ferry or air link.
 3. **Money across the border:** the US and Canada each have their own national money, in their own currency: **Freedom Bucks** in the US (shown as FB400k) and **Maple Coins** in Canada (shown as MC400k). The two are pegged 1 to 1, so nothing ever needs converting: 100 Freedom Bucks are worth 100 Maple Coins. Every amount shows the currency of whoever pays or receives it (a US state's budget in Freedom Bucks, a Canadian province's in Maple Coins). Across every border (between two states, or the US and Canada) the states and provinces share by land: track by how much of it lies on each one's land, trains by how much of their line does, and fares by the miles each trip rode on each one's land.
 4. **Starting place:** you choose any state or province; California stays the default.
-5. **City maps:** the Tier 1 list in section 6 (36 new cities).
+5. **City maps:** the Tier 1 list in section 6 (36 new cities) (**all done**, by Sonnet city-map agents in six batches of five to seven cities; each city has 11-12 real stops, its water and hills built with `CITIES_ONLY=1 tools/build-terrain.js` so the state terrain stays as checked, and every state with a new city map passed its pack test, which opens each city map; 41 city maps in all, with cable lines in San Francisco, Pittsburgh, New York and Portland).
 6. **Order:** Step 0 (own repository), then foundation, then the pilot, then one state at a time in the order in section 6.
 
 ---
