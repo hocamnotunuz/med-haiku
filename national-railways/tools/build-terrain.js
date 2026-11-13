@@ -86,6 +86,8 @@ const RIVERS = [
   "Great Pee Dee", "Yadkin", "Cape Fear", "Tar", "Neuse", "Dan", "Catawba", "Wateree", "Congaree", "Saluda", "Broad",
   "Edisto", "Waccamaw", "Cooper", "Chowan", "Shenandoah", "Rappahannock", "York", "Greenbrier", "Little Kanawha", "Cheat",
   "Big Sandy", "Tug Fk.", "Youghiogheny", "Nolichucky",
+  // Pennsylvania and New York
+  "W. Branch Susquehanna", "Juniata", "Lehigh", "Schuylkill", "Conemaugh", "Kiskiminetas", "Genesee", "Chemung",
 ];
 // Lakes Natural Earth leaves unnamed, by their middle (within 0.1°)
 const UNNAMED_LAKES = [
@@ -93,7 +95,7 @@ const UNNAMED_LAKES = [
   [-93.35, 29.96, "Calcasieu Lake"], [-90.25, 29.77, "Lake Salvador"],
 ];
 // Natural Earth spellings to fix
-const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa", "Elk Horn": "Elkhorn", "Atchafalaya River": "Atchafalaya", "Saint Johns": "St. Johns", "Great Pee Dee": "Pee Dee", "Tug Fk.": "Tug Fork" };
+const RIVER_NAMES = { "Pend Orielle": "Pend Oreille", "R. des Outaouais": "Ottawa", "Elk Horn": "Elkhorn", "Atchafalaya River": "Atchafalaya", "Saint Johns": "St. Johns", "Great Pee Dee": "Pee Dee", "Tug Fk.": "Tug Fork", "W. Branch Susquehanna": "West Branch Susquehanna" };
 // Natural Earth rivers misnamed, by river number: the Snake (from Pasco up through Idaho to
 // Wyoming) is labelled "Columbia" as river 103 (the Columbia itself is river 64)
 const RIVER_FIX = { 103: "Snake" };
