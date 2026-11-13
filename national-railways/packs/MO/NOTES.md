@@ -176,3 +176,13 @@ The pack test laid Clayton to Washington (43 mi, 1 train) and 8 passengers arriv
 - **St. Louis is size 4, not 5:** like Denver and Kansas City, the cores of metros of 2 to 3 million (Denver 4, Kansas City 4, Omaha 4; size 5 is for Los Angeles, Phoenix, Houston, Minneapolis and the like).
 - **Moved to the real places:** Branson to its downtown (36.64, -93.22; the Census point is 7 km southwest), Elephant Rocks State Park to the park (37.65, -90.69), Bennett Spring State Park (its real name) to the park (37.72, -92.86).
 - check-pack MO: 0 errors, 0 warnings; test-pack MO passed after the changes.
+
+## City maps
+
+**St. Louis (STL, size 4, 12 stops).** Hub: the Gateway Transportation Center (Amtrak and MetroLink, next to Union Station). Stops: Gateway Transportation Center, Gateway Arch, Soulard, Central West End, Grand Center, Forest Park, Washington University, The Hill, Clayton, Lambert Airport, East St. Louis (Illinois, across the Mississippi), Kirkwood. Furthest 12.3 mi, closest pair 1.1 mi. Left out: St. Charles and Chesterfield (the Missouri River side), Belleville (Illinois). The Arch stop sits on the west bank, 90 m from the water in the preview (land); East St. Louis is on the east bank (land).
+
+**Kansas City (KC, size 4, 12 stops).** Hub: Union Station (Amtrak Missouri River Runner, KC Streetcar), 2 mi west of the state map's point. Stops: Union Station, Power & Light District, 18th & Vine, Country Club Plaza, UMKC, Kansas City, Kansas (downtown), Airport (MCI), Truman Sports Complex (Arrowhead and Kauffman stadiums), Independence, Overland Park (Kansas), North Kansas City, Lee's Summit. Furthest 16.6 mi, closest pair 1.1 mi. Left out: Olathe, Lawrence (too far), Liberty and the Legends (Kansas) district. The map crosses into Kansas for two stops.
+
+Sources: general knowledge of each place (neighborhoods, stadiums, airports, stations). Coordinates from memory, 3 decimals, good to a few hundred metres; no stop is in water in the terrain preview (checked against the water shapes and one picture each).
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

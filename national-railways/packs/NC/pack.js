@@ -298,6 +298,27 @@ NR.addPack({
     { id: "HTRV", name: "Hatteras", county: "nc-dare-hyde", lat: 35.22, lon: -75.69, type: "coast", size: 1 },
     { id: "SWQT", name: "Swan Quarter", county: "nc-dare-hyde", lat: 35.41, lon: -76.32, type: "farm", size: 1 },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md (City maps).
+  metros: {
+    CLTE: {
+      name: "Charlotte",
+      size: 4,
+      stops: [
+        { id: "CTC", name: "Transportation Center", lat: 35.228, lon: -80.841, hub: true },
+        { id: "SEN", name: "South End", lat: 35.214, lon: -80.859 },
+        { id: "DIL", name: "Dilworth", lat: 35.203, lon: -80.841 },
+        { id: "PMW", name: "Plaza Midwood", lat: 35.223, lon: -80.806 },
+        { id: "NOD", name: "NoDa", lat: 35.247, lon: -80.806 },
+        { id: "UNC", name: "UNC Charlotte", lat: 35.307, lon: -80.735 },
+        { id: "CLT", name: "Douglas Airport", lat: 35.214, lon: -80.943 },
+        { id: "SPK", name: "SouthPark", lat: 35.151, lon: -80.832 },
+        { id: "BAL", name: "Ballantyne", lat: 35.052, lon: -80.845 },
+        { id: "MAT", name: "Matthews", lat: 35.117, lon: -80.723 },
+        { id: "HUN", name: "Huntersville", lat: 35.411, lon: -80.843 },
+      ],
+    },
+  },
   // Real passes: [name, latitude, longitude]. See NOTES.md for sources. Tennessee's pack already lists
   // Newfound Gap, the Pigeon River Gorge (I-40), Sam's Gap (I-26) and Carver's Gap on the state line.
   passes: [

@@ -254,6 +254,28 @@ NR.addPack({
       ],
     },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md (City maps).
+  metros: {
+    DEN: {
+      name: "Denver",
+      size: 4,
+      stops: [
+        { id: "UNS", name: "Union Station", lat: 39.753, lon: -105, hub: true },
+        { id: "CHL", name: "Capitol Hill", lat: 39.733, lon: -104.978 },
+        { id: "CCK", name: "Cherry Creek", lat: 39.718, lon: -104.953 },
+        { id: "DU", name: "University of Denver", lat: 39.677, lon: -104.962 },
+        { id: "HIG", name: "Highlands", lat: 39.767, lon: -105.035 },
+        { id: "EPF", name: "Empower Field", lat: 39.744, lon: -105.02 },
+        { id: "DEN", name: "Denver International Airport", lat: 39.849, lon: -104.674 },
+        { id: "AUR", name: "Anschutz Medical Campus", lat: 39.746, lon: -104.838 },
+        { id: "LKW", name: "Lakewood", lat: 39.707, lon: -105.081 },
+        { id: "ARV", name: "Arvada", lat: 39.802, lon: -105.082 },
+        { id: "GLD", name: "Golden", lat: 39.756, lon: -105.221 },
+        { id: "BLD", name: "Boulder", lat: 40.007, lon: -105.266 },
+      ],
+    },
+  },
   // Real mountain passes, canyons and tunnels: [name, latitude, longitude]. Track that crosses
   // mountains near one goes over the pass (it costs more and trains climb slowly);
   // anywhere else, mountains need a tunnel. A real tunnel is listed as a pass named after it.

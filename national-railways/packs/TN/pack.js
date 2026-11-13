@@ -338,6 +338,27 @@ NR.addPack({
     // Wilson
     { id: "MTJL", name: "Mount Juliet", county: "tn-wilson", lat: 36.2, lon: -86.51, type: "metro", size: 2 },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md (City maps).
+  metros: {
+    NASH: {
+      name: "Nashville",
+      size: 4,
+      stops: [
+        { id: "RFS", name: "Riverfront Station", lat: 36.162, lon: -86.775, hub: true },
+        { id: "GTN", name: "Germantown", lat: 36.178, lon: -86.79 },
+        { id: "EAS", name: "East Nashville", lat: 36.177, lon: -86.742 },
+        { id: "VAN", name: "Vanderbilt University", lat: 36.145, lon: -86.803 },
+        { id: "TWS", name: "12 South", lat: 36.125, lon: -86.789 },
+        { id: "GHL", name: "Green Hills", lat: 36.105, lon: -86.815 },
+        { id: "BNA", name: "Airport", lat: 36.126, lon: -86.678 },
+        { id: "OPR", name: "Opryland", lat: 36.207, lon: -86.693 },
+        { id: "BRW", name: "Brentwood", lat: 36.033, lon: -86.783 },
+        { id: "FRK", name: "Franklin", lat: 35.925, lon: -86.869 },
+        { id: "HVL", name: "Hendersonville", lat: 36.305, lon: -86.62 },
+      ],
+    },
+  },
   // Mountain passes: [name, latitude, longitude]. Real, well-known ones only (sources in NOTES.md).
   // Cumberland Gap is in Kentucky's pack. The Smokies and the Blue Ridge cross into North
   // Carolina (which comes later).

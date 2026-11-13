@@ -406,6 +406,46 @@ NR.addPack({
       ],
     },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md (City maps).
+  metros: {
+    STL: {
+      name: "St. Louis",
+      size: 4,
+      stops: [
+        { id: "GTC", name: "Gateway Transportation Center", lat: 38.627, lon: -90.206, hub: true },
+        { id: "ARC", name: "Gateway Arch", lat: 38.625, lon: -90.185 },
+        { id: "SOU", name: "Soulard", lat: 38.611, lon: -90.208 },
+        { id: "CWE", name: "Central West End", lat: 38.645, lon: -90.261 },
+        { id: "GRC", name: "Grand Center", lat: 38.64, lon: -90.23 },
+        { id: "FPK", name: "Forest Park", lat: 38.635, lon: -90.291 },
+        { id: "WSU", name: "Washington University", lat: 38.648, lon: -90.311 },
+        { id: "HIL", name: "The Hill", lat: 38.617, lon: -90.275 },
+        { id: "CLY", name: "Clayton", lat: 38.648, lon: -90.335 },
+        { id: "STL", name: "Lambert Airport", lat: 38.748, lon: -90.37 },
+        { id: "ESL", name: "East St. Louis", lat: 38.625, lon: -90.151 },
+        { id: "KWD", name: "Kirkwood", lat: 38.581, lon: -90.407 },
+      ],
+    },
+    KC: {
+      name: "Kansas City",
+      size: 4,
+      stops: [
+        { id: "UNS", name: "Union Station", lat: 39.085, lon: -94.586, hub: true },
+        { id: "PLD", name: "Power & Light District", lat: 39.101, lon: -94.581 },
+        { id: "EVN", name: "18th & Vine", lat: 39.091, lon: -94.563 },
+        { id: "PLZ", name: "Country Club Plaza", lat: 39.043, lon: -94.595 },
+        { id: "UMK", name: "UMKC", lat: 39.034, lon: -94.577 },
+        { id: "KCK", name: "Kansas City, Kansas", lat: 39.114, lon: -94.627 },
+        { id: "MCI", name: "Airport", lat: 39.298, lon: -94.714 },
+        { id: "TSC", name: "Truman Sports Complex", lat: 39.049, lon: -94.484 },
+        { id: "IND", name: "Independence", lat: 39.091, lon: -94.415 },
+        { id: "OPK", name: "Overland Park", lat: 38.983, lon: -94.671 },
+        { id: "NKC", name: "North Kansas City", lat: 39.13, lon: -94.563 },
+        { id: "LSS", name: "Lee's Summit", lat: 38.911, lon: -94.382 },
+      ],
+    },
+  },
   // Real mountain passes and gaps: [name, latitude, longitude]. Missouri's map has no mountains
   // (the Ozarks are hills on its grid), so none (NOTES.md).
   passes: [],

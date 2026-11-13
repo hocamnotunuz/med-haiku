@@ -434,3 +434,9 @@ Following Utah's and Wyoming's conventions:
 3. **Airports:** Denver International and Colorado Springs. Colorado Springs is over the 1-million bar from memory (moderately known).
 4. **Leniencies:** McClure Pass, Independence Pass, Red Mountain Pass and Dallas Divide open some long lines across the Elks and the San Juans in Tough. Clear Creek Canyon takes I-70's Denver–Idaho Springs.
 5. **New Mexico, Kansas, Nebraska and Oklahoma:** Raton Pass, Cumbres Pass and the Trinidad bridge are in place for New Mexico. Julesburg, Holyoke, Wray, Burlington, Cheyenne Wells, Lamar and Springfield are near the eastern lines.
+
+## City maps
+
+**Denver (DEN, size 4, 12 stops).** Hub: Union Station (Amtrak California Zephyr, RTD rail, A Line to the airport). Stops: Union Station, Capitol Hill, Cherry Creek, University of Denver, Highlands, Empower Field at Mile High, Denver International Airport, Anschutz Medical Campus (Aurora), Lakewood, Arvada, Golden, Boulder (CU Boulder, 23.0 mi from the main station, the furthest stop). Closest pair 1.2 mi. Left out: Littleton, Westminster, Centennial and Castle Rock (further south, not needed for the spread). No stop in water in the preview (the South Platte and Cherry Creek are narrow). The terrain build will show the foothills at Golden and Boulder (2958 m highest in the box). Coordinates from memory, 3 decimals, good to a few hundred metres.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

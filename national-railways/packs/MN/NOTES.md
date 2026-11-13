@@ -451,3 +451,9 @@ Lutsen is a town (Lutsen Mountains, the ski area; a Census CDP point), not a sce
    - Chaska typed farm for the start.
    - Rochester scenic for the Mayo Clinic.
    - Chatfield and Princeton as stations.
+
+## City maps
+
+**Minneapolis–St. Paul (MPLS, size 5, 12 stops).** One map for both downtowns, keyed by Minneapolis's station. Hub: Target Field Station (the downtown Minneapolis rail and transit hub: Metro Blue and Green lines, Northstar). Stops: Target Field Station, St. Paul Union Depot (Amtrak Empire Builder, Green Line), University of Minnesota (East Bank), Airport (MSP, Lindbergh terminal), Mall of America (Bloomington), Uptown, Northeast Minneapolis, U.S. Bank Stadium, Edina, Midway (Allianz Field), St. Louis Park, Minnehaha Falls. Furthest stop 9.2 mi from the state map's station; closest pair 1.2 mi. Coordinates are from memory (3 decimals, approximate to a few hundred metres); the places are well known. Preview: no stop in water; St. Paul Union Depot and the University sit 200-450 m from the Mississippi's shore, on land. Left out: the outer suburbs (Maple Grove, Woodbury, Lakeville), to keep stops about a mile apart.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

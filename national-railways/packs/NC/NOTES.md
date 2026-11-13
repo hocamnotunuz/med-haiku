@@ -110,3 +110,9 @@ County targets are cumulative, as in the other packs.
 ## Main agent's review
 
 - **Raleigh and Charlotte are size 4, not 5:** like Denver, St. Louis and Kansas City, the cores of metros of 1.5 to 3 million (Charlotte's is about 2.7 million, Raleigh's 1.4 million); size 5 is for the cores of the biggest metros (Atlanta, Miami, Houston, Minneapolis, Detroit).
+
+## City maps
+
+**Charlotte (CLTE, size 4, 11 stops).** Hub: the Charlotte Transportation Center in Uptown (the LYNX Blue Line and bus hub). The Amtrak station on North Tryon and the planned Gateway Station were left out because their exact positions were not certain. Stops: Transportation Center, South End, Dilworth, Plaza Midwood, NoDa, UNC Charlotte, Douglas Airport, SouthPark, Ballantyne, Matthews, Huntersville. Furthest 12.5 mi, closest pair 1.3 mi. Left out: Concord, Gastonia, Mooresville and Lake Norman towns (further out, near or over the limit). No stop in water in the preview. Coordinates from memory, 3 decimals, good to a few hundred metres.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

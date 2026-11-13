@@ -317,6 +317,28 @@ NR.addPack({
       ],
     },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md (City maps).
+  metros: {
+    MPLS: {
+      name: "Minneapolis–St. Paul",
+      size: 5,
+      stops: [
+        { id: "TFS", name: "Target Field Station", lat: 44.983, lon: -93.278, hub: true },
+        { id: "UDP", name: "St. Paul Union Depot", lat: 44.948, lon: -93.087 },
+        { id: "UMN", name: "University of Minnesota", lat: 44.974, lon: -93.232 },
+        { id: "MSP", name: "Airport", lat: 44.882, lon: -93.222 },
+        { id: "MOA", name: "Mall of America", lat: 44.854, lon: -93.242 },
+        { id: "UPT", name: "Uptown", lat: 44.949, lon: -93.298 },
+        { id: "NEM", name: "Northeast Minneapolis", lat: 45.004, lon: -93.256 },
+        { id: "USB", name: "U.S. Bank Stadium", lat: 44.974, lon: -93.258 },
+        { id: "EDN", name: "Edina", lat: 44.88, lon: -93.32 },
+        { id: "AFD", name: "Midway", lat: 44.953, lon: -93.165 },
+        { id: "SLP", name: "St. Louis Park", lat: 44.948, lon: -93.347 },
+        { id: "MHF", name: "Minnehaha Falls", lat: 44.915, lon: -93.211 },
+      ],
+    },
+  },
   // Real mountain passes and gaps: [name, latitude, longitude]. Minnesota's map has no mountains
   // (22 hill cells, in the southeast's bluffs and the Arrowhead), so no link needs one.
   passes: [],

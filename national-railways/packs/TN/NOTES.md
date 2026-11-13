@@ -123,3 +123,9 @@ All 170 pairs of neighbouring main stations (including Kentucky, Arkansas and Mi
 
 ### Not sure
 Bridge and pass coordinates (approximate, above); whether Paris-Waverly and Harrogate-Morristown should have a real bridge on the map in Tough (I know of none I can place with confidence); size 3 for Murfreesboro; the type of Oak Ridge (metro) and Sweetwater (farm); Fall Creek Falls' exact point and county.
+
+## City maps
+
+**Nashville (NASH, size 4, 11 stops).** Hub: Riverfront Station (Music City Star terminal on the Cumberland, by Broadway and the Ryman area; Music City Central is the bus hub, not used). Stops: Riverfront Station, Germantown, East Nashville, Vanderbilt University, 12 South (id TWS, since ids need letters only), Green Hills, Airport (BNA), Opryland, Brentwood, Franklin, Hendersonville. Furthest 17.0 mi, closest pair 1.4 mi. Left out: Murfreesboro (about 30 mi), Gallatin, Lebanon, Mt. Juliet. The Cumberland is the only wide water: Riverfront Station is 200 m from it in the preview, on land. Coordinates from memory, 3 decimals, good to a few hundred metres.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.
