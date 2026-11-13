@@ -1550,7 +1550,20 @@ const STATES = {
     ],
     names: { "Caledonia-Essex-Orleans": "Northeast Kingdom", "Lamoille-Orange-Washington": "Central Vermont" },
   },
-  NH: { fips: "33", name: "New Hampshire", pop: "census", merge: [] },
+  // New Hampshire: 10 counties, 1.38 million people (Census 2020); 8 regions, set by the main agent.
+  // Coos (the North Country, 31,000) joins Carroll along NH-16 and the Saco and Androscoggin
+  // valleys: the White Mountains; Sullivan (Claremont, 43,000) joins Grafton in the Upper Valley of
+  // the Connecticut (Lebanon and Hanover).
+  NH: {
+    fips: "33",
+    name: "New Hampshire",
+    pop: "census",
+    merge: [
+      ["Carroll", "Coos"],
+      ["Grafton", "Sullivan"],
+    ],
+    names: { "Carroll-Coos": "White Mountains" },
+  },
   ME: { fips: "23", name: "Maine", pop: "census", merge: [] },
   // Canada: regions are census divisions (in British Columbia, its regional districts). Small
   // ones are merged automatically from Statistics Canada's 2021 populations, for the pack
