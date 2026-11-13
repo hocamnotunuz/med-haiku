@@ -137,3 +137,9 @@ Start: Fulton, Fayette, Coweta. First track: Peachtree City (metro) to Newnan (f
 - Bridge coordinates are my best positions for real structures, not surveyed points (Browns Bridge, Keith Bridge, Belton Bridge and Thompson Bridge especially); the lake outlines on the map are simplified.
 - Ten regions have no town (see above): add towns there only after checking for real places 4 miles from the stations.
 - Part A's stations were left as they were: no change was forced by the checks.
+
+## City maps
+
+One `metros` entry, **ATL, "Atlanta" (size 5, 12 stops, farthest Marietta 16.8 mi)**, no cable stops. Hub: **Five Points** (the MARTA rail hub in downtown), not the Peachtree (Amtrak) station in Midtown. Stops: Midtown (Arts Center), Buckhead, Georgia Tech, Decatur, Emory University, Hartsfield-Jackson Airport, Little Five Points (id LFP), West End, Cumberland (Truist Park), Sandy Springs, Marietta. Every stop is a real place at its real location (3 decimals, from my own knowledge, no outside lookups), at least 1 mile from the others and within 25 miles of the state map's main station (checked in code). The preview was checked by eye and in code: no stop in water or within 250 m of it (the metro has almost no wide water). The checker's "no hills and water yet" warning is expected until the main agent builds the city terrain. Left out: Stone Mountain and East Point (kept the list to 12). Unsure: stop points are best positions to a few hundred metres.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

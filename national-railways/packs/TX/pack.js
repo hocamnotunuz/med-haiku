@@ -1107,6 +1107,85 @@ NR.addPack({
   ],
   // Cartoon look: forest = trees even on the flats; wooded = trees on the hills;
   // dry = sand, cacti or sagebrush. Counties not listed are green farmland and grassland.
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. No cable cars here.
+  metros: {
+    DLS: {
+      // Fort Worth (about 30 miles west, over the 25-mile limit) is left out: it has its own main station.
+      name: "Dallas–Fort Worth",
+      size: 5,
+      stops: [
+        { id: "UNS", name: "Union Station", lat: 32.775, lon: -96.806, hub: true },
+        { id: "DEP", name: "Deep Ellum", lat: 32.784, lon: -96.783 },
+        { id: "UPT", name: "Uptown", lat: 32.8, lon: -96.805 },
+        { id: "LUV", name: "Love Field", lat: 32.847, lon: -96.852 },
+        { id: "FPK", name: "Fair Park", lat: 32.779, lon: -96.759 },
+        { id: "BSH", name: "Bishop Arts (Oak Cliff)", lat: 32.749, lon: -96.828 },
+        { id: "SMU", name: "SMU / Park Cities", lat: 32.841, lon: -96.784 },
+        { id: "DFW", name: "DFW Airport", lat: 32.899, lon: -97.04 },
+        { id: "IRV", name: "Las Colinas (Irving)", lat: 32.879, lon: -96.944 },
+        { id: "ARL", name: "Arlington Stadiums", lat: 32.752, lon: -97.092 },
+        { id: "PLN", name: "Downtown Plano", lat: 33.02, lon: -96.699 },
+        { id: "UTD", name: "UT Dallas (Richardson)", lat: 32.986, lon: -96.75 },
+      ],
+    },
+    HOU: {
+      // Galveston, The Woodlands and Katy are over 25 miles out and left out.
+      name: "Houston",
+      size: 5,
+      stops: [
+        { id: "AMT", name: "Amtrak Station (Downtown)", lat: 29.769, lon: -95.381, hub: true },
+        { id: "MID", name: "Midtown", lat: 29.741, lon: -95.378 },
+        { id: "MUS", name: "Museum District", lat: 29.722, lon: -95.389 },
+        { id: "TMC", name: "Texas Medical Center", lat: 29.71, lon: -95.401 },
+        { id: "UH", name: "University of Houston", lat: 29.721, lon: -95.343 },
+        { id: "HTS", name: "The Heights", lat: 29.801, lon: -95.398 },
+        { id: "GAL", name: "Galleria / Uptown", lat: 29.739, lon: -95.463 },
+        { id: "HOB", name: "Hobby Airport", lat: 29.645, lon: -95.279 },
+        { id: "IAH", name: "Bush Intercontinental Airport", lat: 29.984, lon: -95.342 },
+        { id: "PAS", name: "Pasadena", lat: 29.691, lon: -95.209 },
+        { id: "JSC", name: "Johnson Space Center", lat: 29.552, lon: -95.097 },
+        { id: "SUG", name: "Sugar Land", lat: 29.62, lon: -95.635 },
+      ],
+    },
+    SA: {
+      name: "San Antonio",
+      size: 5,
+      stops: [
+        { id: "SSS", name: "Sunset Station", lat: 29.421, lon: -98.478, hub: true },
+        { id: "MKT", name: "Market Square", lat: 29.425, lon: -98.5 },
+        { id: "PRL", name: "The Pearl", lat: 29.443, lon: -98.48 },
+        { id: "STH", name: "Southtown", lat: 29.408, lon: -98.495 },
+        { id: "FBC", name: "Frost Bank Center", lat: 29.427, lon: -98.438 },
+        { id: "TRN", name: "Trinity University", lat: 29.461, lon: -98.482 },
+        { id: "UTS", name: "UTSA", lat: 29.583, lon: -98.619 },
+        { id: "SAT", name: "San Antonio Airport", lat: 29.533, lon: -98.47 },
+        { id: "MSJ", name: "Mission San José", lat: 29.362, lon: -98.48 },
+        { id: "AHT", name: "Alamo Heights", lat: 29.485, lon: -98.466 },
+        { id: "MED", name: "South Texas Medical Center", lat: 29.508, lon: -98.576 },
+        { id: "PSA", name: "Port San Antonio", lat: 29.372, lon: -98.575 },
+      ],
+    },
+    ATX: {
+      // San Marcos is over 25 miles out and left out.
+      name: "Austin",
+      size: 4,
+      stops: [
+        { id: "DTN", name: "Downtown Station", lat: 30.266, lon: -97.739, hub: true },
+        { id: "UTA", name: "UT Austin", lat: 30.285, lon: -97.734 },
+        { id: "SCG", name: "South Congress", lat: 30.25, lon: -97.75 },
+        { id: "DOM", name: "The Domain", lat: 30.402, lon: -97.725 },
+        { id: "AUS", name: "Austin-Bergstrom Airport", lat: 30.194, lon: -97.67 },
+        { id: "ZIL", name: "Zilker Park", lat: 30.267, lon: -97.773 },
+        { id: "HYP", name: "Hyde Park", lat: 30.306, lon: -97.732 },
+        { id: "COA", name: "Circuit of the Americas", lat: 30.133, lon: -97.641 },
+        { id: "RRK", name: "Round Rock", lat: 30.508, lon: -97.679 },
+        { id: "CPK", name: "Cedar Park", lat: 30.505, lon: -97.82 },
+        { id: "PFL", name: "Pflugerville", lat: 30.439, lon: -97.62 },
+        { id: "MUE", name: "Mueller", lat: 30.298, lon: -97.705 },
+      ],
+    },
+  },
   biomes: {
     // The Piney Woods: the Angelina, Davy Crockett, Sabine and Sam Houston national forests, the
     // Big Thicket and the pine and hardwood belt from Texarkana to Orange (as Oklahoma's

@@ -581,6 +581,28 @@ NR.addPack({
   ],
   // Cartoon look: forest = trees even on the flats; wooded = trees on the hills;
   // dry = sand, cacti or sagebrush. Regions not listed are green farmland and grassland.
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. No cable cars here.
+  metros: {
+    ATL: {
+      name: "Atlanta",
+      size: 5,
+      stops: [
+        { id: "FPT", name: "Five Points", lat: 33.754, lon: -84.391, hub: true },
+        { id: "MID", name: "Midtown", lat: 33.789, lon: -84.387 },
+        { id: "BUK", name: "Buckhead", lat: 33.847, lon: -84.368 },
+        { id: "GT", name: "Georgia Tech", lat: 33.7756, lon: -84.3963 },
+        { id: "DEC", name: "Decatur", lat: 33.775, lon: -84.296 },
+        { id: "EMO", name: "Emory University", lat: 33.792, lon: -84.324 },
+        { id: "ATL", name: "Hartsfield-Jackson Airport", lat: 33.64, lon: -84.427 },
+        { id: "LFP", name: "Little Five Points", lat: 33.764, lon: -84.349 },
+        { id: "WND", name: "West End", lat: 33.736, lon: -84.413 },
+        { id: "CBL", name: "Cumberland (Truist Park)", lat: 33.891, lon: -84.468 },
+        { id: "SSP", name: "Sandy Springs", lat: 33.932, lon: -84.351 },
+        { id: "MAR", name: "Marietta", lat: 33.953, lon: -84.55 },
+      ],
+    },
+  },
   biomes: {
     // The pine flatwoods of the coastal plain, from the Okefenokee and the Altamaha to the Savannah River
     forest: ["ga-chatham", "ga-effingham", "ga-bryan", "ga-liberty", "ga-bulloch", "ga-candler-evans-tattnall", "ga-long-mcintosh-wayne", "ga-glynn", "ga-camden", "ga-brantley-charlton-pierce", "ga-clinch-echols-ware", "ga-appling-bacon-jeff-davis", "ga-atkinson-coffee", "ga-berrien-cook-lanier", "ga-burke-jenkins-screven", "ga-emanuel-johnson-treutlen", "ga-montgomery-toombs-wheeler", "ga-laurens"],
