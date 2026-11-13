@@ -1517,7 +1517,20 @@ const STATES = {
       ["Newport", "Washington"],
     ],
   },
-  MA: { fips: "25", name: "Massachusetts", pop: "census", merge: [] },
+  // Massachusetts: 14 counties, 7.03 million people (Census 2020); 13 regions. Every county is over
+  // 50,000 except the islands: Dukes (Martha's Vineyard, 21,000) joins Barnstable, and Nantucket
+  // (14,000, no land neighbour) comes along with them by the Hyannis ferry: Cape Cod and the
+  // Islands.
+  MA: {
+    fips: "25",
+    name: "Massachusetts",
+    pop: "census",
+    join: [["Nantucket", "Barnstable"]],
+    merge: [
+      ["Barnstable", "Dukes"],
+    ],
+    names: { "Barnstable-Dukes-Nantucket": "Cape Cod and the Islands" },
+  },
   VT: { fips: "50", name: "Vermont", pop: "census", merge: [] },
   NH: { fips: "33", name: "New Hampshire", pop: "census", merge: [] },
   ME: { fips: "23", name: "Maine", pop: "census", merge: [] },
@@ -2181,6 +2194,11 @@ for (const code of CODES) {
         if (members.length > 1 && !members.some((j) => j !== i && neighbors[i].includes(j))) {
           throw new Error(`${counties[i].properties.name} does not border the rest of its group`);
         }
+      }
+      // (an island joined to one of the group comes along: Nantucket with Barnstable and Dukes)
+      for (const [island, mainland] of cfg.join || []) {
+        const a = find(code, island), b = find(code, mainland);
+        if (members.includes(b) && !members.includes(a)) members.push(a);
       }
       members.forEach((i) => groupOf.set(i, members));
     }
