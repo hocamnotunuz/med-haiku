@@ -161,3 +161,34 @@ None: Florida is flat (the highest ground, Britton Hill in Walton County at 345 
 - **Fort Lauderdale is size 4, not 5:** Broward (1.94M) is the same size as Santa Clara County, whose San Jose is 4; size 5 is for the cores of the biggest metros (Miami, Los Angeles, Houston, Atlanta).
 - **The Sunshine Skyway joins Manatee and Pinellas** as neighbours (bridges in STATES.FL), so either can be unlocked from the other across Tampa Bay, as the pack agent suggested.
 - Florida's smaller bays (Biscayne, Pensacola, Choctawhatchee, St. Andrew) are inside the county shapes on the US map, so they are land in the game and don't block track: a limit of the map's data.
+
+## City maps
+
+### Miami (MIA, size 5, 12 stops)
+
+Stops: MiamiCentral, Brickell, Wynwood, Little Havana, Coconut Grove, Coral Gables, Miami Airport, South Beach, Key Biscayne, Hialeah, Kendall, Hard Rock Stadium.
+
+Hub: MiamiCentral (Brightline station, 600 NE 1st Ave; the Miami Intermodal Center at the airport is not used as the hub). Key Biscayne and South Beach are islands, checked as land in the water data. Left out: Homestead, Fort Lauderdale (further than 25 mi or its own city map). Sources: Brightline/MiamiCentral station, City of Miami neighborhood and Miami-Dade municipality locations (public gazetteer coordinates), Hard Rock Stadium, Miami International Airport.
+
+Brickell, Coconut Grove sit 400 m from the bay shore (land).
+
+Checked: every stop within 25 miles of the main station and at least 1 mile apart (the two Aerial Tram stops excepted); no stop in water in the preview data (checked in code and by picture); the hill/water terrain is not built yet.
+
+### Tampa (TPA, size 4, 11 stops)
+
+Stops: Union Station, Ybor City, Hyde Park, Seminole Heights, USF, Tampa Airport, Raymond James Stadium, Westshore, Brandon, St. Petersburg, Clearwater.
+
+Hub: Tampa Union Station (601 N Nebraska Ave, Amtrak). St. Petersburg and Clearwater are across Tampa Bay and checked as land. Left out: Lakeland, Bradenton, Plant City (over 25 mi). Sources: Amtrak Tampa Union Station, USF, Tampa International Airport, Raymond James Stadium, Ybor City Historic District, public gazetteer coordinates for the cities.
+
+Checked: every stop within 25 miles of the main station and at least 1 mile apart (the two Aerial Tram stops excepted); no stop in water in the preview data (checked in code and by picture); the hill/water terrain is not built yet.
+
+### Orlando (ORLD, size 4, 12 stops)
+
+Stops: Church Street, Amtrak Station, Winter Park, Maitland, UCF, Orlando Airport, International Drive, Universal Orlando, Disney Springs, Sanford, Apopka, Kissimmee.
+
+Hub: Church Street station (SunRail, downtown). The Amtrak station (Sligh Blvd) is a separate stop 1.1 mi south. Left out: Lake Buena Vista/Celebration, Clermont (over 25 mi or inside Disney Springs' reach). Sources: SunRail and Amtrak station lists, UCF, Orlando International Airport, Universal Orlando, Disney Springs, public gazetteer coordinates for the cities.
+
+Checked: every stop within 25 miles of the main station and at least 1 mile apart (the two Aerial Tram stops excepted); no stop in water in the preview data (checked in code and by picture); the hill/water terrain is not built yet.
+
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

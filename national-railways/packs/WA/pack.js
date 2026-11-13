@@ -207,6 +207,28 @@ NR.addPack({
     ["Cable Bridge (Kennewick–Pasco)", 46.22, -119.11],
     ["Snake River bridge (Clarkston–Lewiston)", 46.42, -117.04], // US 12
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md (City maps).
+  metros: {
+    SEA: {
+      name: "Seattle",
+      size: 5,
+      stops: [
+        { id: "KSS", name: "King Street Station", lat: 47.598, lon: -122.33, hub: true },
+        { id: "QAN", name: "Queen Anne", lat: 47.637, lon: -122.357 },
+        { id: "SNP", name: "Seattle Center", lat: 47.621, lon: -122.349 },
+        { id: "CHL", name: "Capitol Hill", lat: 47.623, lon: -122.32 },
+        { id: "UWS", name: "University of Washington", lat: 47.655, lon: -122.308 },
+        { id: "BAL", name: "Ballard", lat: 47.668, lon: -122.384 },
+        { id: "FRM", name: "Fremont", lat: 47.652, lon: -122.35 },
+        { id: "WSJ", name: "West Seattle", lat: 47.561, lon: -122.387 },
+        { id: "SEA", name: "Sea-Tac Airport", lat: 47.45, lon: -122.309 },
+        { id: "BEL", name: "Bellevue", lat: 47.615, lon: -122.2 },
+        { id: "KRK", name: "Kirkland", lat: 47.677, lon: -122.209 },
+        { id: "CBC", name: "Columbia City", lat: 47.56, lon: -122.286 },
+      ],
+    },
+  },
   // Cartoon look: forest = trees even on the flats; wooded = trees on the hills;
   // dry = sand, cacti or sagebrush. Counties not listed are green farmland and grassland.
   biomes: {

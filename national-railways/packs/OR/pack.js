@@ -116,6 +116,28 @@ NR.addPack({
     ["Steel Bridge (Portland)", 45.53, -122.67],
     ["Marion Street Bridge (Salem)", 44.94, -123.05],
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md (City maps).
+  metros: {
+    PDX: {
+      name: "Portland",
+      size: 5,
+      stops: [
+        { id: "UNS", name: "Union Station", lat: 45.529, lon: -122.677, hub: true },
+        { id: "ALB", name: "Alberta Arts", lat: 45.559, lon: -122.645 },
+        { id: "LLC", name: "Lloyd Center", lat: 45.532, lon: -122.653 },
+        { id: "HAW", name: "Hawthorne", lat: 45.512, lon: -122.625 },
+        { id: "PDX", name: "Portland Airport", lat: 45.589, lon: -122.593 },
+        { id: "BVT", name: "Beaverton", lat: 45.487, lon: -122.804 },
+        { id: "HIL", name: "Hillsboro", lat: 45.523, lon: -122.989 },
+        { id: "GRS", name: "Gresham", lat: 45.498, lon: -122.431 },
+        { id: "VAN", name: "Vancouver", lat: 45.628, lon: -122.675 },
+        { id: "LOS", name: "Lake Oswego", lat: 45.42, lon: -122.67 },
+        { id: "SWF", name: "South Waterfront", lat: 45.498, lon: -122.671, cable: true },
+        { id: "OHS", name: "OHSU", lat: 45.499, lon: -122.687, cable: true },
+      ],
+    },
+  },
   // Cartoon look: forest = trees even on the flats; wooded = trees on the hills;
   // dry = sand, cacti or sagebrush. Counties not listed are green farmland and grassland.
   biomes: {

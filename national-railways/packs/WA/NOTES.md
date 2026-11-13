@@ -184,3 +184,18 @@ Unsure: Chelan-Douglas and Kittitas (wooded, though Douglas and eastern Kittitas
 ## 8. Screenshots looked at
 
 `WA-arcade-light.png`, `WA-classic-light.png`, `WA-levels.png`, `WA-phone.png`: stations sit at their cities (Seattle, Tacoma, Bremerton, Kent, Snoqualmie, Wenatchee visible), the Cascades read as a wall with pass markers at the crossings, bridge markers sit on the Columbia, the Basin is tan and the Palouse green, Level 1 only offers Puget Sound counties, and the phone view fits. Nothing looked broken. After the new merges `WA-arcade-light.png` shows 28 regions, Tacoma with the coast symbol, Ferry-Okanogan wooded, Franklin dry and the Palouse green.
+
+## City maps
+
+### Seattle (SEA, size 5, 12 stops)
+
+Stops: King Street Station, Queen Anne, Seattle Center, Capitol Hill, University of Washington, Ballard, Fremont, West Seattle, Sea-Tac Airport, Bellevue, Kirkland, Columbia City.
+
+Hub: King Street Station (Amtrak, Sounder), 1.8 mi from the state map's main station at Seattle Center side. Puget Sound, Lake Union and Lake Washington are water; Bellevue and Kirkland are across the lake (land). Left out: Tacoma (30 mi), Everett, Bremerton. Sources: Amtrak King Street Station, University of Washington, Seattle Center, Sea-Tac Airport, public gazetteer coordinates for neighborhoods and cities.
+
+Fremont was moved a few hundred metres off the Ship Canal; Kirkland sits 400 m from the lake shore.
+
+Checked: every stop within 25 miles of the main station and at least 1 mile apart (the two Aerial Tram stops excepted); no stop in water in the preview data (checked in code and by picture); the hill/water terrain is not built yet.
+
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

@@ -342,6 +342,63 @@ NR.addPack({
       ]
     }
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md (City maps).
+  metros: {
+    MIA: {
+      name: "Miami",
+      size: 5,
+      stops: [
+        { id: "MCN", name: "MiamiCentral", lat: 25.779, lon: -80.191, hub: true },
+        { id: "BRK", name: "Brickell", lat: 25.762, lon: -80.192 },
+        { id: "WYN", name: "Wynwood", lat: 25.801, lon: -80.199 },
+        { id: "LHV", name: "Little Havana", lat: 25.766, lon: -80.225 },
+        { id: "CGR", name: "Coconut Grove", lat: 25.728, lon: -80.241 },
+        { id: "CGB", name: "Coral Gables", lat: 25.749, lon: -80.261 },
+        { id: "MIA", name: "Miami Airport", lat: 25.795, lon: -80.287 },
+        { id: "SOB", name: "South Beach", lat: 25.79, lon: -80.134 },
+        { id: "KBY", name: "Key Biscayne", lat: 25.693, lon: -80.163 },
+        { id: "HLH", name: "Hialeah", lat: 25.858, lon: -80.278 },
+        { id: "KND", name: "Kendall", lat: 25.679, lon: -80.317 },
+        { id: "HRS", name: "Hard Rock Stadium", lat: 25.958, lon: -80.239 },
+      ],
+    },
+    TPA: {
+      name: "Tampa",
+      size: 4,
+      stops: [
+        { id: "TUS", name: "Union Station", lat: 27.949, lon: -82.455, hub: true },
+        { id: "YBR", name: "Ybor City", lat: 27.96, lon: -82.438 },
+        { id: "HYD", name: "Hyde Park", lat: 27.937, lon: -82.475 },
+        { id: "SEM", name: "Seminole Heights", lat: 27.992, lon: -82.457 },
+        { id: "USF", name: "USF", lat: 28.06, lon: -82.413 },
+        { id: "TIA", name: "Tampa Airport", lat: 27.975, lon: -82.533 },
+        { id: "RJS", name: "Raymond James Stadium", lat: 27.976, lon: -82.503 },
+        { id: "WST", name: "Westshore", lat: 27.951, lon: -82.522 },
+        { id: "BRN", name: "Brandon", lat: 27.938, lon: -82.286 },
+        { id: "STP", name: "St. Petersburg", lat: 27.771, lon: -82.638 },
+        { id: "CLW", name: "Clearwater", lat: 27.966, lon: -82.8 },
+      ],
+    },
+    ORLD: {
+      name: "Orlando",
+      size: 4,
+      stops: [
+        { id: "CHS", name: "Church Street", lat: 28.54, lon: -81.382, hub: true },
+        { id: "AMT", name: "Amtrak Station", lat: 28.524, lon: -81.38 },
+        { id: "WPK", name: "Winter Park", lat: 28.6, lon: -81.351 },
+        { id: "MIT", name: "Maitland", lat: 28.627, lon: -81.363 },
+        { id: "UCF", name: "UCF", lat: 28.602, lon: -81.2 },
+        { id: "MCO", name: "Orlando Airport", lat: 28.431, lon: -81.308 },
+        { id: "IDR", name: "International Drive", lat: 28.425, lon: -81.469 },
+        { id: "UNI", name: "Universal Orlando", lat: 28.472, lon: -81.468 },
+        { id: "DSP", name: "Disney Springs", lat: 28.372, lon: -81.519 },
+        { id: "SFD", name: "Sanford", lat: 28.8, lon: -81.273 },
+        { id: "APK", name: "Apopka", lat: 28.676, lon: -81.512 },
+        { id: "KIS", name: "Kissimmee", lat: 28.293, lon: -81.406 },
+      ],
+    },
+  },
   // Cartoon look: forest = trees even on the flats; wooded = trees on the hills;
   // dry = sand, cacti or sagebrush. Regions not listed are green farmland and grassland.
   biomes: {

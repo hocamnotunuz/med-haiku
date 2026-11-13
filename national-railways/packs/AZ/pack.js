@@ -95,6 +95,28 @@ NR.addPack({
     ["Yuma bridges", 32.73, -114.61],
     ["Navajo Bridge", 36.82, -111.63],
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md (City maps).
+  metros: {
+    PHX: {
+      name: "Phoenix",
+      size: 5,
+      stops: [
+        { id: "CEN", name: "Central Station", lat: 33.452, lon: -112.074, hub: true },
+        { id: "CAP", name: "State Capitol", lat: 33.448, lon: -112.097 },
+        { id: "SKY", name: "Sky Harbor Airport", lat: 33.434, lon: -112.012 },
+        { id: "ASU", name: "Tempe (ASU)", lat: 33.419, lon: -111.934 },
+        { id: "OSC", name: "Old Town Scottsdale", lat: 33.494, lon: -111.926 },
+        { id: "BLT", name: "Biltmore", lat: 33.51, lon: -112.025 },
+        { id: "GLN", name: "Glendale", lat: 33.538, lon: -112.186 },
+        { id: "MSA", name: "Mesa", lat: 33.415, lon: -111.831 },
+        { id: "CHD", name: "Chandler", lat: 33.303, lon: -111.841 },
+        { id: "SFS", name: "State Farm Stadium", lat: 33.528, lon: -112.263 },
+        { id: "AHW", name: "Ahwatukee", lat: 33.341, lon: -112.027 },
+        { id: "ZOO", name: "Papago Park", lat: 33.451, lon: -111.95 },
+      ],
+    },
+  },
   // Cartoon look: forest = trees even on the flats; wooded = trees on the hills;
   // dry = sand, cacti or sagebrush. Counties not listed are green farmland and grassland.
   biomes: {

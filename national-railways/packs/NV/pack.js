@@ -83,6 +83,27 @@ NR.addPack({
   bridges: [
     ["Hoover Dam Bridge", 36.01, -114.74],
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md (City maps).
+  metros: {
+    LV: {
+      name: "Las Vegas",
+      size: 5,
+      stops: [
+        { id: "FRE", name: "Fremont Street", lat: 36.17, lon: -115.143, hub: true },
+        { id: "STR", name: "Stratosphere", lat: 36.147, lon: -115.156 },
+        { id: "BEL", name: "Bellagio", lat: 36.113, lon: -115.176 },
+        { id: "ALG", name: "Allegiant Stadium", lat: 36.091, lon: -115.183 },
+        { id: "LAS", name: "Harry Reid Airport", lat: 36.084, lon: -115.153 },
+        { id: "UNL", name: "UNLV", lat: 36.108, lon: -115.141 },
+        { id: "HND", name: "Henderson", lat: 36.04, lon: -114.982 },
+        { id: "SUM", name: "Summerlin", lat: 36.157, lon: -115.336 },
+        { id: "NLV", name: "North Las Vegas", lat: 36.199, lon: -115.118 },
+        { id: "CHN", name: "Chinatown", lat: 36.126, lon: -115.195 },
+        { id: "GVR", name: "Green Valley", lat: 36.02, lon: -115.085 },
+      ],
+    },
+  },
   // Cartoon look: forest = trees even on the flats; wooded = trees on the hills;
   // dry = sand, cacti or sagebrush. Counties not listed are green farmland and grassland.
   biomes: {
