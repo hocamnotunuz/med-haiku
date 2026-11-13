@@ -21,6 +21,8 @@
 //   CITY_PREVIEW=<cities.json> CITY_OUT=<folder> node tools/build-terrain.js tools/node_modules <cache>
 // where cities.json is [{ "code": "ON", "key": "TOR", "metro": { "name": ..., "stops": [...] } }].
 // It writes city-<key>.png, city-<key>.json and preview-<key>.png (water in blue) into the folder.
+// To add or redo only the city maps of some states, leaving their state terrain as it is:
+//   CITIES_ONLY=1 node tools/build-terrain.js tools/node_modules <cache> NY TX
 // Needs curl and unzip. The real passes and bridges are hand-made in each state's pack
 // (packs/<code>/pack.js); this tool warns about any pass with no mountains nearby.
 "use strict";
@@ -712,6 +714,22 @@ async function buildCity(code, key, metro, outDir) {
     for (const { code, key, metro } of JSON.parse(fs.readFileSync(process.env.CITY_PREVIEW, "utf8"))) {
       const city = await buildCity(code, key, metro, out);
       fs.writeFileSync(path.join(out, `city-${key}.json`), JSON.stringify(city));
+    }
+    return;
+  }
+  if (process.env.CITIES_ONLY) {
+    // Keep each state's terrain (the grid, rivers and lakes its pack was checked against) and
+    // rebuild only its city maps' hills and water
+    for (const code of ONLY) {
+      const file = path.join(GAME, "packs", code, "terrain.js");
+      const text = fs.readFileSync(file, "utf8");
+      const at = text.indexOf("NR.addPackTerrain(");
+      const t = JSON.parse(text.slice(at + "NR.addPackTerrain(".length, text.lastIndexOf(");")));
+      t.cities = {};
+      for (const [key, metro] of Object.entries((NR.PACKS[code] && NR.PACKS[code].metros) || {})) t.cities[key] = await buildCity(code, key, metro);
+      const out = text.slice(0, at) + "NR.addPackTerrain(" + JSON.stringify(t) + ");\n";
+      fs.writeFileSync(file, out);
+      console.log(`Wrote the city maps of packs/${code}/terrain.js (${Object.keys(t.cities).join(", ") || "none"}), ${Math.round(out.length / 1024)} KB`);
     }
     return;
   }
