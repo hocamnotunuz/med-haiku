@@ -1414,7 +1414,16 @@ const STATES = {
       ["Charles", "VA:King George"],
     ],
   },
-  DE: { fips: "10", name: "Delaware", pop: "census", merge: [] },
+  // Delaware: 3 counties, 990,000 people (Census 2020); each county is a region (all are over
+  // 50,000). New Jersey's links (the Delaware Memorial Bridge and the Cape May-Lewes Ferry) are
+  // listed with New Jersey.
+  DE: {
+    fips: "10",
+    name: "Delaware",
+    pop: "census",
+    merge: [
+    ],
+  },
   PA: { fips: "42", name: "Pennsylvania", pop: "census", merge: [] },
   NJ: { fips: "34", name: "New Jersey", pop: "census", merge: [] },
   NY: { fips: "36", name: "New York", pop: "census", merge: [] },
