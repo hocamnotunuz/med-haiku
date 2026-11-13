@@ -377,6 +377,28 @@ NR.addPack({
       ],
     },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains.
+  metros: {
+    CHGO: {
+      name: "Chicago",
+      size: 5,
+      stops: [
+        { id: "UNS", name: "Union Station", lat: 41.879, lon: -87.64, hub: true },
+        { id: "STV", name: "Streeterville", lat: 41.893, lon: -87.62 },
+        { id: "LPK", name: "Lincoln Park", lat: 41.925, lon: -87.652 },
+        { id: "WRG", name: "Wrigleyville", lat: 41.948, lon: -87.656 },
+        { id: "WPK", name: "Wicker Park", lat: 41.908, lon: -87.677 },
+        { id: "CHT", name: "Chinatown", lat: 41.853, lon: -87.634 },
+        { id: "HPK", name: "Hyde Park", lat: 41.79, lon: -87.6 },
+        { id: "OPK", name: "Oak Park", lat: 41.886, lon: -87.786 },
+        { id: "EVN", name: "Evanston", lat: 42.048, lon: -87.688 },
+        { id: "SKO", name: "Skokie", lat: 42.033, lon: -87.733 },
+        { id: "ORD", name: "O'Hare Airport", lat: 41.978, lon: -87.904 },
+        { id: "MDW", name: "Midway Airport", lat: 41.786, lon: -87.752 },
+      ],
+    },
+  },
   // Real mountain passes and gaps: [name, latitude, longitude]. Illinois's highest ground is a
   // few hundred feet of Shawnee hills and the Driftless bluffs; nothing needs a pass.
   passes: [],

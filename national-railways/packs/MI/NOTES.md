@@ -101,3 +101,11 @@ Built from `packs/MI/raw/` (U.S. Census Bureau, 2020): station `pop` = the regio
 - Menominee River bridge at Kingsford for US-2 to Florence: moderately known (the brief named Iron Mountain-Florence).
 - Station choices Manistee and Benton Harbor are mine (reasons above); Ludington and Niles are the alternatives (Ludington would leave Frankfort with one open neighbour in Tough).
 - Sizes of Oakland and Macomb (4) judged against Naperville (933k, size 4), not 5.
+
+## City maps
+
+**Detroit (`DET`, size 5, 12 stops, hub New Center Amtrak station).** I chose the Amtrak station in New Center (42.368,-83.078, 1.3 mi from the state map's downtown station) as the hub because it is the real railway station; Downtown (Campus Martius / Greektown, 42.336,-83.049) is a separate stop. Stops: New Center, Downtown, Corktown (Michigan Central), Hamtramck, Windsor (Ontario, across the river; the city map crosses the border), Grosse Pointe, Dearborn, Detroit Metro Airport, Livonia, Southfield, Royal Oak, Warren. Furthest stop Metro Airport, 17.2 mi; closest pair 1.4 mi. All coordinates from general knowledge.
+- Preview (`/tmp/city-midwest/preview-DET.png`): the Detroit River and Lake St. Clair are water. Downtown was moved north (Campus Martius is a quarter mile from the river) so it sits on land; Windsor is on the south bank, on land. Belle Isle was tried first and dropped (it sat on the river edge in the preview) in favour of Hamtramck.
+- Left out: Ann Arbor (about 34 mi), Sterling Heights, Pontiac, Midtown/Wayne State (under 1 mi from New Center), Belle Isle.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

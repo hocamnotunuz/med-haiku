@@ -96,3 +96,15 @@ The phase-1 merges were applied exactly (69 regions). 69 main stations, 124 town
 **IDs:** unique across all packs (checked by the checker): the main cities are CMH, CLE, CIN, TOL, AKRO, DAY, HMTN, CANT, YNG; other ids are made from the names (MANS is Mansfield, since MNSF is another pack's).
 
 **Not sure:** the real coordinates of the three Lake Erie crossings and the Ohio River bridges (general knowledge; they sit within 3 mi of the map's water); whether Put-in-Bay should be a town at all (it is a seasonal island); Hamilton (63k) as Butler's station next to bigger Middletown/Fairfield suburbs is the Census choice.
+
+## City maps
+
+All coordinates are from general knowledge (neighbourhood and city centres, 3 decimals). Closest pairs are 0.9-1.1 mi; furthest stops are under 17 mi. All three previews are in `/tmp/city-midwest/preview-<KEY>.png`; no stop is in water.
+
+**Cleveland (`CLE`, size 4, 12 stops, hub Tower City).** Tower City (41.497,-81.694, the RTA's central rail station, 0.3 mi from the state map's station; Amtrak's Lakefront Station is a mile east and not used), West Side Market (Ohio City), Edgewater, Lakewood, Rocky River, Hopkins Airport, Parma, University Circle, Shaker Square, Cleveland Heights, Euclid, Solon. Furthest Solon, 15 mi. Lake Erie is water: Edgewater was moved 0.004 deg south of the shore. Left out: Playhouse Square and the stadiums (under 1 mi from Tower City), Beachwood, Brook Park.
+
+**Columbus (`CMH`, size 4, 12 stops, hub Downtown).** Columbus has no passenger rail station (Union Station was demolished in 1979), so the hub is Downtown at the Ohio Statehouse (39.961,-83.001), the city's transit centre. Stops: Short North, Ohio State University, German Village, Bexley, Upper Arlington, Grove City, John Glenn Airport, Easton, Worthington, Dublin, Westerville. Furthest Westerville, 12 mi. The Scioto is narrow and not marked as a wide river; the downtown stops are on land. Left out: Franklinton (1 mi from Downtown), Delaware and Lancaster (over 25 mi or already towns in the state pack).
+
+**Cincinnati (`CIN`, size 4, 12 stops, hub Union Terminal).** Union Terminal (39.110,-84.537, Amtrak's Cardinal station, 1.6 mi from the state map's downtown point) is the hub; Downtown (Fountain Square) is a separate stop. Others: Over-the-Rhine (Findlay Market), University of Cincinnati, Mount Adams, Covington KY, Newport KY, Norwood, Hyde Park, Blue Ash, CVG Airport (Hebron, KY), Florence KY. The Ohio River is water; Covington and Newport sit on the south bank on land. Covington and Newport are 0.93 mi apart (about one mile, as the real towns are). Left out: Price Hill, Westwood, Fairfield, Mason.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

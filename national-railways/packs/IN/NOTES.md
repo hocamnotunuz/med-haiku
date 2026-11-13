@@ -105,3 +105,9 @@ Applied merges: the phase-1 list with one change by the coordinator: Shelby join
 **IDs:** unique across all packs (HMND is Louisiana's, so Hammond is HAMM; WAB.. so Wabash is WABA); checked by the checker.
 
 **Not sure:** the Kentucky bridge names and the Rising Sun, Tell City and Markland crossings (from general knowledge); the Lewis and Clark bridge snaps 3 mi from the real point because the map's Ohio is simplified there.
+
+## City maps
+
+**Indianapolis (`INDY`, size 4, 12 stops, hub Union Station).** Union Station (39.766,-86.162, Amtrak's Hoosier State/Cardinal station and the Greyhound hub, 0.3 mi from the state map's station). Stops: Mass Ave, Fountain Square, Beech Grove, Airport, Speedway (Indianapolis Motor Speedway), Butler University, Broad Ripple, Lawrence, Carmel, Fishers, Greenwood. Furthest Carmel, 16.4 mi; closest pair (Union Station-Mass Ave) 1.0 mi. All coordinates from general knowledge (city and neighbourhood centres, 3 decimals). Preview (`/tmp/city-midwest/preview-INDY.png`): White River and Fall Creek are narrow; no stop in water; Geist and Eagle reservoirs are well clear of the stops. Left out: IUPUI and Lucas Oil Stadium (under 1 mi from Union Station), Plainfield, Irvington.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

@@ -482,6 +482,64 @@ NR.addPack({
     // North Baltimore (3,369).
     { id: "NB", name: "North Baltimore", county: "oh-wood", lat: 41.18, lon: -83.67, type: "farm", size: 1 },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains.
+  metros: {
+    CLE: {
+      name: "Cleveland",
+      size: 4,
+      stops: [
+        { id: "TWC", name: "Tower City", lat: 41.497, lon: -81.694, hub: true },
+        { id: "OHC", name: "West Side Market", lat: 41.485, lon: -81.704 },
+        { id: "EDG", name: "Edgewater", lat: 41.482, lon: -81.737 },
+        { id: "LKW", name: "Lakewood", lat: 41.482, lon: -81.798 },
+        { id: "RKR", name: "Rocky River", lat: 41.475, lon: -81.839 },
+        { id: "HKS", name: "Hopkins Airport", lat: 41.411, lon: -81.85 },
+        { id: "PAR", name: "Parma", lat: 41.405, lon: -81.723 },
+        { id: "UCR", name: "University Circle", lat: 41.508, lon: -81.608 },
+        { id: "SHQ", name: "Shaker Square", lat: 41.479, lon: -81.578 },
+        { id: "CHH", name: "Cleveland Heights", lat: 41.52, lon: -81.556 },
+        { id: "EUC", name: "Euclid", lat: 41.593, lon: -81.527 },
+        { id: "SOL", name: "Solon", lat: 41.39, lon: -81.441 },
+      ],
+    },
+    CMH: {
+      name: "Columbus",
+      size: 4,
+      stops: [
+        { id: "DTN", name: "Downtown", lat: 39.961, lon: -83.001, hub: true },
+        { id: "SHN", name: "Short North", lat: 39.978, lon: -83.004 },
+        { id: "OSU", name: "Ohio State", lat: 40, lon: -83.015 },
+        { id: "GVL", name: "German Village", lat: 39.946, lon: -82.998 },
+        { id: "BEX", name: "Bexley", lat: 39.969, lon: -82.937 },
+        { id: "UAR", name: "Upper Arlington", lat: 40.022, lon: -83.062 },
+        { id: "GRV", name: "Grove City", lat: 39.881, lon: -83.093 },
+        { id: "CMH", name: "John Glenn Airport", lat: 39.998, lon: -82.892 },
+        { id: "EAS", name: "Easton", lat: 40.051, lon: -82.916 },
+        { id: "WRT", name: "Worthington", lat: 40.093, lon: -83.018 },
+        { id: "DUB", name: "Dublin", lat: 40.099, lon: -83.114 },
+        { id: "WES", name: "Westerville", lat: 40.126, lon: -82.929 },
+      ],
+    },
+    CIN: {
+      name: "Cincinnati",
+      size: 4,
+      stops: [
+        { id: "CUT", name: "Union Terminal", lat: 39.11, lon: -84.537, hub: true },
+        { id: "DTN", name: "Downtown", lat: 39.101, lon: -84.512 },
+        { id: "OTR", name: "Over-the-Rhine", lat: 39.115, lon: -84.518 },
+        { id: "UC", name: "University of Cincinnati", lat: 39.132, lon: -84.516 },
+        { id: "MTA", name: "Mount Adams", lat: 39.108, lon: -84.494 },
+        { id: "COV", name: "Covington", lat: 39.084, lon: -84.509 },
+        { id: "NPT", name: "Newport", lat: 39.092, lon: -84.495 },
+        { id: "NOR", name: "Norwood", lat: 39.156, lon: -84.459 },
+        { id: "HYD", name: "Hyde Park", lat: 39.137, lon: -84.438 },
+        { id: "BLA", name: "Blue Ash", lat: 39.232, lon: -84.378 },
+        { id: "CVG", name: "CVG Airport", lat: 39.049, lon: -84.667 },
+        { id: "FLO", name: "Florence", lat: 38.999, lon: -84.627 },
+      ],
+    },
+  },
   // Ohio's hills (the Allegheny Plateau of the south-east) are hills on the map's grid, not
   // mountains: there are no passes.
   passes: [],

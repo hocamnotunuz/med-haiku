@@ -236,6 +236,28 @@ NR.addPack({
     { id: "RGRC", name: "Rogers City", county: "mi-cheboygan-montmorency-presque-isle", lat: 45.42, lon: -83.8, type: "coast", size: 1 },
     { id: "ITHC", name: "Ithaca", county: "mi-gratiot", lat: 43.29, lon: -84.6, type: "farm", size: 1 },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains.
+  metros: {
+    DET: {
+      name: "Detroit",
+      size: 5,
+      stops: [
+        { id: "DTN", name: "New Center (Amtrak)", lat: 42.368, lon: -83.078, hub: true },
+        { id: "DWN", name: "Downtown", lat: 42.336, lon: -83.049 },
+        { id: "CTN", name: "Corktown", lat: 42.33, lon: -83.075 },
+        { id: "HAM", name: "Hamtramck", lat: 42.393, lon: -83.05 },
+        { id: "WIN", name: "Windsor", lat: 42.315, lon: -83.036 },
+        { id: "GPE", name: "Grosse Pointe", lat: 42.386, lon: -82.911 },
+        { id: "DBN", name: "Dearborn", lat: 42.322, lon: -83.176 },
+        { id: "DTW", name: "Metro Airport", lat: 42.212, lon: -83.349 },
+        { id: "LVN", name: "Livonia", lat: 42.368, lon: -83.353 },
+        { id: "SFD", name: "Southfield", lat: 42.473, lon: -83.222 },
+        { id: "ROK", name: "Royal Oak", lat: 42.489, lon: -83.145 },
+        { id: "WRN", name: "Warren", lat: 42.49, lon: -83.027 },
+      ],
+    },
+  },
   // No mountains on Michigan's map (the Porcupine Mountains and the Huron Mountains are hills),
   // so no link needs a pass.
   passes: [],

@@ -301,6 +301,28 @@ NR.addPack({
     // Aurora: the Ohio River town (Hillforest mansion).
     { id: "AURI", name: "Aurora", county: "in-dearborn", lat: 39.06, lon: -84.91, type: "farm", size: 1 },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains.
+  metros: {
+    INDY: {
+      name: "Indianapolis",
+      size: 4,
+      stops: [
+        { id: "IUS", name: "Union Station", lat: 39.766, lon: -86.162, hub: true },
+        { id: "MAS", name: "Mass Ave", lat: 39.775, lon: -86.147 },
+        { id: "FSQ", name: "Fountain Square", lat: 39.754, lon: -86.143 },
+        { id: "BGV", name: "Beech Grove", lat: 39.722, lon: -86.09 },
+        { id: "IND", name: "Airport", lat: 39.717, lon: -86.295 },
+        { id: "SPD", name: "Speedway", lat: 39.795, lon: -86.235 },
+        { id: "BUT", name: "Butler University", lat: 39.84, lon: -86.17 },
+        { id: "BRP", name: "Broad Ripple", lat: 39.869, lon: -86.143 },
+        { id: "LAW", name: "Lawrence", lat: 39.839, lon: -86.025 },
+        { id: "CRM", name: "Carmel", lat: 39.978, lon: -86.118 },
+        { id: "FIS", name: "Fishers", lat: 39.957, lon: -85.969 },
+        { id: "GRN", name: "Greenwood", lat: 39.614, lon: -86.107 },
+      ],
+    },
+  },
   // Indiana has no mountains on its map (the highest hills, in the south, are only hills), so
   // there are no passes.
   passes: [],

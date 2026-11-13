@@ -101,3 +101,12 @@ Everything below comes from `packs/IL/raw/` (Census 2020 populations and place p
 **Checks:** `node tools/check-pack.js IL` 0 errors, 0 warnings; `node tools/check-pack.js` all packs passed; `node tools/test-pack.js IL` PASSED (17 passed, 0 failed). Screenshot looked at: `test-out/IL/IL-arcade-light.png` (the three start stations at the lake, the state outlined, the rivers).
 
 **Unsure:** the Rend Lake (I-57) bridge point and the Peru-LaSalle bridge names are from general knowledge; the scenic coordinates marked general knowledge are approximate (within a mile or two). Illinois has size-2 regions with small cities (Quincy, Danville) by the 60k-plus rule used in other packs.
+
+## City maps
+
+**Chicago (`CHGO`, size 5, 12 stops, hub Union Station).** Union Station (41.879,-87.640, Amtrak and Metra, 0.5 mi from the state map's Loop station), Streeterville, Lincoln Park, Wrigleyville (Wrigley Field), Wicker Park, Chinatown, Hyde Park (University of Chicago), Oak Park, Evanston (downtown), Skokie, O'Hare Airport, Midway Airport. Furthest stop O'Hare, 15.6 mi; closest pair 1.4 mi. All coordinates from general knowledge (neighbourhood centres, rounded to 3 decimals).
+- Preview (`/tmp/city-midwest/preview-CHGO.png`): Lake Michigan is water. Navy Pier sat on the shore, so the stop is Streeterville (41.893,-87.620), a few hundred metres inland; Evanston moved 0.005 deg west off the shore. No stop in water.
+- Left out: Gary and Hammond (Indiana, 20-25 mi, too close to the 25-mile limit or in another state), Naperville, Aurora, Joliet, Schaumburg and Waukegan (over 25 mi), Cicero and Bridgeport (too near Midway and Chinatown).
+- Unsure: nothing placed that I am unsure of; Evanston, Skokie and Oak Park are the village centres.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.
