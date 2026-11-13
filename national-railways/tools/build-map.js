@@ -1363,7 +1363,34 @@ const STATES = {
       ["Newport News", "Isle of Wight"],
     ],
   },
-  WV: { fips: "54", name: "West Virginia", pop: "census", merge: [] },
+  // West Virginia: 55 counties, 1.79 million people (Census 2020); reviewed by the West Virginia
+  // pack agent (packs/WV/NOTES.md), 32 regions. Small counties join neighbours along one valley or
+  // corridor (the Ohio River, I-79, US-50, the coalfields, the Allegheny Highlands); Ohio
+  // (Wheeling), Fayette (the New River Gorge), Wayne (by Huntington), Preston (the I-68 plateau) and
+  // Mineral (across the Allegheny Front, Cumberland's side) stay alone under 50,000.
+  WV: {
+    fips: "54",
+    name: "West Virginia",
+    pop: "census",
+    merge: [
+      ["Brooke", "Hancock"],
+      ["Marshall", "Wetzel"],
+      ["Pleasants", "Ritchie", "Tyler"],
+      ["Jackson", "Mason"],
+      ["Calhoun", "Roane", "Wirt"],
+      ["Braxton", "Doddridge", "Gilmer"],
+      ["Lewis", "Upshur"],
+      ["Barbour", "Taylor"],
+      ["Clay", "Nicholas", "Webster"],
+      ["Greenbrier", "Monroe", "Summers"],
+      ["Pocahontas", "Randolph", "Tucker"],
+      ["Grant", "Hardy", "Pendleton"],
+      ["Hampshire", "Morgan"],
+      ["Logan", "Mingo"],
+      ["Boone", "Lincoln"],
+      ["McDowell", "Wyoming"],
+    ],
+  },
   MD: { fips: ["24", "11"], name: "Maryland", pop: "census", merge: [] },
   DE: { fips: "10", name: "Delaware", pop: "census", merge: [] },
   PA: { fips: "42", name: "Pennsylvania", pop: "census", merge: [] },
