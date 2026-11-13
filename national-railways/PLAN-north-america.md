@@ -273,7 +273,7 @@ The online game stays at version 38 (California to British Columbia) until **eve
 5. **South:** Kentucky, Tennessee, Mississippi, Alabama, Georgia, Florida, South Carolina, North Carolina (**all done**, by Sonnet pack agents; the group check passed: every game test (smoke 3-27) and all 49 pack tests; with all 49 packs loaded (1,819 regions, 4,938 places) loading takes 0.23-0.42 s (1.5 s on the first, cold run), memory 39-116 MB, 60 frames a second; the Arcade look's one redraw after zooming far out still up to 0.6 s.)
 6. **Mid-Atlantic:** Virginia (done), West Virginia (done), Maryland (with DC, done), Delaware (done), Pennsylvania (done), New Jersey (done), New York (done), Connecticut (done). **All done**, by Sonnet pack agents; the group check passed: every game test (smoke 3-27) and all 57 pack tests (Alaska's failed once while maps were being rebuilt beside it and passed on a rerun); with all 57 packs loaded (2,080 regions, 5,668 places) loading takes 0.24-1.07 s (the slower runs beside those rebuilds), memory 41-124 MB, 60 frames a second; the Arcade look's one redraw after zooming far out up to 0.5 s.
 7. **New England:** Rhode Island (done), Massachusetts (done), Vermont (done), New Hampshire (done), Maine (done).
-8. **Hawaii** last (islands, reached by a sea link).
+8. **Hawaii** last (islands, reached by a sea link) (**done**: one region per island county, inter-island barge links and Matson's ships from Honolulu to Los Angeles).
 
 ### For each state or province
 1. **Me:** add it to the map tool, register it (empty pack), build the maps of everything in the game, check that its regions add up to its land, make its raw facts (populations, places, parks in Canada) and its terrain (rivers, ranges).

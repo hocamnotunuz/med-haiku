@@ -112,14 +112,15 @@ async function calm(page) {
   // The pause button says "Pause" while the game runs
   if ((await page.isVisible("#btn-pause")) && (await page.getAttribute("#btn-pause", "aria-label")) === "Pause") await page.click("#btn-pause").catch(() => {});
 }
-// A drawn map has many colors; a blank or failed one has very few
+// A drawn map has many colors; a blank or failed one has very few (a fine grid, so that small
+// islands in a wide sea, like Hawaii's, are sampled too)
 const mapColors = (page) =>
   page.evaluate(() => {
     const cv = document.getElementById("map");
     const g = cv.getContext("2d");
     const seen = new Set();
-    for (let y = 0.05; y < 1; y += 0.05)
-      for (let x = 0.05; x < 1; x += 0.05) {
+    for (let y = 0.025; y < 1; y += 0.025)
+      for (let x = 0.025; x < 1; x += 0.025) {
         const d = g.getImageData(Math.floor(x * cv.width), Math.floor(y * cv.height), 1, 1).data;
         seen.add(`${d[0] >> 3},${d[1] >> 3},${d[2] >> 3}`);
       }
@@ -245,7 +246,13 @@ const mapColors = (page) =>
 
     // ---------- 7. Both looks, light and dark ----------
     await calm(page);
-    await page.evaluate(() => NR.resetCamera());
+    // The whole home state (not the whole map: once Hawaii is all yours, California opens across
+    // the sea and the full view is mostly ocean)
+    await page.evaluate((code) => {
+      NR.resetCamera();
+      const own = NR.CITIES.filter((c) => c.main && NR.countyById[c.county] && NR.countyById[c.county].state === code);
+      if (own.length) NR.focusOn(own.map((c) => [c.lon, c.lat]));
+    }, CODE);
     for (const look of ["arcade", "classic"])
       for (const scheme of ["light", "dark"]) {
         await page.emulateMedia({ colorScheme: scheme });
