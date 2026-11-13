@@ -1582,6 +1582,8 @@ const STATES = {
       ["Piscataquis", "Somerset"],
     ],
     names: { "Hancock-Washington": "Downeast", "Franklin-Oxford": "Western Mountains" },
+    // The CAT, Bay Ferries' summer ferry from Bar Harbor to Yarmouth, Nova Scotia
+    bridges: [["Hancock", "NS:Yarmouth"]],
   },
   // Canada: regions are census divisions (in British Columbia, its regional districts). Small
   // ones are merged automatically from Statistics Canada's 2021 populations, for the pack
