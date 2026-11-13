@@ -1531,7 +1531,25 @@ const STATES = {
     ],
     names: { "Barnstable-Dukes-Nantucket": "Cape Cod and the Islands" },
   },
-  VT: { fips: "50", name: "Vermont", pop: "census", merge: [] },
+  // Vermont: 14 counties, 643,000 people (Census 2020); 7 regions, set by the main agent. The
+  // Northeast Kingdom (Caledonia, Essex, Orleans); Franklin with the Lake Champlain islands of Grand
+  // Isle; Central Vermont (Washington with Lamoille, Stowe's valley, and Orange, on I-89); the
+  // Connecticut valley on I-91 (Windham and Windsor); the Champlain and Otter Creek valley (Addison
+  // and Rutland, US-7 and the Vermont Railway). Bennington (37,000) stays alone in the south-west
+  // corner, its valley tied to Rutland's and to New York's; Chittenden (Burlington) alone.
+  VT: {
+    fips: "50",
+    name: "Vermont",
+    pop: "census",
+    merge: [
+      ["Caledonia", "Essex", "Orleans"],
+      ["Franklin", "Grand Isle"],
+      ["Lamoille", "Orange", "Washington"],
+      ["Windham", "Windsor"],
+      ["Addison", "Rutland"],
+    ],
+    names: { "Caledonia-Essex-Orleans": "Northeast Kingdom", "Lamoille-Orange-Washington": "Central Vermont" },
+  },
   NH: { fips: "33", name: "New Hampshire", pop: "census", merge: [] },
   ME: { fips: "23", name: "Maine", pop: "census", merge: [] },
   // Canada: regions are census divisions (in British Columbia, its regional districts). Small
