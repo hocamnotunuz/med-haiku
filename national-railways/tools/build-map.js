@@ -1486,7 +1486,21 @@ const STATES = {
       ["Richmond", "New York"],
     ],
   },
-  CT: { fips: "09", name: "Connecticut", pop: "census", merge: [] },
+  // Connecticut: the map's 8 counties (the Census Bureau has used planning regions since 2022; the
+  // 2020 county totals are used), 3.61 million people (Census 2020); each county is a region (all
+  // are over 50,000). Water links across Long Island Sound: the Bridgeport-Port Jefferson Ferry
+  // (Fairfield to Suffolk) and the Cross Sound Ferry (New London to Orient Point, Suffolk).
+  CT: {
+    fips: "09",
+    name: "Connecticut",
+    pop: "census",
+    merge: [
+    ],
+    bridges: [
+      ["Fairfield", "NY:Suffolk"],
+      ["New London", "NY:Suffolk"],
+    ],
+  },
   RI: { fips: "44", name: "Rhode Island", pop: "census", merge: [] },
   MA: { fips: "25", name: "Massachusetts", pop: "census", merge: [] },
   VT: { fips: "50", name: "Vermont", pop: "census", merge: [] },
