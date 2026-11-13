@@ -307,6 +307,29 @@ NR.addPack({
       ],
     },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md.
+  metros: {
+    // Hub: Gare Centrale (Central Station). Laval and Longueuil/Brossard are across the rivers.
+    MTL: {
+      name: "Montréal",
+      size: 5,
+      stops: [
+        { id: "GCE", name: "Gare Centrale", lat: 45.5, lon: -73.567, hub: true },
+        { id: "VMT", name: "Vieux-Montréal", lat: 45.508, lon: -73.553 },
+        { id: "UDM", name: "Université de Montréal", lat: 45.504, lon: -73.613 },
+        { id: "MRY", name: "Mont Royal", lat: 45.504, lon: -73.587 },
+        { id: "PLT", name: "Plateau-Mont-Royal", lat: 45.523, lon: -73.582 },
+        { id: "YUL", name: "Trudeau Airport", lat: 45.47, lon: -73.741 },
+        { id: "LAV", name: "Laval (Montmorency)", lat: 45.558, lon: -73.721 },
+        { id: "LGL", name: "Longueuil", lat: 45.525, lon: -73.522 },
+        { id: "OLY", name: "Olympic Stadium", lat: 45.558, lon: -73.552 },
+        { id: "VER", name: "Verdun", lat: 45.46, lon: -73.572 },
+        { id: "NDG", name: "Notre-Dame-de-Grâce", lat: 45.4735, lon: -73.6155 },
+        { id: "BRO", name: "Brossard", lat: 45.459, lon: -73.465 },
+      ],
+    },
+  },
   // Real mountain passes and gaps: [name, latitude, longitude]. See NOTES.md.
   passes: [],
   // Real bridges and ferries: [name, latitude, longitude]. Water or a river crossed near one uses the

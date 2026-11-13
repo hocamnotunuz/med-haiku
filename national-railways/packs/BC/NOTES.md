@@ -249,3 +249,16 @@ Every level's regions touch an earlier level's regions.
   - Washington, Oregon and California join all their main stations in Tough without towns, so this is worth knowing.
 
 Of the 140 neighbour and nearby-town links tested, 98 are open in both modes, 27 only in Gentle and 15 in neither. Most are long or roadless lines, such as Fort St. John–Prince Rupert.
+
+
+## City maps
+
+Added by the city map agent (`metros`). Every stop is a real place at its real location (3 decimals); each map has 12 stops, one hub, no cable stops. Previews (water, hills) were run in preview mode only; every stop was checked against the preview's water rings (even-odd) and the land/water grid: none sits in water. Real terrain still to be built by the main agent.
+
+### Vancouver (VAN, size 5)
+
+- Stops: Pacific Central Station (hub), Waterfront Station, Granville Island, Kitsilano, UBC, Stanley Park, Metrotown, Simon Fraser University, Central Lonsdale, Vancouver Airport, Richmond Centre, New Westminster.
+- Source: Pacific Central Station, Waterfront Station, Granville Island, Kitsilano, UBC, Stanley Park, Metrotown, Simon Fraser University, Central Lonsdale (North Vancouver), YVR, Richmond Centre, New Westminster; general knowledge, checked against the preview.
+- Left out: Surrey, West Vancouver, Coquitlam, Gastown and Yaletown (too close to downtown stops or past the city's core). Hub is Pacific Central rather than Waterfront because it is the intercity rail station and nearest the state-map station.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

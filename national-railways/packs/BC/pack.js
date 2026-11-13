@@ -165,6 +165,29 @@ NR.addPack({
       ],
     },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md.
+  metros: {
+    // Hub: Pacific Central Station (VIA/Amtrak/Cascades), not Waterfront Station, which is a stop of its own.
+    VAN: {
+      name: "Vancouver",
+      size: 5,
+      stops: [
+        { id: "PCS", name: "Pacific Central Station", lat: 49.273, lon: -123.098, hub: true },
+        { id: "WFS", name: "Waterfront Station", lat: 49.286, lon: -123.112 },
+        { id: "GRI", name: "Granville Island", lat: 49.271, lon: -123.134 },
+        { id: "KIT", name: "Kitsilano", lat: 49.268, lon: -123.155 },
+        { id: "UBC", name: "UBC", lat: 49.261, lon: -123.246 },
+        { id: "STP", name: "Stanley Park", lat: 49.302, lon: -123.142 },
+        { id: "MET", name: "Metrotown", lat: 49.226, lon: -123.003 },
+        { id: "SFU", name: "Simon Fraser University", lat: 49.279, lon: -122.919 },
+        { id: "LON", name: "Central Lonsdale", lat: 49.32, lon: -123.073 },
+        { id: "YVR", name: "Vancouver Airport", lat: 49.195, lon: -123.18 },
+        { id: "RCH", name: "Richmond Centre", lat: 49.168, lon: -123.136 },
+        { id: "NWM", name: "New Westminster", lat: 49.203, lon: -122.912 },
+      ],
+    },
+  },
   // Real mountain passes, canyons and gaps: [name, latitude, longitude]. Track that crosses
   // mountains near one goes over the pass (it costs more and trains climb slowly); anywhere else,
   // mountains need a tunnel. BC's railways and highways mostly follow river valleys through the

@@ -169,3 +169,22 @@ Checked with `NR.segmentGeo` / `NR.blockedReason`, loading the game as `tools/ch
   - Lethbridge to Cranbrook (Crowsnest Pass)
   - Grande Prairie to Dawson Creek and Fort St. John
 - **Tough blocks across lakes:** Sullivan Lake (Strathmore–Wainwright), Beaverhill Lake (Edmonton–Lloydminster), Buffalo Lake (Stettler–Wetaskiwin) and Lac la Biche (Lac La Biche–Fort McMurray). Each has an open way around.
+
+
+## City maps
+
+Added by the city map agent (`metros`). Every stop is a real place at its real location (3 decimals); each map has 12 stops, one hub, no cable stops. Previews (water, hills) were run in preview mode only; every stop was checked against the preview's water rings (even-odd) and the land/water grid: none sits in water. Real terrain still to be built by the main agent.
+
+### Calgary (CGY, size 5)
+
+- Stops: Calgary Tower (hub), Stampede Park, Kensington, University of Calgary, Airport, Marda Loop, Chinook Centre, Forest Lawn, Crowfoot, Southcentre, Airdrie, Bridgeland.
+- Source: Calgary Tower, Stampede Park, Kensington, University of Calgary, Calgary International Airport, Marda Loop, Chinook Centre, Forest Lawn, Crowfoot, Southcentre, Airdrie, Bridgeland; general knowledge, checked against the preview.
+- Left out: Cochrane and Okotoks. Stampede Park is 0.7 mile from the Calgary Tower (the closest pair), kept because it is the best-known district.
+
+### Edmonton (EDM, size 5)
+
+- Stops: Churchill Square (hub), Old Strathcona, University of Alberta, West Edmonton Mall, Airport, NAIT, Commonwealth Stadium, Southgate, Clareview, Sherwood Park, St. Albert, Leduc.
+- Source: Churchill Square, Old Strathcona, University of Alberta, West Edmonton Mall, Edmonton International Airport, NAIT, Commonwealth Stadium, Southgate, Clareview, Sherwood Park, St. Albert, Leduc; general knowledge, checked against the preview.
+- Left out: Fort Saskatchewan, Mill Woods, Spruce Grove. The state-map station (53.53, -113.49) is in the river valley; the hub is downtown a mile north. Airport and Leduc are the far ends (about 17 and 19 miles).
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

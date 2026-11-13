@@ -242,6 +242,48 @@ NR.addPack({
       ],
     },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md.
+  metros: {
+    // Union Station is the hub (the main station's own stop). Pearson (Mississauga) and Vaughan are the far ends.
+    TOR: {
+      name: "Toronto",
+      size: 5,
+      stops: [
+        { id: "UNI", name: "Union Station", lat: 43.645, lon: -79.381, hub: true },
+        { id: "UFT", name: "University of Toronto", lat: 43.663, lon: -79.396 },
+        { id: "DAN", name: "Greektown (Danforth)", lat: 43.677, lon: -79.351 },
+        { id: "YGE", name: "Yonge-Eglinton", lat: 43.706, lon: -79.398 },
+        { id: "NYC", name: "North York Centre", lat: 43.768, lon: -79.413 },
+        { id: "SCB", name: "Scarborough Town Centre", lat: 43.775, lon: -79.258 },
+        { id: "YYZ", name: "Pearson Airport", lat: 43.677, lon: -79.631 },
+        { id: "MIS", name: "Mississauga City Centre", lat: 43.593, lon: -79.642 },
+        { id: "ETB", name: "Etobicoke (Kipling)", lat: 43.637, lon: -79.536 },
+        { id: "BEA", name: "The Beaches", lat: 43.668, lon: -79.298 },
+        { id: "BBA", name: "Billy Bishop Airport", lat: 43.629, lon: -79.396 },
+        { id: "VMC", name: "Vaughan Metropolitan Centre", lat: 43.794, lon: -79.527 },
+      ],
+    },
+    // Hub: Ottawa Station on Tremblay Road (the VIA station), the main station's own stop. Gatineau and Aylmer are across the Ottawa River in Quebec.
+    OTT: {
+      name: "Ottawa",
+      size: 4,
+      stops: [
+        { id: "OTS", name: "Ottawa Station", lat: 45.416, lon: -75.652, hub: true },
+        { id: "PHL", name: "Parliament Hill", lat: 45.423, lon: -75.699 },
+        { id: "LDP", name: "Lansdowne Park", lat: 45.399, lon: -75.684 },
+        { id: "CAR", name: "Carleton University", lat: 45.386, lon: -75.696 },
+        { id: "YOW", name: "Airport", lat: 45.323, lon: -75.669 },
+        { id: "KAN", name: "Kanata", lat: 45.296, lon: -75.909 },
+        { id: "ORL", name: "Orléans", lat: 45.474, lon: -75.513 },
+        { id: "BAR", name: "Barrhaven", lat: 45.274, lon: -75.74 },
+        { id: "AYL", name: "Aylmer", lat: 45.391, lon: -75.842 },
+        { id: "GAT", name: "Gatineau", lat: 45.477, lon: -75.701 },
+        { id: "WBR", name: "Westboro", lat: 45.393, lon: -75.757 },
+        { id: "VNR", name: "Vanier", lat: 45.438, lon: -75.66 },
+      ],
+    },
+  },
   // Real mountain passes and gaps: [name, latitude, longitude]. Ontario has no mountains on the
   // terrain grid (a few hill cells only), so no link needs one.
   passes: [],

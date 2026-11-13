@@ -565,3 +565,16 @@ The Magdalens can't be bought until Prince Edward Island is in the game.
   - **phone:** the three start stations fit.
 
   They looked right.
+
+
+## City maps
+
+Added by the city map agent (`metros`). Every stop is a real place at its real location (3 decimals); each map has 12 stops, one hub, no cable stops. Previews (water, hills) were run in preview mode only; every stop was checked against the preview's water rings (even-odd) and the land/water grid: none sits in water. Real terrain still to be built by the main agent.
+
+### Montréal (MTL, size 5)
+
+- Stops: Gare Centrale (hub), Vieux-Montréal, Université de Montréal, Mont Royal, Plateau-Mont-Royal, Trudeau Airport, Laval (Montmorency), Longueuil, Olympic Stadium, Verdun, Notre-Dame-de-Grâce, Brossard.
+- Source: Gare Centrale, Vieux-Montréal, Université de Montréal, Parc du Mont-Royal, Plateau-Mont-Royal, Trudeau Airport, Laval (Montmorency), Longueuil, Olympic Stadium, Verdun, Notre-Dame-de-Grâce, Brossard; general knowledge, checked against the preview.
+- Left out: the West Island (Pointe-Claire, Dorval) and Laval's Centre-ville beyond Montmorency. Vieux-Montréal is about 0.9 mile from Gare Centrale, the closest pair.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.

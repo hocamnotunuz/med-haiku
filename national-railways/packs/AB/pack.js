@@ -130,6 +130,48 @@ NR.addPack({
       ],
     },
   ],
+  // City maps, keyed by their main station on the state map. hub = the main station's own stop
+  // in the city, where riders change to and from trains. Sources in NOTES.md.
+  metros: {
+    // Hub: the downtown core by the Calgary Tower (Calgary has no passenger rail station).
+    CGY: {
+      name: "Calgary",
+      size: 5,
+      stops: [
+        { id: "TWR", name: "Calgary Tower", lat: 51.044, lon: -114.063, hub: true },
+        { id: "STM", name: "Stampede Park", lat: 51.037, lon: -114.052 },
+        { id: "KEN", name: "Kensington", lat: 51.0525, lon: -114.0875 },
+        { id: "UCL", name: "University of Calgary", lat: 51.078, lon: -114.13 },
+        { id: "YYC", name: "Airport", lat: 51.114, lon: -114.02 },
+        { id: "MRL", name: "Marda Loop", lat: 51.024, lon: -114.103 },
+        { id: "CHN", name: "Chinook Centre", lat: 50.999, lon: -114.075 },
+        { id: "FLN", name: "Forest Lawn", lat: 51.0375, lon: -113.984 },
+        { id: "CRF", name: "Crowfoot", lat: 51.123, lon: -114.207 },
+        { id: "SCE", name: "Southcentre", lat: 50.955, lon: -114.065 },
+        { id: "AIR", name: "Airdrie", lat: 51.292, lon: -114.014 },
+        { id: "BRG", name: "Bridgeland", lat: 51.054, lon: -114.04 },
+      ],
+    },
+    // Hub: downtown, Churchill Square (Churchill Station); the North Saskatchewan valley is the water.
+    EDM: {
+      name: "Edmonton",
+      size: 5,
+      stops: [
+        { id: "CHU", name: "Churchill Square", lat: 53.544, lon: -113.49, hub: true },
+        { id: "OSC", name: "Old Strathcona", lat: 53.5185, lon: -113.4995 },
+        { id: "UOA", name: "University of Alberta", lat: 53.523, lon: -113.526 },
+        { id: "WEM", name: "West Edmonton Mall", lat: 53.522, lon: -113.623 },
+        { id: "EIA", name: "Airport", lat: 53.31, lon: -113.58 },
+        { id: "NAI", name: "NAIT", lat: 53.571, lon: -113.502 },
+        { id: "COM", name: "Commonwealth Stadium", lat: 53.559, lon: -113.472 },
+        { id: "SGT", name: "Southgate", lat: 53.4855, lon: -113.516 },
+        { id: "CLV", name: "Clareview", lat: 53.602, lon: -113.402 },
+        { id: "SHP", name: "Sherwood Park", lat: 53.541, lon: -113.296 },
+        { id: "STA", name: "St. Albert", lat: 53.632, lon: -113.626 },
+        { id: "LDC", name: "Leduc", lat: 53.262, lon: -113.549 },
+      ],
+    },
+  },
   // Real mountain passes and gaps: [name, latitude, longitude]. Track that crosses mountains near
   // one goes over the pass (it costs more and trains climb slowly); anywhere else, mountains need a
   // tunnel. Kicking Horse, Yellowhead and Crowsnest passes, on the BC border, are in BC's pack.

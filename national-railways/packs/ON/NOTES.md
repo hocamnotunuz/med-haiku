@@ -414,3 +414,22 @@ Checked with `NR.segmentGeo` / `NR.blockedReason`, in both modes. The game was l
 
 ## Main agent's review
 - Belleville's station moved from 44.26, -77.37 (the middle of the City of Belleville in the raw place list, 10 km north of town) to downtown on the Bay of Quinte, 44.17, -77.38 (well known). Other stations sit within a few kilometres of their towns.
+
+
+## City maps
+
+Added by the city map agent (`metros`). Every stop is a real place at its real location (3 decimals); each map has 12 stops, one hub, no cable stops. Previews (water, hills) were run in preview mode only; every stop was checked against the preview's water rings (even-odd) and the land/water grid: none sits in water. Real terrain still to be built by the main agent.
+
+### Toronto (TOR, size 5)
+
+- Stops: Union Station (hub), University of Toronto, Greektown (Danforth), Yonge-Eglinton, North York Centre, Scarborough Town Centre, Pearson Airport, Mississauga City Centre, Etobicoke (Kipling), The Beaches, Billy Bishop Airport, Vaughan Metropolitan Centre.
+- Source: Locations from general knowledge of the places (Union Station, University of Toronto St. George campus, Danforth/Greektown, Yonge-Eglinton, North York Centre, Scarborough Town Centre, Toronto Pearson, Mississauga City Centre, Kipling, The Beaches, Billy Bishop Toronto City Airport, Vaughan Metropolitan Centre); checked against the preview (CanVec water, StatCan land).
+- Left out: Brampton, Markham, Pickering and Oakville (more than 25 miles or too thin a map); Billy Bishop is a few hundred metres from the shore on the island strip.
+
+### Ottawa (OTT, size 4)
+
+- Stops: Ottawa Station (hub), Parliament Hill, Lansdowne Park, Carleton University, Airport, Kanata, Orléans, Barrhaven, Aylmer, Gatineau, Westboro, Vanier.
+- Source: Ottawa Station (VIA, Tremblay Road), Parliament Hill, Lansdowne Park, Carleton University, Ottawa Macdonald-Cartier Airport, Kanata, Orléans, Barrhaven, Westboro, Vanier, and Aylmer and Gatineau in Quebec; general knowledge of the places, checked against the preview.
+- Left out: Hull and ByWard Market (under 1 mile from Parliament Hill, so folded into it). Parliament Hill was moved a few hundred metres south of the river bluff because the first point fell in a river cell.
+
+- **Main agent's review of the city maps:** every stop checked against its real location; hills and water built (CITIES_ONLY); `test-pack` passed.
