@@ -1447,7 +1447,20 @@ const STATES = {
       ["Bedford", "Fulton"],
     ],
   },
-  NJ: { fips: "34", name: "New Jersey", pop: "census", merge: [] },
+  // New Jersey: 21 counties, 9.29 million people (Census 2020); each county is a region (all are
+  // over 50,000). Water link: the Cape May-Lewes Ferry (Cape May to Sussex, Delaware); the Delaware
+  // Memorial Bridge joins Salem and New Castle, which are neighbours anyway. New York's links (the
+  // Hudson tunnels and bridges, Staten Island's bridges) are listed with New York.
+  NJ: {
+    fips: "34",
+    name: "New Jersey",
+    pop: "census",
+    merge: [
+    ],
+    bridges: [
+      ["Cape May", "DE:Sussex"],
+    ],
+  },
   NY: { fips: "36", name: "New York", pop: "census", merge: [] },
   CT: { fips: "09", name: "Connecticut", pop: "census", merge: [] },
   RI: { fips: "44", name: "Rhode Island", pop: "census", merge: [] },
