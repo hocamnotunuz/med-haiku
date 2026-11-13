@@ -1424,7 +1424,29 @@ const STATES = {
     merge: [
     ],
   },
-  PA: { fips: "42", name: "Pennsylvania", pop: "census", merge: [] },
+  // Pennsylvania: 67 counties, 13.0 million people (Census 2020); reviewed by the Pennsylvania pack
+  // agent (packs/PA/NOTES.md), 55 regions. The small counties of the Northern Tier, the Wilds and
+  // the Ridge-and-Valley join neighbours along one road or valley (US-6, US-219, US-62, I-80, US-15,
+  // the Juniata valley, US-30); Columbia joins Montour and Sullivan, which have no better partner,
+  // and Greene (36,000) stays alone between two big neighbours.
+  PA: {
+    fips: "42",
+    name: "Pennsylvania",
+    pop: "census",
+    merge: [
+      ["Cameron", "Clinton"],
+      ["Elk", "McKean"],
+      ["Potter", "Tioga"],
+      ["Forest", "Warren"],
+      ["Clarion", "Jefferson"],
+      ["Columbia", "Montour", "Sullivan"],
+      ["Susquehanna", "Wyoming"],
+      ["Snyder", "Union"],
+      ["Huntingdon", "Mifflin"],
+      ["Juniata", "Perry"],
+      ["Bedford", "Fulton"],
+    ],
+  },
   NJ: { fips: "34", name: "New Jersey", pop: "census", merge: [] },
   NY: { fips: "36", name: "New York", pop: "census", merge: [] },
   CT: { fips: "09", name: "Connecticut", pop: "census", merge: [] },
