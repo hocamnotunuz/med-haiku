@@ -121,29 +121,34 @@ function nearestRegion(lon, lat) {
 
 async function usRaw() {
   const base = "https://www2.census.gov";
+  // (a pack can hold more than one state's counties: Maryland's holds the District of Columbia)
+  const ALL = [...new Set(regions.flatMap((r) => r.fips.map((f) => f.slice(0, 2))))].sort();
   const counties = await get(`${base}/programs-surveys/popest/datasets/2020-2023/counties/totals/co-est2023-alldata.csv`, "co-est2023-alldata.csv");
   // (the Census Bureau names this file without a leading zero: sub-est2023_8.csv for Colorado)
-  const subs = await get(`${base}/programs-surveys/popest/datasets/2020-2023/cities/totals/sub-est2023_${Number(FIPS)}.csv`, `sub-est2023_${FIPS}.csv`);
-  const gaz = await get(`${base}/geo/docs/maps-data/data/gazetteer/2023_Gazetteer/2023_gaz_place_${FIPS}.txt`, `2023_gaz_place_${FIPS}.txt`);
+  const subsAll = [], gazAll = [];
+  for (const f of ALL) {
+    subsAll.push(await get(`${base}/programs-surveys/popest/datasets/2020-2023/cities/totals/sub-est2023_${Number(f)}.csv`, `sub-est2023_${f}.csv`));
+    gazAll.push(await get(`${base}/geo/docs/maps-data/data/gazetteer/2023_Gazetteer/2023_gaz_place_${f}.txt`, `2023_gaz_place_${f}.txt`));
+  }
 
   // County populations (2020 census base), then each region's total
   const rows = csv(fs.readFileSync(counties, "latin1"));
   const head = rows[0];
   const col = (name) => head.indexOf(name);
   const countyPop = {};
-  for (const r of rows.slice(1)) if (r[col("SUMLEV")] === "050" && r[col("STATE")] === FIPS) countyPop[r[col("STATE")] + r[col("COUNTY")]] = { name: r[col("CTYNAME")], pop: +r[col("ESTIMATESBASE2020")] };
+  for (const r of rows.slice(1)) if (r[col("SUMLEV")] === "050" && ALL.includes(r[col("STATE")])) countyPop[r[col("STATE")] + r[col("COUNTY")]] = { name: r[col("CTYNAME")], pop: +r[col("ESTIMATESBASE2020")] };
   // Counties that changed after the map's (2017) boundaries, as in build-map.js: Alaska's
   // Valdez-Cordova split in 2019 (Chugach plus Copper River), and Connecticut's old counties
   // (planning regions since 2022) come from the 2010–2020 county totals (POPESTIMATE2020)
   const SPLIT = { "02261": { name: "Valdez-Cordova Census Area", parts: ["02063", "02066"] } };
   for (const [was, { name, parts }] of Object.entries(SPLIT))
-    if (was.slice(0, 2) === FIPS && !countyPop[was] && parts.every((f) => countyPop[f])) countyPop[was] = { name, pop: parts.reduce((n, f) => n + countyPop[f].pop, 0) };
+    if (ALL.includes(was.slice(0, 2)) && !countyPop[was] && parts.every((f) => countyPop[f])) countyPop[was] = { name, pop: parts.reduce((n, f) => n + countyPop[f].pop, 0) };
   if (regions.some((r) => r.fips.some((f) => !countyPop[f]))) {
     const old = await get(`${base}/programs-surveys/popest/datasets/2010-2020/counties/totals/co-est2020-alldata.csv`, "co-est2020-alldata.csv");
     const orows = csv(fs.readFileSync(old, "latin1"));
     const ocol = (name) => orows[0].indexOf(name);
     for (const r of orows.slice(1))
-      if (r[ocol("SUMLEV")] === "050" && r[ocol("STATE")] === FIPS && !countyPop[r[ocol("STATE")] + r[ocol("COUNTY")]])
+      if (r[ocol("SUMLEV")] === "050" && ALL.includes(r[ocol("STATE")]) && !countyPop[r[ocol("STATE")] + r[ocol("COUNTY")]])
         countyPop[r[ocol("STATE")] + r[ocol("COUNTY")]] = { name: r[ocol("CTYNAME")], pop: +r[ocol("POPESTIMATE2020")] };
   }
   const outCounties = regions.map((r) => ({
@@ -158,18 +163,20 @@ async function usRaw() {
   if (missing.length) console.warn(`no population for counties ${missing.join(", ")}`);
 
   // City and town populations: incorporated places (summary level 162)
-  const srows = csv(fs.readFileSync(subs, "latin1"));
-  const sh = srows[0];
-  const scol = (name) => sh.indexOf(name);
   const placePop = {};
-  // (some states' files write the codes without leading zeros: PLACE 6520 for Anchorage's 06520)
-  for (const r of srows.slice(1)) if (+r[scol("SUMLEV")] === 162) placePop[FIPS + String(r[scol("PLACE")]).padStart(5, "0")] = +r[scol("ESTIMATESBASE2020")];
+  ALL.forEach((f, i) => {
+    const srows = csv(fs.readFileSync(subsAll[i], "latin1"));
+    const sh = srows[0];
+    const scol = (name) => sh.indexOf(name);
+    // (some states' files write the codes without leading zeros: PLACE 6520 for Anchorage's 06520)
+    for (const r of srows.slice(1)) if (+r[scol("SUMLEV")] === 162) placePop[f + String(r[scol("PLACE")]).padStart(5, "0")] = +r[scol("ESTIMATESBASE2020")];
+  });
 
   // Where each place is (Gazetteer), and its county region
-  const glines = fs.readFileSync(gaz, "utf8").split(/\r?\n/).filter(Boolean).map((l) => l.split("\t").map((x) => x.trim()));
-  const gh = glines[0];
+  const gfiles = gazAll.map((g) => fs.readFileSync(g, "utf8").split(/\r?\n/).filter(Boolean).map((l) => l.split("\t").map((x) => x.trim())));
+  const gh = gfiles[0][0];
   const gcol = (name) => gh.indexOf(name);
-  const places = glines.slice(1).map((r) => {
+  const places = gfiles.flatMap((g) => g.slice(1)).map((r) => {
     // (Alaska's places past the date line, like Shemya, go just west of -180° as on the map)
     const lat = +r[gcol("INTPTLAT")], lon = +r[gcol("INTPTLONG")] > 0 ? +r[gcol("INTPTLONG")] - 360 : +r[gcol("INTPTLONG")];
     const inside = regionAt(lon, lat);
@@ -193,7 +200,7 @@ async function usRaw() {
   fs.mkdirSync(out, { recursive: true });
   const note = "Made by tools/make-raw.js from U.S. Census Bureau data (public domain). Do not edit by hand.";
   fs.writeFileSync(path.join(out, "counties.json"), JSON.stringify({ note, source: "co-est2023-alldata.csv, ESTIMATESBASE2020", regions: outCounties }, null, 1));
-  fs.writeFileSync(path.join(out, "places.json"), JSON.stringify({ note, source: `sub-est2023_${FIPS}.csv (ESTIMATESBASE2020) and 2023_gaz_place_${FIPS}.txt`, places }, null, 0).replace(/\},\{/g, "},\n{"));
+  fs.writeFileSync(path.join(out, "places.json"), JSON.stringify({ note, source: `${ALL.map((f) => `sub-est2023_${f}.csv`).join(", ")} (ESTIMATESBASE2020) and ${ALL.map((f) => `2023_gaz_place_${f}.txt`).join(", ")}`, places }, null, 0).replace(/\},\{/g, "},\n{"));
   const withPop = places.filter((p) => p.pop !== null).length;
   console.log(`${CODE}: ${outCounties.length} county regions, ${places.length} places (${withPop} with populations) -> packs/${CODE}/raw/`);
 }

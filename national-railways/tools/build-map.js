@@ -1391,7 +1391,29 @@ const STATES = {
       ["McDowell", "Wyoming"],
     ],
   },
-  MD: { fips: ["24", "11"], name: "Maryland", pop: "census", merge: [] },
+  // Maryland and the District of Columbia: 24 counties and Baltimore city, plus the District, 6.87
+  // million people (Census 2020); 20 regions. The small counties join the regions Maryland itself
+  // uses: Western Maryland (Allegany and Garrett, Cumberland), the Upper Shore (Kent and Queen
+  // Anne's), the Mid-Shore (Caroline, Dorchester and Talbot, Easton and Cambridge), and Somerset
+  // with Salisbury's Wicomico on the Lower Shore. Water links: the Chesapeake Bay Bridge (Anne
+  // Arundel to Queen Anne's) and the Harry W. Nice Memorial Bridge (US-301, Charles to King George,
+  // Virginia).
+  MD: {
+    fips: ["24", "11"],
+    name: "Maryland",
+    pop: "census",
+    merge: [
+      ["Allegany", "Garrett"],
+      ["Kent", "Queen Anne's"],
+      ["Caroline", "Dorchester", "Talbot"],
+      ["Somerset", "Wicomico"],
+    ],
+    names: { "Allegany-Garrett": "Western Maryland", "Caroline-Dorchester-Talbot": "Mid-Shore", "Kent-Queen Anne's": "Upper Shore" },
+    bridges: [
+      ["Anne Arundel", "Queen Anne's"],
+      ["Charles", "VA:King George"],
+    ],
+  },
   DE: { fips: "10", name: "Delaware", pop: "census", merge: [] },
   PA: { fips: "42", name: "Pennsylvania", pop: "census", merge: [] },
   NJ: { fips: "34", name: "New Jersey", pop: "census", merge: [] },
@@ -2149,7 +2171,9 @@ for (const [i, members] of groupOf) {
     label = members.length === 1 ? full[0].replace(/ city$/, " City") : `${base} ${kind}`;
   }
   regionKey.set(i, id);
-  regionInfo.set(id, { name: code === "CA" ? label : `${label}, ${STATES[code].name}`, state: code, members });
+  // (the District of Columbia is in Maryland's pack but is not in Maryland: just "District of Columbia")
+  const dc = members.every((j) => String(counties[j].id) === "11001");
+  regionInfo.set(id, { name: code === "CA" || dc ? label : `${label}, ${STATES[code].name}`, state: code, members });
 }
 
 // Round to 3 decimals (about 100 m) and drop repeated points. Alaska's westernmost islands lie
