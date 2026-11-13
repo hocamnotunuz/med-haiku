@@ -1501,7 +1501,22 @@ const STATES = {
       ["New London", "NY:Suffolk"],
     ],
   },
-  RI: { fips: "44", name: "Rhode Island", pop: "census", merge: [] },
+  // Rhode Island: 5 counties, 1.10 million people (Census 2020); each county is a region (all are
+  // over 50,000). Newport County (Aquidneck and Conanicut islands, and Tiverton and Little Compton
+  // on the mainland by Massachusetts) is reached by water links: the Mount Hope Bridge (Bristol to
+  // Portsmouth) and the Newport Pell and Jamestown Verrazzano bridges (Newport and Jamestown to
+  // Washington County).
+  RI: {
+    fips: "44",
+    name: "Rhode Island",
+    pop: "census",
+    merge: [
+    ],
+    bridges: [
+      ["Bristol", "Newport"],
+      ["Newport", "Washington"],
+    ],
+  },
   MA: { fips: "25", name: "Massachusetts", pop: "census", merge: [] },
   VT: { fips: "50", name: "Vermont", pop: "census", merge: [] },
   NH: { fips: "33", name: "New Hampshire", pop: "census", merge: [] },
