@@ -88,6 +88,7 @@ const RIVERS = [
   "Big Sandy", "Tug Fk.", "Youghiogheny", "Nolichucky",
   // Pennsylvania and New York
   "W. Branch Susquehanna", "Juniata", "Lehigh", "Schuylkill", "Conemaugh", "Kiskiminetas", "Genesee", "Chemung",
+  "Mohawk", "Raquette", "Housatonic", "Winooski",
 ];
 // Lakes Natural Earth leaves unnamed, by their middle (within 0.1°)
 const UNNAMED_LAKES = [
